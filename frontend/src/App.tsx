@@ -1,121 +1,113 @@
 import { useState } from "react";
-import heroImg from "./assets/hero.png";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "./assets/vite.svg";
-import "./App.css";
+import type { LayoutCliente } from "./types/layout";
+import { ParametrizacaoPage } from "./pages/ParametrizacaoPage";
+import { ValidacaoPage } from "./pages/ValidacaoPage";
 
-function App() {
-  const [count, setCount] = useState(0);
+export function App() {
+  // Estado que guarda qual tela está visível no momento
+  const [abaAtiva, setAbaAtiva] = useState<"parametrizacao" | "validacao">(
+    "validacao",
+  );
+
+  // Lista de layouts mantida na raiz para que a tela de Validação enxergue o que foi salvo na tela de Parametrização
+  const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([
+    {
+      cliente: "PM Sertãozinho - SP",
+      nomeModelo: "Carnê Geral 2026 - Padrão",
+      versao: 1,
+      orientacao: "Paisagem",
+      formatoPapel: "Personalizado",
+      larguraPaginaMm: 70,
+      alturaPaginaMm: 30,
+      campos: [],
+    },
+  ]);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div
+      id="root-app"
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#f8fafc",
+        padding: "20px",
+        fontFamily: "Segoe UI, sans-serif",
+      }}
+    >
+      {/* Barra de Navegação no Topo */}
+      <nav
+        id="barra-navegacao-global"
+        style={{
+          maxWidth: "1320px",
+          margin: "0 auto 20px auto",
+          backgroundColor: "#ffffff",
+          padding: "12px 20px",
+          borderRadius: "8px",
+          border: "1px solid #cbd5e1",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+        }}
+      >
+        <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "1.2rem" }}>
+          SMARrsvp
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
+        {/* Botões para trocar de tela */}
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            id="btn-aba-validacao"
+            type="button"
+            onClick={() => setAbaAtiva("validacao")}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "6px",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              backgroundColor: abaAtiva === "validacao" ? "#2563eb" : "#f1f5f9",
+              color: abaAtiva === "validacao" ? "#ffffff" : "#475569",
+              transition: "all 0.2s ease",
+            }}
+          >
+            1. Importação
+          </button>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <button
+            id="btn-aba-parametrizacao"
+            type="button"
+            onClick={() => setAbaAtiva("parametrizacao")}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "6px",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              backgroundColor:
+                abaAtiva === "parametrizacao" ? "#2563eb" : "#f1f5f9",
+              color: abaAtiva === "parametrizacao" ? "#ffffff" : "#475569",
+              transition: "all 0.2s ease",
+            }}
+          >
+            2. Layout
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </nav>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {/* Exibição condicional da tela selecionada */}
+      <main id="conteudo-tela-ativa">
+        {abaAtiva === "parametrizacao" ? (
+          <ParametrizacaoPage
+            layoutsSalvos={layoutsSalvos}
+            onSalvarLayouts={setLayoutsSalvos}
+          ></ParametrizacaoPage>
+        ) : (
+          <ValidacaoPage layoutsDisponiveis={layoutsSalvos}></ValidacaoPage>
+        )}
+      </main>
+    </div>
   );
 }
 
