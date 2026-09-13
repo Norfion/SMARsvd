@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SMARsvp.API/SMARsvp.API.csproj" />
+  <Project Path="SMARsvp.Application/SMARsvp.Application.csproj" />
+  <Project Path="SMARsvp.Domain/SMARsvp.Domain.csproj" />
+  <Project Path="SMARsvp.Infrastructure/SMARsvp.Infrastructure.csproj" />
+</Solution>
