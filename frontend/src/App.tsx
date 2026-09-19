@@ -123,8 +123,7 @@ export function App() {
               cursor: "pointer",
             }}
           >
-            <span>📐</span>
-            <span>Parametrização de Layouts</span>
+            <span>Parametrização</span>
           </button>
 
           <span style={{ color: "#b0bec5", fontSize: "0.8rem" }}>›</span>
@@ -149,19 +148,8 @@ export function App() {
               cursor: "pointer",
             }}
           >
-            <span>📑</span>
-            <span>Importação e Validação de PDF</span>
+            <span>Validação</span>
           </button>
-        </div>
-
-        <div
-          style={{
-            fontSize: "0.75rem",
-            color: "#78909c",
-            fontWeight: 600,
-          }}
-        >
-          Ambiente Corporativo • .NET 6 / React
         </div>
       </div>
 

@@ -607,7 +607,7 @@ export function ParametrizacaoPage({
               border: "1px solid #b2dfdb",
             }}
           >
-            LAYOUT SELECIONADO
+            LAYOUT
           </span>
 
           <div style={{ flex: 1, maxWidth: "420px" }}>
@@ -628,7 +628,7 @@ export function ParametrizacaoPage({
               }}
             >
               <option value="" disabled>
-                -- Selecione um layout para parametrização --
+                (Selecione um layout)
               </option>
               {layoutsSalvos.map((layout) => (
                 <option key={layout.nomeModelo} value={layout.nomeModelo}>
@@ -661,7 +661,7 @@ export function ParametrizacaoPage({
             }}
           >
             <span>
-              {carregandoPdfModelo ? "Processando..." : "+ Novo Modelo"}
+              {carregandoPdfModelo ? "Processando..." : "Novo Layout"}
             </span>
             <span style={{ fontSize: "0.65rem" }}>▼</span>
           </button>
@@ -712,9 +712,10 @@ export function ParametrizacaoPage({
                   padding: "10px 14px",
                   background: "none",
                   border: "none",
+                  borderBottom: "1px solid #eceff1",
                   fontSize: "0.8rem",
                   fontWeight: 600,
-                  color: "#00796b",
+                  color: "#37474f",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -787,7 +788,7 @@ export function ParametrizacaoPage({
                 border: "1px solid #b2dfdb",
               }}
             >
-              Gabarito: {nomeArquivoModelo}
+              Modelo: {nomeArquivoModelo}
             </span>
           )}
         </div>
@@ -1540,7 +1541,7 @@ export function ParametrizacaoPage({
                           color: ehIdentificador ? "#6a1b9a" : "#455a64",
                         }}
                       >
-                        Identificador de Início:
+                        Identificador de página
                       </span>
                       <button
                         type="button"
@@ -1597,7 +1598,7 @@ export function ParametrizacaoPage({
                           type="text"
                           value={textoEsperado}
                           onChange={(e) => setTextoEsperado(e.target.value)}
-                          placeholder="Ex: PREFEITURA MUNICIPAL"
+                          placeholder="Ex: PARA USO DOS CORREIOS"
                           style={{
                             width: "100%",
                             padding: "5px 8px",
@@ -1911,7 +1912,7 @@ export function ParametrizacaoPage({
                   type="text"
                   value={nomeQuery}
                   onChange={(e) => setNomeQuery(e.target.value)}
-                  placeholder="Ex: Buscar dados cadastrais do carnê"
+                  placeholder="Ex: Nome do contribuinte"
                   style={{
                     width: "100%",
                     padding: "6px 10px",

@@ -98,11 +98,8 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
               margin: 0,
             }}
           >
-            Auditoria e Validação de Lote de Carnês
+            Validação de lotes de documentos
           </h2>
-          <span style={{ fontSize: "0.75rem", color: "#78909c" }}>
-            Confronto automatizado entre regiões do PDF e banco SQL Server
-          </span>
         </div>
 
         {/* Barra de Botões Quadrados em Teal (Toolbar das Imagens 2 e 3) */}
@@ -197,7 +194,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                   textTransform: "uppercase",
                 }}
               >
-                Layout / Gabarito Aplicável *
+                Layout
               </label>
               <select
                 id="select-layout-aplicado"
@@ -233,7 +230,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                   textTransform: "uppercase",
                 }}
               >
-                Arquivo PDF de Carnês *
+                Arquivo para validação
               </span>
 
               <input
@@ -296,7 +293,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                     fontWeight: 700,
                   }}
                 >
-                  Procurar
+                  Importar
                 </span>
               </label>
             </div>
@@ -318,7 +315,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                 boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
               }}
             >
-              {processando ? "Auditando..." : "Validar Lote"}
+              {processando ? "Validando..." : "Validar"}
             </button>
           </div>
         </div>
