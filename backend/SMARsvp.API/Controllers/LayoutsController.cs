@@ -18,8 +18,6 @@ public class LayoutsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/layouts
-    // Retorna todos os layouts cadastrados para inicialização no frontend
     [HttpGet]
     public async Task<ActionResult<IEnumerable<LayoutClienteDto>>> ListarTodos()
     {
@@ -88,8 +86,6 @@ public class LayoutsController : ControllerBase
         return Ok(resultado);
     }
 
-    // POST: api/layouts
-    // Cria ou atualiza um layout com seus campos, conexões e regras
     [HttpPost]
     public async Task<ActionResult<Guid>> SalvarLayout([FromBody] LayoutClienteDto dto)
     {
@@ -103,7 +99,7 @@ public class LayoutsController : ControllerBase
 
         LayoutCliente? entidadeLayout = null;
 
-        // 1. Tenta localizar por Id fornecido
+        // 1. Tenta localizar pelo GUID enviado pelo frontend
         if (dto.Id.HasValue && dto.Id.Value != Guid.Empty)
         {
             entidadeLayout = await _context.Layouts
@@ -116,7 +112,7 @@ public class LayoutsController : ControllerBase
                 .FirstOrDefaultAsync(l => l.Id == dto.Id.Value);
         }
 
-        // 2. Se não encontrou por Id, busca pelo NomeModelo + Cliente
+        // 2. Se não encontrou por ID, verifica pelo NomeModelo + Cliente
         if (entidadeLayout == null && !string.IsNullOrWhiteSpace(dto.NomeModelo) && !string.IsNullOrWhiteSpace(dto.Cliente))
         {
             var nomeBusca = dto.NomeModelo.Trim().ToLower();
@@ -143,7 +139,7 @@ public class LayoutsController : ControllerBase
         }
         else
         {
-            // Remove regras filhas primeiro para manter integridade relacional
+            // Remove registros antigos do contexto de exclusão
             var queriesAntigasIds = entidadeLayout.QueriesValidacao.Select(q => q.Id).ToList();
             if (queriesAntigasIds.Any())
             {
@@ -151,11 +147,14 @@ public class LayoutsController : ControllerBase
                 _context.RegrasValidacao.RemoveRange(regrasAntigas);
             }
 
-            // Remove campos e queries antigas
             _context.RegioesCampos.RemoveRange(entidadeLayout.Campos);
             _context.QueriesValidacao.RemoveRange(entidadeLayout.QueriesValidacao);
+            _context.PaginasModelo.RemoveRange(entidadeLayout.PaginasModelo);
+
+            // IMPORTANTE: Limpar a coleção monitorada em vez de reatribuir uma nova lista
             entidadeLayout.Campos.Clear();
             entidadeLayout.QueriesValidacao.Clear();
+            entidadeLayout.PaginasModelo.Clear();
         }
 
         // 4. Atualiza os dados principais do Layout
@@ -169,7 +168,7 @@ public class LayoutsController : ControllerBase
         entidadeLayout.QuantidadePaginasPadrao = dto.QuantidadePaginasPadrao;
         entidadeLayout.NomeArquivoModelo = dto.NomeArquivoModelo;
 
-        // 5. Atualização in-place da ConexaoBanco (1:1) para evitar concorrência
+        // 5. Atualização in-place da ConexaoBanco
         if (dto.ConexaoBanco != null && !string.IsNullOrWhiteSpace(dto.ConexaoBanco.Servidor))
         {
             if (entidadeLayout.ConexaoBanco != null)
@@ -200,90 +199,74 @@ public class LayoutsController : ControllerBase
             entidadeLayout.ConexaoBanco = null;
         }
 
-        // 6. Mapeia os novos campos com novos GUIDs
-        entidadeLayout.Campos = dto.Campos.Select(c => new RegiaoCampo
+        // 6. Adiciona novos campos à coleção monitorada sem sobrescrevê-la
+        if (dto.Campos != null)
         {
-            Id = Guid.NewGuid(),
-            NomeCampo = c.NomeCampo,
-            XMm = c.XMm,
-            YMm = c.YMm,
-            LarguraMm = c.LarguraMm,
-            AlturaMm = c.AlturaMm,
-            Pagina = c.Pagina,
-            EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
-            TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
-            ConsultaSql = c.ConsultaSql,
-            LayoutClienteId = entidadeLayout.Id
-        }).ToList();
-
-        // 7. Mapeia as novas queries e regras
-        entidadeLayout.QueriesValidacao = dto.QueriesValidacao.Select(q =>
-        {
-            var novaQueryId = Guid.NewGuid();
-            return new QueryValidacao
+            foreach (var c in dto.Campos)
             {
-                Id = novaQueryId,
-                Nome = q.Nome,
-                Sql = q.Sql,
-                LayoutClienteId = entidadeLayout.Id,
-                Regras = q.Regras.Select(r => new RegraValidacao
+                entidadeLayout.Campos.Add(new RegiaoCampo
                 {
                     Id = Guid.NewGuid(),
-                    CampoRetornado = r.CampoRetornado,
-                    Operador = r.Operador,
-                    CampoCarne = r.CampoCarne,
-                    QueryValidacaoId = novaQueryId
-                }).ToList()
-            };
-        }).ToList();
-
-        // 8. Atualização segura de PaginasModelo (evita colisão de DELETE + UPDATE no EF Core)
-        if (dto.PaginasModeloBase64 != null && dto.PaginasModeloBase64.Any())
-        {
-            var paginasNovas = dto.PaginasModeloBase64.ToList();
-            var paginasExistentes = entidadeLayout.PaginasModelo.OrderBy(p => p.NumeroPagina).ToList();
-
-            // Atualiza ou insere página por página mantendo o rastreamento limpo
-            for (int i = 0; i < paginasNovas.Count; i++)
-            {
-                if (i < paginasExistentes.Count)
-                {
-                    // Atualiza a imagem da página existente sem alterar IDs
-                    paginasExistentes[i].ImagemBase64 = paginasNovas[i];
-                    paginasExistentes[i].NumeroPagina = i + 1;
-                }
-                else
-                {
-                    // Adiciona nova página além das já existentes
-                    entidadeLayout.PaginasModelo.Add(new PaginaModeloImagem
-                    {
-                        Id = Guid.NewGuid(),
-                        NumeroPagina = i + 1,
-                        ImagemBase64 = paginasNovas[i],
-                        LayoutClienteId = entidadeLayout.Id
-                    });
-                }
-            }
-
-            // Remove páginas excedentes caso o novo PDF tenha menos páginas
-            if (paginasExistentes.Count > paginasNovas.Count)
-            {
-                var excedentes = paginasExistentes.Skip(paginasNovas.Count).ToList();
-                _context.PaginasModelo.RemoveRange(excedentes);
-                foreach (var exc in excedentes)
-                {
-                    entidadeLayout.PaginasModelo.Remove(exc);
-                }
+                    NomeCampo = c.NomeCampo,
+                    XMm = c.XMm,
+                    YMm = c.YMm,
+                    LarguraMm = c.LarguraMm,
+                    AlturaMm = c.AlturaMm,
+                    Pagina = c.Pagina,
+                    EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
+                    TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                    ConsultaSql = c.ConsultaSql,
+                    LayoutClienteId = entidadeLayout.Id
+                });
             }
         }
 
-        // 9. Persiste todas as operações em uma única transação atômica consistente
+        // 7. Adiciona novas queries à coleção monitorada
+        if (dto.QueriesValidacao != null)
+        {
+            foreach (var q in dto.QueriesValidacao)
+            {
+                var novaQueryId = Guid.NewGuid();
+                entidadeLayout.QueriesValidacao.Add(new QueryValidacao
+                {
+                    Id = novaQueryId,
+                    Nome = q.Nome,
+                    Sql = q.Sql,
+                    LayoutClienteId = entidadeLayout.Id,
+                    Regras = q.Regras?.Select(r => new RegraValidacao
+                    {
+                        Id = Guid.NewGuid(),
+                        CampoRetornado = r.CampoRetornado,
+                        Operador = r.Operador,
+                        CampoCarne = r.CampoCarne,
+                        QueryValidacaoId = novaQueryId
+                    }).ToList() ?? new List<RegraValidacao>()
+                });
+            }
+        }
+
+        // 8. Adiciona páginas à coleção monitorada
+        if (dto.PaginasModeloBase64 != null && dto.PaginasModeloBase64.Any())
+        {
+            int numeroPagina = 1;
+            foreach (var img in dto.PaginasModeloBase64)
+            {
+                entidadeLayout.PaginasModelo.Add(new PaginaModeloImagem
+                {
+                    Id = Guid.NewGuid(),
+                    NumeroPagina = numeroPagina++,
+                    ImagemBase64 = img,
+                    LayoutClienteId = entidadeLayout.Id
+                });
+            }
+        }
+
+        // 9. Persiste tudo em uma única transação atômica limpa
         await _context.SaveChangesAsync();
 
         return Ok(entidadeLayout.Id);
     }
 
-    // DELETE: api/layouts/{id}
     [HttpDelete("{id}")]
     public async Task<IActionResult> ExcluirLayout(Guid id)
     {
