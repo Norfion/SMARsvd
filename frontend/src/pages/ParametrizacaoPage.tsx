@@ -2710,11 +2710,7 @@ export function ParametrizacaoPage({
                 type="text"
                 value={dbServidor}
                 onChange={(e) => setDbServidor(e.target.value)}
-                placeholder={
-                  dbProvedor === "Azure"
-                    ? "Ex: meubanco.database.windows.net"
-                    : "Ex: PMTesteSQL2 ou 172.168.0.00"
-                }
+                placeholder="Ex: PMTesteSQL2 ou 172.168.0.00"
                 style={{
                   width: "100%",
                   padding: "6px 10px",

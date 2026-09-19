@@ -10,9 +10,49 @@ export interface ResultadoLeituraPdfModelo {
   nomeArquivo: string;
 }
 
+// Interfaces tipadas para integração com a biblioteca externa PDF.js sem uso de any
+interface PdfJsViewport {
+  width: number;
+  height: number;
+}
+
+interface PdfJsRenderContext {
+  canvasContext: CanvasRenderingContext2D;
+  viewport: PdfJsViewport;
+}
+
+interface PdfJsRenderTask {
+  promise: Promise<void>;
+}
+
+interface PdfJsPage {
+  getViewport(opcoes: { scale: number }): PdfJsViewport;
+  render(parametros: PdfJsRenderContext): PdfJsRenderTask;
+}
+
+interface PdfJsDocument {
+  numPages: number;
+  getPage(numeroPagina: number): Promise<PdfJsPage>;
+}
+
+interface PdfJsDocumentLoadingTask {
+  promise: Promise<PdfJsDocument>;
+}
+
+interface PdfJsLib {
+  GlobalWorkerOptions: {
+    workerSrc: string;
+  };
+  getDocument(fonte: { data: ArrayBuffer }): PdfJsDocumentLoadingTask;
+}
+
+interface WindowComPdfJs {
+  pdfjsLib?: PdfJsLib;
+}
+
 // Carrega dinamicamente a biblioteca PDF.js via script tag seguro
-async function obterPdfJs(): Promise<any> {
-  const windowComPdf = window as any;
+async function obterPdfJs(): Promise<PdfJsLib> {
+  const windowComPdf = window as unknown as WindowComPdfJs;
   if (windowComPdf.pdfjsLib) {
     return windowComPdf.pdfjsLib;
   }
@@ -22,7 +62,15 @@ async function obterPdfJs(): Promise<any> {
     script.src =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
     script.onload = () => {
-      const pdfjs = (window as any).pdfjsLib;
+      const pdfjs = (window as unknown as WindowComPdfJs).pdfjsLib;
+      if (!pdfjs) {
+        reject(
+          new Error(
+            "Objeto pdfjsLib não encontrado após carregamento do script.",
+          ),
+        );
+        return;
+      }
       pdfjs.GlobalWorkerOptions.workerSrc =
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       resolve(pdfjs);
