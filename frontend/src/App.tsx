@@ -1,3 +1,7 @@
+import {
+  ModalInformativo,
+  type TipoModalInformativo,
+} from "./components/ModalInformativo";
 import { useState, useEffect } from "react";
 import type { LayoutCliente } from "./types/layout";
 import { ParametrizacaoPage } from "./pages/ParametrizacaoPage";
@@ -6,6 +10,31 @@ import { layoutService } from "./services/layoutService";
 import logoImg from "./assets/logo-smartb.png";
 
 export function App() {
+  // Estado para controlar o Modal Informativo, de Confirmação e Senha
+  const [modalInfo, setModalInfo] = useState<{
+    aberto: boolean;
+    tipo: TipoModalInformativo;
+    titulo: string;
+    mensagem: string;
+    textoConfirmar?: string;
+    exigeSenha?: boolean;
+    valorSenha?: string;
+    aoConfirmar?: () => void;
+  }>({
+    aberto: false,
+    tipo: "sucesso",
+    titulo: "",
+    mensagem: "",
+  });
+
+  const exibirMensagem = (
+    tipo: TipoModalInformativo,
+    titulo: string,
+    mensagem: string,
+  ) => {
+    setModalInfo({ aberto: true, tipo, titulo, mensagem });
+  };
+
   const [abaAtiva, setAbaAtiva] = useState<"parametrizacao" | "validacao">(
     "validacao",
   );
@@ -46,7 +75,11 @@ export function App() {
       );
     } catch (erro: unknown) {
       console.error("Erro ao excluir layout do banco de dados:", erro);
-      alert("Erro ao excluir o layout no banco de dados. Verifique a API.");
+      exibirMensagem(
+        "erro",
+        "Erro API",
+        "Erro ao excluir o layout no banco de dados. Verifique a API.",
+      );
     }
   };
 
@@ -72,7 +105,9 @@ export function App() {
       console.log("Layout persistido com sucesso no banco de dados!");
     } catch (erro: unknown) {
       console.error("Erro ao persistir o layout no banco de dados:", erro);
-      alert(
+      exibirMensagem(
+        "erro",
+        "Erro banco de dados",
         "Atenção: Ocorreu um erro ao gravar as informações no banco de dados.",
       );
     }
@@ -248,6 +283,28 @@ export function App() {
           <ValidacaoPage layoutsDisponiveis={layoutsSalvos}></ValidacaoPage>
         )}
       </main>
+      {/* Modal Informativo Centralizado */}
+      <ModalInformativo
+        aberto={modalInfo.aberto}
+        tipo={modalInfo.tipo}
+        titulo={modalInfo.titulo}
+        mensagem={modalInfo.mensagem}
+        textoConfirmar={modalInfo.textoConfirmar}
+        exigeSenha={modalInfo.exigeSenha}
+        valorSenha={modalInfo.valorSenha}
+        aoMudarSenha={(novaSenha) =>
+          setModalInfo((prev) => ({ ...prev, valorSenha: novaSenha }))
+        }
+        aoConfirmar={modalInfo.aoConfirmar}
+        aoFechar={() =>
+          setModalInfo((prev) => ({
+            ...prev,
+            aberto: false,
+            exigeSenha: false,
+            valorSenha: "",
+          }))
+        }
+      ></ModalInformativo>
     </div>
   );
 }

@@ -1,3 +1,7 @@
+import {
+  ModalInformativo,
+  type TipoModalInformativo,
+} from "../components/ModalInformativo";
 import { useState, useRef } from "react";
 import { SqlCodeEditor } from "../components/SqlCodeEditor";
 import { processarArquivoPdfModelo } from "../utils/pdfModelReader";
@@ -51,6 +55,47 @@ export function ParametrizacaoPage({
   const [modalNovoLayoutAberto, setModalNovoLayoutAberto] = useState(false);
   const [carregandoPdfModelo, setCarregandoPdfModelo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Estado para controlar o Modal Informativo, de Confirmação e Senha
+  const [modalInfo, setModalInfo] = useState<{
+    aberto: boolean;
+    tipo: TipoModalInformativo;
+    titulo: string;
+    mensagem: string;
+    textoConfirmar?: string;
+    exigeSenha?: boolean;
+    valorSenha?: string;
+    aoConfirmar?: () => void;
+  }>({
+    aberto: false,
+    tipo: "sucesso",
+    titulo: "",
+    mensagem: "",
+  });
+
+  const exibirMensagem = (
+    tipo: TipoModalInformativo,
+    titulo: string,
+    mensagem: string,
+  ) => {
+    setModalInfo({ aberto: true, tipo, titulo, mensagem });
+  };
+
+  const exibirConfirmacao = (
+    titulo: string,
+    mensagem: string,
+    aoConfirmar: () => void,
+    textoConfirmar = "Excluir",
+  ) => {
+    setModalInfo({
+      aberto: true,
+      tipo: "confirmacao",
+      titulo,
+      mensagem,
+      textoConfirmar,
+      aoConfirmar,
+    });
+  };
 
   // Alterna o acordeão somente se houver layout selecionado
   const alternarEtapa = (
@@ -205,7 +250,9 @@ export function ParametrizacaoPage({
       cancelarEdicaoCampo();
       cancelarEdicaoQuery();
 
-      alert(
+      exibirMensagem(
+        "sucesso",
+        "Modelo Carregado",
         `PDF "${dados.nomeArquivo}" carregado com sucesso!\n• Páginas: ${dados.quantidadePaginas}\n• Dimensões: ${dados.larguraMm} x ${dados.alturaMm} mm (${dados.formatoPapel})`,
       );
     } catch (err: unknown) {
@@ -213,7 +260,11 @@ export function ParametrizacaoPage({
         err instanceof Error
           ? err.message
           : "Falha desconhecida no processamento";
-      alert(`Erro na leitura do modelo: ${mensagemErro}`);
+      exibirMensagem(
+        "erro",
+        "Falha na Leitura",
+        `Erro na leitura do modelo: ${mensagemErro}`,
+      );
     } finally {
       setCarregandoPdfModelo(false);
     }
@@ -221,28 +272,7 @@ export function ParametrizacaoPage({
 
   const SENHA_EXCLUSAO = "teste123";
 
-  const removerLayoutAtual = () => {
-    if (!layoutSelecionadoId) {
-      alert("Por favor, selecione um layout antes de tentar remover.");
-      return;
-    }
-
-    const confirmou = window.confirm(
-      `Tem certeza de que deseja apagar o layout "${layoutSelecionadoId}"?\nEsta ação não poderá ser desfeita.`,
-    );
-    if (!confirmou) return;
-
-    const senhaDigitada = window.prompt(
-      "Digite a senha de segurança para confirmar a exclusão:",
-    );
-
-    if (senhaDigitada === null) return;
-
-    if (senhaDigitada !== SENHA_EXCLUSAO) {
-      alert("Senha incorreta! A exclusão foi cancelada.");
-      return;
-    }
-
+  const executarExclusaoFisicaLayout = () => {
     // 1. Aciona a exclusão persistente no banco de dados através da rota DELETE da API
     if (onExcluirLayout) {
       onExcluirLayout(layoutId || layoutSelecionadoId);
@@ -254,7 +284,11 @@ export function ParametrizacaoPage({
     );
     onSalvarLayouts(novaLista);
 
-    alert(`O layout "${layoutSelecionadoId}" foi removido com sucesso!`);
+    exibirMensagem(
+      "sucesso",
+      "Layout Removido",
+      `O layout "${layoutSelecionadoId}" foi removido com sucesso!`,
+    );
 
     // 3. Limpa o formulário e os campos da tela
     setLayoutSelecionadoId("");
@@ -266,6 +300,38 @@ export function ParametrizacaoPage({
     setEtapaAberta(null);
     cancelarEdicaoCampo();
     cancelarEdicaoQuery();
+  };
+
+  const removerLayoutAtual = () => {
+    if (!layoutSelecionadoId) {
+      exibirMensagem(
+        "aviso",
+        "Layout Inválido",
+        "Por favor, selecione um layout antes de tentar remover.",
+      );
+      return;
+    }
+
+    setModalInfo({
+      aberto: true,
+      tipo: "confirmacao",
+      titulo: "Excluir layout",
+      mensagem: `Confirme a senha de segurança para excluir o layout "${layoutSelecionadoId}".\n\nEsse processo não poderá ser desfeito.`,
+      textoConfirmar: "Excluir",
+      exigeSenha: true,
+      valorSenha: "",
+      aoConfirmar: (senhaRecebida?: string) => {
+        if (senhaRecebida !== SENHA_EXCLUSAO) {
+          exibirMensagem(
+            "aviso",
+            "Senha Incorreta",
+            "A senha digitada está incorreta. A exclusão foi cancelada.",
+          );
+          return;
+        }
+        executarExclusaoFisicaLayout();
+      },
+    });
   };
 
   const carregarLayout = (nomeLayout: string) => {
@@ -311,7 +377,11 @@ export function ParametrizacaoPage({
   const salvarTudo = () => {
     const nomeNormalizado = nomeModelo.trim();
     if (!nomeNormalizado) {
-      alert("Informe o nome do layout antes de salvar.");
+      exibirMensagem(
+        "aviso",
+        "Nome inválido",
+        "Informe o nome do layout antes de salvar.",
+      );
       return;
     }
 
@@ -371,7 +441,11 @@ export function ParametrizacaoPage({
     }
 
     setLayoutSelecionadoId(layoutFinal.nomeModelo);
-    alert("Todas as configurações do layout foram salvas com sucesso!");
+    exibirMensagem(
+      "sucesso",
+      "Layout Salvo",
+      "Todas as configurações do layout foram salvas com sucesso!",
+    );
   };
 
   // ==========================================
@@ -470,11 +544,15 @@ export function ParametrizacaoPage({
       retanguloAtualMm.larguraMm < 2 ||
       retanguloAtualMm.alturaMm < 2
     ) {
-      alert("Desenhe ou selecione uma região válida sobre o documento.");
+      exibirMensagem(
+        "aviso",
+        "Região Inválida",
+        "Desenhe ou selecione uma região válida sobre o documento.",
+      );
       return;
     }
     if (!nomeCampo.trim()) {
-      alert("Informe o nome do campo.");
+      exibirMensagem("aviso", "Campo Obrigatório", "Informe o nome do campo.");
       return;
     }
     if (
@@ -484,7 +562,11 @@ export function ParametrizacaoPage({
           c.id !== campoEmEdicaoId,
       )
     ) {
-      alert("Já existe um campo com este nome. Escolha outro.");
+      exibirMensagem(
+        "aviso",
+        "Nome Duplicado",
+        "Já existe um campo com este nome. Escolha outro.",
+      );
       return;
     }
 
@@ -511,10 +593,14 @@ export function ParametrizacaoPage({
   };
 
   const removerRegiaoCampo = (id: string, nome: string) => {
-    if (window.confirm(`Tem certeza que deseja apagar o campo "${nome}"?`)) {
-      setCampos(campos.filter((c) => c.id !== id));
-      if (campoEmEdicaoId === id) cancelarEdicaoCampo();
-    }
+    exibirConfirmacao(
+      "Confirmar Exclusão",
+      `Tem certeza de que deseja excluir o campo "${nome}"?`,
+      () => {
+        setCampos(campos.filter((c) => c.id !== id));
+        if (campoEmEdicaoId === id) cancelarEdicaoCampo();
+      },
+    );
   };
 
   // ==========================================
@@ -535,15 +621,17 @@ export function ParametrizacaoPage({
   const analisarQuerySQL = () => {
     const texto = sqlQuery.trim();
     if (!texto) {
-      alert("Informe a instrução SQL.");
+      exibirMensagem("aviso", "SQL vazio", "Informe a instrução SQL.");
       return;
     }
 
     const comandosBloqueados =
       /\b(UPDATE|DELETE|INSERT|EXEC|EXECUTE|DROP|ALTER|CREATE|TRUNCATE|MERGE)\b/i;
     if (comandosBloqueados.test(texto)) {
-      alert(
-        "ERRO DE SEGURANÇA: São permitidas apenas consultas somente leitura (SELECT).",
+      exibirMensagem(
+        "aviso",
+        "Bloqueio de Segurança",
+        "São permitidas apenas consultas somente leitura (SELECT).",
       );
       return;
     }
@@ -561,8 +649,10 @@ export function ParametrizacaoPage({
       (p) => !nomesDosCampos.includes(p),
     );
     if (parametrosInvalidos.length > 0) {
-      alert(
-        `ERRO: Os seguintes parâmetros não existem nos campos do layout: ${parametrosInvalidos.join(
+      exibirMensagem(
+        "aviso",
+        "Parâmetros inválidos",
+        `Os seguintes parâmetros não existem nos campos do layout: ${parametrosInvalidos.join(
           ", ",
         )}`,
       );
@@ -577,8 +667,10 @@ export function ParametrizacaoPage({
     const retsUnicos = [...new Set(rets)];
 
     if (retsUnicos.length === 0) {
-      alert(
-        "ATENÇÃO: Não foi possível identificar os campos de retorno. Utilize 'AS NomeVariavel' na query.",
+      exibirMensagem(
+        "aviso",
+        "Campo inválido",
+        "Não foi possível identificar os campos de retorno. Utilize 'AS NomeVariavel' na query para especificar as colunas.",
       );
       return;
     }
@@ -592,7 +684,11 @@ export function ParametrizacaoPage({
 
   const adicionarRegraValidacao = () => {
     if (!regraCampoRetornado || !regraCampoCarne) {
-      alert("Selecione os campos para criar a validação.");
+      exibirMensagem(
+        "aviso",
+        "Campos ausentes",
+        "Selecione os campos para criar a validação.",
+      );
       return;
     }
     const novaRegra: RegraValidacao = {
@@ -610,11 +706,19 @@ export function ParametrizacaoPage({
 
   const salvarQueryCompleta = () => {
     if (!nomeQuery.trim()) {
-      alert("Informe um nome para a Query de Validação.");
+      exibirMensagem(
+        "aviso",
+        "Query sem nome",
+        "Informe um nome para a Query de Validação.",
+      );
       return;
     }
     if (!sqlAnalisado) {
-      alert("Você precisa analisar a instrução SQL antes de salvar.");
+      exibirMensagem(
+        "aviso",
+        "Analise pendente",
+        "Você precisa analisar a instrução SQL antes de salvar.",
+      );
       return;
     }
 
@@ -636,9 +740,13 @@ export function ParametrizacaoPage({
   };
 
   const removerQuery = (id: string, nome: string) => {
-    if (window.confirm(`Deseja remover a query "${nome}" e suas validações?`)) {
-      setQueries(queries.filter((q) => q.id !== id));
-    }
+    exibirConfirmacao(
+      "Confirmar Exclusão",
+      `Deseja remover a query "${nome}" e todas as suas validações associadas?`,
+      () => {
+        setQueries(queries.filter((q) => q.id !== id));
+      },
+    );
   };
 
   const editarQuery = (query: QueryValidacao) => {
@@ -2902,6 +3010,28 @@ export function ParametrizacaoPage({
           <span>Salvar</span>
         </button>
       </div>
+      {/* Modal Informativo Centralizado */}
+      <ModalInformativo
+        aberto={modalInfo.aberto}
+        tipo={modalInfo.tipo}
+        titulo={modalInfo.titulo}
+        mensagem={modalInfo.mensagem}
+        textoConfirmar={modalInfo.textoConfirmar}
+        exigeSenha={modalInfo.exigeSenha}
+        valorSenha={modalInfo.valorSenha}
+        aoMudarSenha={(novaSenha) =>
+          setModalInfo((prev) => ({ ...prev, valorSenha: novaSenha }))
+        }
+        aoConfirmar={modalInfo.aoConfirmar}
+        aoFechar={() =>
+          setModalInfo((prev) => ({
+            ...prev,
+            aberto: false,
+            exigeSenha: false,
+            valorSenha: "",
+          }))
+        }
+      ></ModalInformativo>
     </div>
   );
 }

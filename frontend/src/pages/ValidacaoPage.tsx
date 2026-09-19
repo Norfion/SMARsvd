@@ -1,3 +1,7 @@
+import {
+  ModalInformativo,
+  type TipoModalInformativo,
+} from "../components/ModalInformativo";
 import { useState } from "react";
 import type { LayoutCliente } from "../types/layout";
 import type { ResultadoValidacaoCarne } from "../types/validacao";
@@ -43,19 +47,70 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
   const [resultados, setResultados] = useState<ResultadoValidacaoCarne[]>([]);
   const [filtroApenasErros, setFiltroApenasErros] = useState(true);
 
-  const lidarComArquivo = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setArquivo(e.target.files[0]);
-    }
+  // Estado para controlar o Modal Informativo, de Confirmação e Senha
+  const [modalInfo, setModalInfo] = useState<{
+    aberto: boolean;
+    tipo: TipoModalInformativo;
+    titulo: string;
+    mensagem: string;
+    textoConfirmar?: string;
+    exigeSenha?: boolean;
+    valorSenha?: string;
+    aoConfirmar?: () => void;
+  }>({
+    aberto: false,
+    tipo: "sucesso",
+    titulo: "",
+    mensagem: "",
+  });
+
+  const exibirMensagem = (
+    tipo: TipoModalInformativo,
+    titulo: string,
+    mensagem: string,
+  ) => {
+    setModalInfo({ aberto: true, tipo, titulo, mensagem });
   };
 
+  const lidarComArquivo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+
+    if (
+      arquivo.type !== "application/pdf" &&
+      !arquivo.name.toLowerCase().endsWith(".pdf")
+    ) {
+      exibirMensagem(
+        "erro",
+        "Arquivo Inválido",
+        "Por favor, selecione um arquivo válido no formato PDF.",
+      );
+      return;
+    }
+
+    setArquivo(arquivo);
+    setResultados([]);
+    exibirMensagem(
+      "sucesso",
+      "Arquivo Carregado",
+      `Arquivo "${arquivo.name}" carregado com sucesso.`,
+    );
+  };
   const executarValidacao = () => {
     if (!layoutSelecionadoId) {
-      alert("Por favor, selecione um layout antes de validar o arquivo.");
+      exibirMensagem(
+        "aviso",
+        "Layout Obrigatório",
+        "Selecione o modelo de layout para validar os documentos.",
+      );
       return;
     }
     if (!arquivo) {
-      alert("Selecione um arquivo PDF para validação primeiro.");
+      exibirMensagem(
+        "aviso",
+        "Documento Pendente",
+        "Faça o upload um arquivo PDF para validação primeiro.",
+      );
       return;
     }
 
@@ -547,6 +602,28 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
           </div>
         </section>
       )}
+      {/* Modal Informativo Centralizado */}
+      <ModalInformativo
+        aberto={modalInfo.aberto}
+        tipo={modalInfo.tipo}
+        titulo={modalInfo.titulo}
+        mensagem={modalInfo.mensagem}
+        textoConfirmar={modalInfo.textoConfirmar}
+        exigeSenha={modalInfo.exigeSenha}
+        valorSenha={modalInfo.valorSenha}
+        aoMudarSenha={(novaSenha) =>
+          setModalInfo((prev) => ({ ...prev, valorSenha: novaSenha }))
+        }
+        aoConfirmar={modalInfo.aoConfirmar}
+        aoFechar={() =>
+          setModalInfo((prev) => ({
+            ...prev,
+            aberto: false,
+            exigeSenha: false,
+            valorSenha: "",
+          }))
+        }
+      ></ModalInformativo>
     </div>
   );
 }
