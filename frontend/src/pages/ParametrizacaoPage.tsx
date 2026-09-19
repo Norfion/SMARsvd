@@ -78,7 +78,6 @@ export function ParametrizacaoPage({
   const alturaVisualPx = Math.round(alturaMm * escalaPxPorMm);
 
   const [campos, setCampos] = useState<RegiaoCampo[]>([]);
-  const [desenhando, setDesenhando] = useState(false);
   const [inicioPos, setInicioPos] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
@@ -98,6 +97,19 @@ export function ParametrizacaoPage({
   const [textoEsperado, setTextoEsperado] = useState("");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+
+  // Permite aproximar/afastar segurando Ctrl ou alternar zoom pela roda do mouse dentro da caixa
+  const lidarComRodaMouse = (e: React.WheelEvent<HTMLDivElement>) => {
+    // Se o usuário estiver segurando Ctrl ou desejar dar zoom com o scroll
+    if (e.ctrlKey) {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 10 : -10;
+      setZoomNivel((nivelAtual) =>
+        Math.min(300, Math.max(50, nivelAtual + delta)),
+      );
+    }
+  };
 
   // ==========================================
   // ESTADOS: ETAPA 3 - VALIDAÇÕES (SQL)
@@ -265,34 +277,66 @@ export function ParametrizacaoPage({
   // ==========================================
   // FUNÇÕES DA ETAPA 2 (CAMPOS CARTESIANOS)
   // ==========================================
+  // Estados de demarcação: armazenam as coordenadas reais em milímetros (mm)
+  // para se manterem idênticas independentemente do nível de zoom
+  const [desenhando, setDesenhando] = useState(false);
+  const [inicioPosMm, setInicioPosMm] = useState<{ xMm: number; yMm: number }>({
+    xMm: 0,
+    yMm: 0,
+  });
+  const [retanguloAtualMm, setRetanguloAtualMm] = useState<{
+    xMm: number;
+    yMm: number;
+    larguraMm: number;
+    alturaMm: number;
+  } | null>(null);
+
   const iniciarSelecao = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.round(e.clientX - rect.left));
-    const y = Math.max(0, Math.round(e.clientY - rect.top));
-    setInicioPos({ x, y });
-    setRetanguloAtual({ x, y, largura: 0, altura: 0 });
+    const xPx = Math.max(0, e.clientX - rect.left);
+    const yPx = Math.max(0, e.clientY - rect.top);
+
+    // Converte os pixels clicados na tela para milímetros reais do documento
+    const xMm = Number((xPx / escalaPxPorMm).toFixed(2));
+    const yMm = Number((yPx / escalaPxPorMm).toFixed(2));
+
+    setInicioPosMm({ xMm, yMm });
+    setRetanguloAtualMm({ xMm, yMm, larguraMm: 0, alturaMm: 0 });
     setDesenhando(true);
   };
 
   const atualizandoSelecao = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!desenhando || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const cursorX = Math.max(
+    const cursorXPx = Math.max(
       0,
-      Math.min(larguraVisualPx, Math.round(e.clientX - rect.left)),
+      Math.min(larguraVisualPx, e.clientX - rect.left),
     );
-    const cursorY = Math.max(
+    const cursorYPx = Math.max(
       0,
-      Math.min(alturaVisualPx, Math.round(e.clientY - rect.top)),
+      Math.min(alturaVisualPx, e.clientY - rect.top),
     );
 
-    const x = Math.min(inicioPos.x, cursorX);
-    const y = Math.min(inicioPos.y, cursorY);
-    const largura = Math.abs(cursorX - inicioPos.x);
-    const altura = Math.abs(cursorY - inicioPos.y);
+    // Converte a posição do cursor para milímetros reais
+    const cursorXMm = cursorXPx / escalaPxPorMm;
+    const cursorYMm = cursorYPx / escalaPxPorMm;
 
-    setRetanguloAtual({ x, y, largura, altura });
+    const xMm = Number(Math.min(inicioPosMm.xMm, cursorXMm).toFixed(2));
+    const yMm = Number(Math.min(inicioPosMm.yMm, cursorYMm).toFixed(2));
+    const larguraMmRegiao = Number(
+      Math.abs(cursorXMm - inicioPosMm.xMm).toFixed(2),
+    );
+    const alturaMmRegiao = Number(
+      Math.abs(cursorYMm - inicioPosMm.yMm).toFixed(2),
+    );
+
+    setRetanguloAtualMm({
+      xMm,
+      yMm,
+      larguraMm: larguraMmRegiao,
+      alturaMm: alturaMmRegiao,
+    });
   };
 
   const finalizarSelecao = () => {
@@ -307,11 +351,12 @@ export function ParametrizacaoPage({
     setPaginaAtivaCanvas(paginaDoCampo);
     setEhIdentificador(!!campo.ehIdentificadorPrimeiraPagina);
     setTextoEsperado(campo.textoEsperadoIdentificador || "");
-    setRetanguloAtual({
-      x: Math.round(campo.xMm * escalaPxPorMm),
-      y: Math.round(campo.yMm * escalaPxPorMm),
-      largura: Math.round(campo.larguraMm * escalaPxPorMm),
-      altura: Math.round(campo.alturaMm * escalaPxPorMm),
+    // Armazena as medidas em milímetros, sem sofrer alteração com o zoom
+    setRetanguloAtualMm({
+      xMm: campo.xMm,
+      yMm: campo.yMm,
+      larguraMm: campo.larguraMm,
+      alturaMm: campo.alturaMm,
     });
   };
 
@@ -321,14 +366,14 @@ export function ParametrizacaoPage({
     setPaginaCampo(paginaAtivaCanvas);
     setEhIdentificador(false);
     setTextoEsperado("");
-    setRetanguloAtual(null);
+    setRetanguloAtualMm(null);
   };
 
   const salvarRegiaoCampo = () => {
     if (
-      !retanguloAtual ||
-      retanguloAtual.largura < 8 ||
-      retanguloAtual.altura < 8
+      !retanguloAtualMm ||
+      retanguloAtualMm.larguraMm < 2 ||
+      retanguloAtualMm.alturaMm < 2
     ) {
       alert("Desenhe ou selecione uma região válida sobre o documento.");
       return;
@@ -348,23 +393,14 @@ export function ParametrizacaoPage({
       return;
     }
 
-    const xMm = Number((retanguloAtual.x / escalaPxPorMm).toFixed(2));
-    const yMm = Number((retanguloAtual.y / escalaPxPorMm).toFixed(2));
-    const larguraRegiaoMm = Number(
-      (retanguloAtual.largura / escalaPxPorMm).toFixed(2),
-    );
-    const alturaRegiaoMm = Number(
-      (retanguloAtual.altura / escalaPxPorMm).toFixed(2),
-    );
-
     const payloadCampo: RegiaoCampo = {
       id: campoEmEdicaoId || crypto.randomUUID(),
       nomeCampo: nomeCampo.trim(),
       pagina: Number(paginaCampo),
-      xMm,
-      yMm,
-      larguraMm: larguraRegiaoMm,
-      alturaMm: alturaRegiaoMm,
+      xMm: retanguloAtualMm.xMm,
+      yMm: retanguloAtualMm.yMm,
+      larguraMm: retanguloAtualMm.larguraMm,
+      alturaMm: retanguloAtualMm.alturaMm,
       ehIdentificadorPrimeiraPagina: ehIdentificador,
       textoEsperadoIdentificador: ehIdentificador
         ? textoEsperado.trim()
@@ -1123,12 +1159,15 @@ export function ParametrizacaoPage({
             }}
           >
             {/* CANVAS CARTESIANO COM BARRA DE FERRAMENTAS ESTILO EMPRESA */}
+            {/* CANVAS CARTESIANO COM BARRA DE FERRAMENTAS */}
             <div
               id="coluna-canvas-documento"
               style={{
-                flex: "1 1 auto",
-                maxWidth: "100%",
-                overflow: "auto",
+                flex: "1 1 650px", // Define uma base fixa para não empurrar os componentes ao lado
+                maxWidth: "calc(100% - 340px)", // Garante espaço para a barra lateral de 320px
+                minWidth: "320px",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
               {/* BARRA DE FERRAMENTAS DO CANVAS */}
@@ -1191,7 +1230,7 @@ export function ParametrizacaoPage({
                   </div>
                 )}
 
-                {/* Zoom */}
+                {/* Zoom Manual e Dica */}
                 <div
                   style={{
                     display: "flex",
@@ -1201,7 +1240,7 @@ export function ParametrizacaoPage({
                 >
                   <button
                     type="button"
-                    onClick={() => setZoomNivel(Math.max(50, zoomNivel - 15))}
+                    onClick={() => setZoomNivel(Math.max(10, zoomNivel - 15))}
                     style={{
                       width: "24px",
                       height: "24px",
@@ -1215,18 +1254,20 @@ export function ParametrizacaoPage({
                     -
                   </button>
                   <span
+                    title="Zoom do documento"
                     style={{
                       fontSize: "0.75rem",
                       fontWeight: 700,
                       minWidth: "36px",
                       textAlign: "center",
+                      cursor: "help",
                     }}
                   >
-                    {zoomNivel}% (Zoom)
+                    {zoomNivel}%
                   </span>
                   <button
                     type="button"
-                    onClick={() => setZoomNivel(Math.min(200, zoomNivel + 15))}
+                    onClick={() => setZoomNivel(Math.min(500, zoomNivel + 15))}
                     style={{
                       width: "24px",
                       height: "24px",
@@ -1265,7 +1306,7 @@ export function ParametrizacaoPage({
                         onClick={() => {
                           setPaginaAtivaCanvas(numPagina);
                           setPaginaCampo(numPagina);
-                          setRetanguloAtual(null);
+                          setRetanguloAtualMm(null);
                         }}
                         style={{
                           padding: "3px 8px",
@@ -1305,119 +1346,144 @@ export function ParametrizacaoPage({
                 </div>
               </div>
 
-              {/* ÁREA DO CANVAS */}
+              {/* CAIXA FIXA (VIEWPORT COM SCROLL PARA NAVEGAÇÃO INTERNA) */}
               <div
-                id="canvas-area-demarcacao"
-                ref={containerRef}
-                onMouseDown={iniciarSelecao}
-                onMouseMove={atualizandoSelecao}
-                onMouseUp={finalizarSelecao}
+                id="caixa-viewport-documento"
+                ref={viewportRef}
+                onWheel={lidarComRodaMouse}
                 style={{
-                  position: "relative",
-                  width: `${larguraVisualPx}px`,
-                  height: `${alturaVisualPx}px`,
-                  backgroundColor: "#ffffff",
+                  width: "100%",
+                  height: "560px", // Altura fixa da caixa de visualização
+                  backgroundColor: "#cfd8dc", // Fundo cinza neutro estilo leitor de PDF
                   border: "1px solid #90a4ae",
                   borderRadius: "4px",
-                  overflow: "hidden",
-                  cursor: "crosshair",
-                  userSelect: "none",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                  overflow: "auto", // Cria as barras de rolagem se o zoom ultrapassar a caixa
+                  position: "relative",
+                  boxSizing: "border-box",
+                  padding: "16px",
+                  display: "flex", // Centraliza o documento caso ele seja menor que a caixa
+                  alignItems: "flex-start",
+                  justifyContent: "flex-start",
                 }}
               >
-                {paginasModelo.length >= paginaAtivaCanvas ? (
-                  <img
-                    src={paginasModelo[paginaAtivaCanvas - 1]}
-                    alt={`Gabarito - Página ${paginaAtivaCanvas}`}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "fill",
-                      opacity: opacidadeModelo / 100,
-                      pointerEvents: "none",
-                    }}
-                  ></img>
-                ) : (
-                  <div style={{ padding: "16px", color: "#b0bec5" }}>
-                    <div
+                {/* ÁREA REAL DO DOCUMENTO QUE RECEBE O ZOOM */}
+                <div
+                  id="canvas-area-demarcacao"
+                  ref={containerRef}
+                  onMouseDown={iniciarSelecao}
+                  onMouseMove={atualizandoSelecao}
+                  onMouseUp={finalizarSelecao}
+                  style={{
+                    position: "relative",
+                    width: `${larguraVisualPx}px`,
+                    height: `${alturaVisualPx}px`,
+                    minWidth: `${larguraVisualPx}px`,
+                    minHeight: `${alturaVisualPx}px`,
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #78909c",
+                    borderRadius: "2px",
+                    cursor: "crosshair",
+                    userSelect: "none",
+                    boxShadow: "0 3px 10px rgba(0,0,0,0.25)",
+                    flexShrink: 0, // Impede que o flexbox esmague o documento
+                  }}
+                >
+                  {paginasModelo.length >= paginaAtivaCanvas ? (
+                    <img
+                      src={paginasModelo[paginaAtivaCanvas - 1]}
+                      alt={`Gabarito - Página ${paginaAtivaCanvas}`}
                       style={{
-                        borderBottom: "1px dashed #cfd8dc",
-                        paddingBottom: "4px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: "0.8rem",
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "fill",
+                        opacity: opacidadeModelo / 100,
+                        pointerEvents: "none",
                       }}
-                    >
-                      <span>PREFEITURA MUNICIPAL — GUIA ARRECADATÓRIA</span>
-                      <span style={{ color: "#009688", fontWeight: 700 }}>
-                        PÁGINA {paginaAtivaCanvas}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {campos
-                  .filter((campo) => (campo.pagina || 1) === paginaAtivaCanvas)
-                  .map((campo) => {
-                    const ativo = campo.id === campoEmEdicaoId;
-                    const ehAnchor = campo.ehIdentificadorPrimeiraPagina;
-
-                    return (
+                    ></img>
+                  ) : (
+                    <div style={{ padding: "16px", color: "#b0bec5" }}>
                       <div
-                        key={campo.id}
-                        id={`box-campo-${campo.id}`}
                         style={{
-                          position: "absolute",
-                          left: `${campo.xMm * escalaPxPorMm}px`,
-                          top: `${campo.yMm * escalaPxPorMm}px`,
-                          width: `${campo.larguraMm * escalaPxPorMm}px`,
-                          height: `${campo.alturaMm * escalaPxPorMm}px`,
-                          border: ativo
-                            ? "2px solid #f57c00"
-                            : ehAnchor
-                              ? "2px solid #7b1fa2"
-                              : "2px solid #009688",
-                          backgroundColor: ativo
-                            ? "rgba(245, 124, 0, 0.25)"
-                            : ehAnchor
-                              ? "rgba(123, 31, 162, 0.2)"
-                              : "rgba(0, 150, 136, 0.2)",
-                          color: ativo
-                            ? "#e65100"
-                            : ehAnchor
-                              ? "#4a148c"
-                              : "#004d40",
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                          padding: "2px 4px",
-                          pointerEvents: "none",
-                          boxSizing: "border-box",
+                          borderBottom: "1px dashed #cfd8dc",
+                          paddingBottom: "4px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: "0.8rem",
                         }}
                       >
-                        {ehAnchor ? `🚩 ${campo.nomeCampo}` : campo.nomeCampo}
+                        <span>PREFEITURA MUNICIPAL — GUIA ARRECADATÓRIA</span>
+                        <span style={{ color: "#009688", fontWeight: 700 }}>
+                          PÁGINA {paginaAtivaCanvas}
+                        </span>
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
 
-                {retanguloAtual && paginaCampo === paginaAtivaCanvas && (
-                  <div
-                    id="retangulo-selecao-ativa"
-                    style={{
-                      position: "absolute",
-                      left: `${retanguloAtual.x}px`,
-                      top: `${retanguloAtual.y}px`,
-                      width: `${retanguloAtual.largura}px`,
-                      height: `${retanguloAtual.altura}px`,
-                      border: "2px dashed #d32f2f",
-                      backgroundColor: "rgba(211, 47, 47, 0.2)",
-                      pointerEvents: "none",
-                      boxSizing: "border-box",
-                    }}
-                  ></div>
-                )}
+                  {campos
+                    .filter(
+                      (campo) => (campo.pagina || 1) === paginaAtivaCanvas,
+                    )
+                    .map((campo) => {
+                      const ativo = campo.id === campoEmEdicaoId;
+                      const ehAnchor = campo.ehIdentificadorPrimeiraPagina;
+
+                      return (
+                        <div
+                          key={campo.id}
+                          id={`box-campo-${campo.id}`}
+                          style={{
+                            position: "absolute",
+                            left: `${campo.xMm * escalaPxPorMm}px`,
+                            top: `${campo.yMm * escalaPxPorMm}px`,
+                            width: `${campo.larguraMm * escalaPxPorMm}px`,
+                            height: `${campo.alturaMm * escalaPxPorMm}px`,
+                            border: ativo
+                              ? "2px solid #f57c00"
+                              : ehAnchor
+                                ? "2px solid #7b1fa2"
+                                : "2px solid #009688",
+                            backgroundColor: ativo
+                              ? "rgba(245, 124, 0, 0.25)"
+                              : ehAnchor
+                                ? "rgba(123, 31, 162, 0.2)"
+                                : "rgba(0, 150, 136, 0.2)",
+                            color: ativo
+                              ? "#e65100"
+                              : ehAnchor
+                                ? "#4a148c"
+                                : "#004d40",
+                            fontSize: "0.7rem",
+                            fontWeight: 700,
+                            padding: "2px 4px",
+                            pointerEvents: "none",
+                            boxSizing: "border-box",
+                          }}
+                        >
+                          {ehAnchor ? `🚩 ${campo.nomeCampo}` : campo.nomeCampo}
+                        </div>
+                      );
+                    })}
+
+                  {retanguloAtualMm && paginaCampo === paginaAtivaCanvas && (
+                    <div
+                      id="retangulo-selecao-ativa"
+                      style={{
+                        position: "absolute",
+                        left: `${retanguloAtualMm.xMm * escalaPxPorMm}px`,
+                        top: `${retanguloAtualMm.yMm * escalaPxPorMm}px`,
+                        width: `${retanguloAtualMm.larguraMm * escalaPxPorMm}px`,
+                        height: `${retanguloAtualMm.alturaMm * escalaPxPorMm}px`,
+                        border: "2px dashed #d32f2f",
+                        backgroundColor: "rgba(211, 47, 47, 0.2)",
+                        pointerEvents: "none",
+                        boxSizing: "border-box",
+                      }}
+                    ></div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1498,7 +1564,7 @@ export function ParametrizacaoPage({
                     ></input>
                   </div>
 
-                  {retanguloAtual && (
+                  {retanguloAtualMm && (
                     <div
                       style={{
                         backgroundColor: "#f5f7f8",
@@ -1511,10 +1577,10 @@ export function ParametrizacaoPage({
                       }}
                     >
                       <strong>Coordenadas (mm):</strong> Pg: {paginaCampo} | X:{" "}
-                      {(retanguloAtual.x / escalaPxPorMm).toFixed(1)} | Y:{" "}
-                      {(retanguloAtual.y / escalaPxPorMm).toFixed(1)} | L:{" "}
-                      {(retanguloAtual.largura / escalaPxPorMm).toFixed(1)} | A:{" "}
-                      {(retanguloAtual.altura / escalaPxPorMm).toFixed(1)}
+                      {retanguloAtualMm.xMm.toFixed(1)} | Y:{" "}
+                      {retanguloAtualMm.yMm.toFixed(1)} | L:{" "}
+                      {retanguloAtualMm.larguraMm.toFixed(1)} | A:{" "}
+                      {retanguloAtualMm.alturaMm.toFixed(1)}
                     </div>
                   )}
 
