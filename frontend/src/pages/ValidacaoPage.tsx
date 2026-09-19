@@ -6,7 +6,6 @@ interface ValidacaoPageProps {
   layoutsDisponiveis: LayoutCliente[];
 }
 
-// Dados simulados baseados no carnê de Sertãozinho
 const MOCK_RESULTADOS: ResultadoValidacaoCarne[] = [
   {
     numeroDocumento: "27480056",
@@ -63,7 +62,6 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
     }
 
     setProcessando(true);
-    // Simulação do tempo de resposta da API (.NET/RabbitMQ)
     setTimeout(() => {
       setResultados(MOCK_RESULTADOS);
       setProcessando(false);
@@ -81,331 +79,433 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
   const totalComErro = resultados.filter((r) => r.status === "Com Erro").length;
 
   return (
-    <div
-      id="container-validacao-pdf"
-      style={{
-        maxWidth: "1320px",
-        margin: "0 auto",
-        fontFamily: "Segoe UI, sans-serif",
-      }}
-    >
-      {/* Bloco de Upload e Execução */}
+    <div id="container-validacao-pdf">
+      {/* TÍTULO E TOOLBAR DE AÇÕES SUPERIOR (Idêntico ao padrão da Imagem 2 de referência) */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "12px",
+        }}
+      >
+        <div>
+          <h2
+            style={{
+              fontSize: "1.2rem",
+              fontWeight: 700,
+              color: "#00796b",
+              margin: 0,
+            }}
+          >
+            Auditoria e Validação de Lote de Carnês
+          </h2>
+          <span style={{ fontSize: "0.75rem", color: "#78909c" }}>
+            Confronto automatizado entre regiões do PDF e banco SQL Server
+          </span>
+        </div>
+
+        {/* Barra de Botões Quadrados em Teal (Toolbar das Imagens 2 e 3) */}
+        <div style={{ display: "flex", gap: "4px" }}>
+          <button
+            type="button"
+            title="Atualizar / Recarregar"
+            onClick={executarValidacao}
+            style={{
+              width: "30px",
+              height: "30px",
+              backgroundColor: "#009688",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+            }}
+          >
+            ↻
+          </button>
+          <button
+            type="button"
+            title="Emitir Relatório / Imprimir"
+            onClick={emitirRelatorioGeral}
+            style={{
+              width: "30px",
+              height: "30px",
+              backgroundColor: "#009688",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            🖨️
+          </button>
+        </div>
+      </div>
+
+      {/* CARD DE IMPORTAÇÃO (Padrão de Card e Campos da Empresa) */}
       <section
         id="card-upload-parametrizacao"
         style={{
-          backgroundColor: "#fff",
-          border: "1px solid #cbd5e1",
-          borderRadius: "8px",
-          padding: "20px",
-          marginBottom: "24px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          backgroundColor: "#ffffff",
+          border: "1px solid #cfd8dc",
+          borderRadius: "4px",
+          overflow: "hidden",
+          marginBottom: "16px",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
         }}
       >
-        <h2
-          id="titulo-sessao-importacao"
-          style={{ fontSize: "1.1rem", color: "#0f172a", marginBottom: "16px" }}
-        >
-          Importação e Validação de Lote de Carnês
-        </h2>
-
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr auto",
-            gap: "16px",
-            alignItems: "flex-end",
+            backgroundColor: "#e0f2f1",
+            padding: "8px 14px",
+            borderBottom: "1px solid #b2dfdb",
+            fontWeight: 700,
+            fontSize: "0.8rem",
+            color: "#00796b",
+            textTransform: "uppercase",
           }}
         >
-          {/* Seletor de Layout */}
-          <div>
-            <label
-              htmlFor="select-layout-aplicado"
-              style={{
-                display: "block",
-                fontWeight: 600,
-                fontSize: "0.85rem",
-                marginBottom: "4px",
-              }}
-            >
-              Layout de Validação Aplicável:
-            </label>
-            <select
-              id="select-layout-aplicado"
-              value={layoutSelecionadoId}
-              onChange={(e) => setLayoutSelecionadoId(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px",
-                borderRadius: "6px",
-                border: "1px solid #cbd5e1",
-                height: "38px",
-              }}
-            >
-              {layoutsDisponiveis.map((l) => (
-                <option key={l.nomeModelo} value={l.nomeModelo}>
-                  {l.nomeModelo} ({l.cliente})
-                </option>
-              ))}
-            </select>
-          </div>
+          Parâmetros do Lote de Entrada
+        </div>
 
-          {/* Campo estilizado de Upload do PDF */}
-          <div>
-            <span
-              id="label-arquivo-pdf"
-              style={{
-                display: "block",
-                fontWeight: 600,
-                fontSize: "0.85rem",
-                marginBottom: "4px",
-                color: "#1e293b",
-              }}
-            >
-              Documento PDF:
-            </span>
+        <div style={{ padding: "14px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr auto",
+              gap: "14px",
+              alignItems: "flex-end",
+            }}
+          >
+            {/* Seletor do Layout */}
+            <div>
+              <label
+                htmlFor="select-layout-aplicado"
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Layout / Gabarito Aplicável *
+              </label>
+              <select
+                id="select-layout-aplicado"
+                value={layoutSelecionadoId}
+                onChange={(e) => setLayoutSelecionadoId(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                  color: "#263238",
+                }}
+              >
+                {layoutsDisponiveis.map((l) => (
+                  <option key={l.nomeModelo} value={l.nomeModelo}>
+                    {l.nomeModelo} ({l.cliente})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            {/* Input nativo oculto */}
-            <input
-              id="input-arquivo-pdf"
-              type="file"
-              accept="application/pdf"
-              onChange={lidarComArquivo}
-              style={{ display: "none" }}
-            ></input>
+            {/* Upload do Arquivo PDF */}
+            <div>
+              <span
+                id="label-arquivo-pdf"
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Arquivo PDF de Carnês *
+              </span>
 
-            {/* Botão e visualizador acoplados à label */}
-            <label
-              htmlFor="input-arquivo-pdf"
-              id="btn-trigger-upload-pdf"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                backgroundColor: arquivo ? "#f0fdf4" : "#f8fafc",
-                border: arquivo ? "1px solid #86efac" : "1px dashed #94a3b8",
-                borderRadius: "6px",
-                padding: "6px 12px",
-                cursor: "pointer",
-                height: "38px",
-                boxSizing: "border-box",
-                transition: "all 0.2s ease",
-              }}
-            >
-              <div
+              <input
+                id="input-arquivo-pdf"
+                type="file"
+                accept="application/pdf"
+                onChange={lidarComArquivo}
+                style={{ display: "none" }}
+              ></input>
+
+              <label
+                htmlFor="input-arquivo-pdf"
+                id="btn-trigger-upload-pdf"
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
-                  overflow: "hidden",
+                  justifyContent: "space-between",
+                  backgroundColor: arquivo ? "#e8f5e9" : "#ffffff",
+                  border: arquivo ? "1px solid #81c784" : "1px solid #cfd8dc",
+                  borderRadius: "4px",
+                  padding: "0 10px",
+                  cursor: "pointer",
+                  height: "34px",
+                  boxSizing: "border-box",
                 }}
               >
-                <span style={{ fontSize: "1rem" }}>
-                  {arquivo ? "📄" : "📁"}
-                </span>
-                <span
+                <div
                   style={{
-                    fontSize: "0.85rem",
-                    color: arquivo ? "#15803d" : "#64748b",
-                    fontWeight: arquivo ? 600 : 400,
-                    whiteSpace: "nowrap",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
                     overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    maxWidth: "230px",
                   }}
                 >
-                  {arquivo ? arquivo.name : "Clique para selecionar o PDF..."}
+                  <span style={{ fontSize: "0.85rem" }}>
+                    {arquivo ? "📄" : "📁"}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      color: arquivo ? "#2e7d32" : "#78909c",
+                      fontWeight: arquivo ? 700 : 400,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      maxWidth: "200px",
+                    }}
+                  >
+                    {arquivo ? arquivo.name : "Selecionar carnê em PDF..."}
+                  </span>
+                </div>
+
+                <span
+                  style={{
+                    backgroundColor: "#009688",
+                    color: "#ffffff",
+                    padding: "2px 8px",
+                    borderRadius: "3px",
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  Procurar
                 </span>
-              </div>
+              </label>
+            </div>
 
-              <span
-                style={{
-                  backgroundColor: arquivo ? "#dcfce7" : "#e2e8f0",
-                  color: arquivo ? "#166534" : "#475569",
-                  padding: "3px 8px",
-                  borderRadius: "4px",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  flexShrink: 0,
-                }}
-              >
-                {arquivo ? "Alterar" : "Procurar"}
-              </span>
-            </label>
+            {/* Botão de Disparo */}
+            <button
+              id="btn-executar-validacao"
+              onClick={executarValidacao}
+              disabled={processando}
+              style={{
+                backgroundColor: processando ? "#b0bec5" : "#009688",
+                color: "#ffffff",
+                border: "none",
+                padding: "0 20px",
+                borderRadius: "4px",
+                fontWeight: 700,
+                cursor: processando ? "not-allowed" : "pointer",
+                height: "34px",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              }}
+            >
+              {processando ? "Auditando..." : "Validar Lote"}
+            </button>
           </div>
-
-          {/* Botão de Disparo */}
-          <button
-            id="btn-executar-validacao"
-            onClick={executarValidacao}
-            disabled={processando}
-            style={{
-              backgroundColor: processando ? "#94a3b8" : "#2563eb",
-              color: "#fff",
-              border: "none",
-              padding: "10px 24px",
-              borderRadius: "6px",
-              fontWeight: 600,
-              cursor: processando ? "not-allowed" : "pointer",
-              height: "38px",
-            }}
-          >
-            {processando ? "Processando..." : "Validar Documentos"}
-          </button>
         </div>
       </section>
 
-      {/* Resultados da Validação */}
+      {/* GRID / TABELA DE RESULTADOS (Reprodução fiel da Imagem 2) */}
       {resultados.length > 0 && (
         <section
           id="card-resultados-auditoria"
           style={{
-            backgroundColor: "#fff",
-            border: "1px solid #cbd5e1",
-            borderRadius: "8px",
-            padding: "20px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+            backgroundColor: "#ffffff",
+            border: "1px solid #cfd8dc",
+            borderRadius: "4px",
+            overflow: "hidden",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           }}
         >
           <div
             style={{
+              padding: "10px 14px",
+              backgroundColor: "#f5f7f8",
+              borderBottom: "1px solid #cfd8dc",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "16px",
             }}
           >
-            <div>
-              <h3 style={{ fontSize: "1.1rem", color: "#0f172a" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <strong style={{ fontSize: "0.85rem", color: "#263238" }}>
                 Resultado da Auditoria
-              </h3>
-              <p style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                Total auditado: {resultados.length} | Com divergência:{" "}
-                <span style={{ color: "#b91c1c", fontWeight: 700 }}>
-                  {totalComErro}
-                </span>
-              </p>
-            </div>
-
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-              <label
+              </strong>
+              <span
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "0.85rem",
-                  cursor: "pointer",
-                  color: "#334155",
+                  backgroundColor: totalComErro > 0 ? "#ffebee" : "#e8f5e9",
+                  color: totalComErro > 0 ? "#c62828" : "#2e7d32",
+                  padding: "1px 6px",
+                  borderRadius: "10px",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  border:
+                    totalComErro > 0
+                      ? "1px solid #ffcdd2"
+                      : "1px solid #c8e6c9",
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={filtroApenasErros}
-                  onChange={(e) => setFiltroApenasErros(e.target.checked)}
-                ></input>
-                Exibir apenas carnês com inconsistências
-              </label>
-
-              <button
-                id="btn-emitir-relatorio"
-                onClick={emitirRelatorioGeral}
-                style={{
-                  backgroundColor: "#0f172a",
-                  color: "#fff",
-                  border: "none",
-                  padding: "8px 16px",
-                  borderRadius: "6px",
-                  fontWeight: 600,
-                  fontSize: "0.85rem",
-                  cursor: "pointer",
-                }}
-              >
-                Emitir Relatório Geral
-              </button>
+                {totalComErro} com inconsistência
+              </span>
             </div>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "0.75rem",
+                cursor: "pointer",
+                color: "#455a64",
+                fontWeight: 600,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={filtroApenasErros}
+                onChange={(e) => setFiltroApenasErros(e.target.checked)}
+              ></input>
+              Exibir apenas carnês com divergências
+            </label>
           </div>
 
-          {/* Tabela de Carnês Auditados */}
           <table
             id="tabela-carnes-auditados"
             style={{
               width: "100%",
               borderCollapse: "collapse",
               textAlign: "left",
-              fontSize: "0.9rem",
+              fontSize: "0.8rem",
             }}
           >
             <thead>
               <tr
                 style={{
-                  borderBottom: "2px solid #e2e8f0",
-                  backgroundColor: "#f8fafc",
-                  color: "#475569",
+                  backgroundColor: "#009688",
+                  color: "#ffffff",
                 }}
               >
-                <th style={{ padding: "10px" }}>Página</th>
-                <th style={{ padding: "10px" }}>Nº Documento</th>
-                <th style={{ padding: "10px" }}>Contribuinte</th>
-                <th style={{ padding: "10px" }}>Status</th>
-                <th style={{ padding: "10px" }}>Detalhamento dos Problemas</th>
+                <th style={{ padding: "8px 10px", fontWeight: 700 }}>
+                  FOLHA ▾
+                </th>
+                <th style={{ padding: "8px 10px", fontWeight: 700 }}>
+                  DOCUMENTO ▾
+                </th>
+                <th style={{ padding: "8px 10px", fontWeight: 700 }}>
+                  CONTRIBUINTE ▾
+                </th>
+                <th
+                  style={{
+                    padding: "8px 10px",
+                    fontWeight: 700,
+                    textAlign: "center",
+                  }}
+                >
+                  SITUAÇÃO ▾
+                </th>
+                <th style={{ padding: "8px 10px", fontWeight: 700 }}>
+                  AUDITORIA SQL SERVER
+                </th>
               </tr>
             </thead>
             <tbody>
-              {resultadosFiltrados.map((item) => (
+              {resultadosFiltrados.map((item, idx) => (
                 <tr
                   key={item.numeroDocumento}
                   style={{
-                    borderBottom: "1px solid #f1f5f9",
+                    borderBottom: "1px solid #eceff1",
                     backgroundColor:
-                      item.status === "Com Erro" ? "#fff5f5" : "#ffffff",
+                      idx % 2 === 0
+                        ? "#ffffff"
+                        : item.status === "Com Erro"
+                          ? "#fff8f8"
+                          : "#fbfcfc",
                   }}
                 >
                   <td
                     style={{
-                      padding: "10px",
+                      padding: "8px 10px",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      color: "#37474f",
                     }}
                   >
-                    Pág. {item.pagina}
+                    Página {item.pagina}
                   </td>
-                  <td style={{ padding: "10px", fontWeight: 600 }}>
+                  <td
+                    style={{
+                      padding: "8px 10px",
+                      fontWeight: 700,
+                      color: "#00796b",
+                    }}
+                  >
                     {item.numeroDocumento}
                   </td>
-                  <td style={{ padding: "10px" }}>{item.contribuinte}</td>
-                  <td style={{ padding: "10px" }}>
+                  <td style={{ padding: "8px 10px", color: "#263238" }}>
+                    {item.contribuinte}
+                  </td>
+                  <td style={{ padding: "8px 10px", textAlign: "center" }}>
                     <span
                       style={{
-                        padding: "3px 8px",
-                        borderRadius: "4px",
-                        fontSize: "0.8rem",
+                        padding: "2px 8px",
+                        borderRadius: "3px",
+                        fontSize: "0.7rem",
                         fontWeight: 700,
                         backgroundColor:
-                          item.status === "Valido" ? "#dcfce7" : "#fee2e2",
-                        color: item.status === "Valido" ? "#15803d" : "#b91c1c",
+                          item.status === "Valido" ? "#e8f5e9" : "#ffebee",
+                        color: item.status === "Valido" ? "#2e7d32" : "#c62828",
+                        border:
+                          item.status === "Valido"
+                            ? "1px solid #c8e6c9"
+                            : "1px solid #ffcdd2",
                       }}
                     >
-                      {item.status === "Valido" ? "Válido" : "Com Erro"}
+                      {item.status === "Valido" ? "VÁLIDO" : "DIVERGENTE"}
                     </span>
                   </td>
-                  <td style={{ padding: "10px" }}>
+                  <td style={{ padding: "8px 10px" }}>
                     {item.erros.length === 0 ? (
-                      <span style={{ color: "#16a34a", fontSize: "0.85rem" }}>
-                        Conforme esperado no banco
+                      <span
+                        style={{
+                          color: "#2e7d32",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        ✓ Registros 100% conformes com o banco
                       </span>
                     ) : (
                       <ul
                         style={{
                           margin: 0,
-                          paddingLeft: "16px",
-                          color: "#991b1b",
-                          fontSize: "0.85rem",
+                          paddingLeft: "14px",
+                          color: "#c62828",
+                          fontSize: "0.75rem",
                         }}
                       >
-                        {item.erros.map((erro, idx) => (
-                          <li key={idx} style={{ marginBottom: "4px" }}>
-                            <strong>{erro.campo}:</strong> Extraído: "
-                            {erro.valorExtraido}" | Esperado: "
-                            {erro.valorEsperado}" — {erro.mensagem}
+                        {item.erros.map((erro, eIdx) => (
+                          <li key={eIdx} style={{ marginBottom: "2px" }}>
+                            <strong>{erro.campo}:</strong> Extraído "
+                            {erro.valorExtraido}" ≠ Esperado "
+                            {erro.valorEsperado}" ({erro.mensagem})
                           </li>
                         ))}
                       </ul>
@@ -415,6 +515,70 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
               ))}
             </tbody>
           </table>
+
+          {/* RODAPÉ E PAGINAÇÃO (Idêntico ao padrão da Imagem 2) */}
+          <div
+            style={{
+              padding: "8px 14px",
+              backgroundColor: "#f5f7f8",
+              borderTop: "1px solid #cfd8dc",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "0.75rem",
+              color: "#546e7a",
+            }}
+          >
+            <div>
+              Total de Registros: <strong>{resultados.length}</strong>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <button
+                type="button"
+                disabled
+                style={{
+                  padding: "2px 6px",
+                  borderRadius: "3px",
+                  border: "1px solid #cfd8dc",
+                  backgroundColor: "#ffffff",
+                  color: "#b0bec5",
+                  cursor: "not-allowed",
+                }}
+              >
+                &lt;
+              </button>
+              <button
+                type="button"
+                style={{
+                  padding: "2px 8px",
+                  borderRadius: "3px",
+                  border: "1px solid #009688",
+                  backgroundColor: "#009688",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                1
+              </button>
+              <button
+                type="button"
+                disabled
+                style={{
+                  padding: "2px 6px",
+                  borderRadius: "3px",
+                  border: "1px solid #cfd8dc",
+                  backgroundColor: "#ffffff",
+                  color: "#b0bec5",
+                  cursor: "not-allowed",
+                }}
+              >
+                &gt;
+              </button>
+              <span style={{ marginLeft: "8px" }}>10 / página</span>
+            </div>
+          </div>
         </section>
       )}
     </div>

@@ -4,12 +4,10 @@ import { ParametrizacaoPage } from "./pages/ParametrizacaoPage";
 import { ValidacaoPage } from "./pages/ValidacaoPage";
 
 export function App() {
-  // Estado que guarda qual tela está visível no momento
   const [abaAtiva, setAbaAtiva] = useState<"parametrizacao" | "validacao">(
-    "validacao",
+    "parametrizacao",
   );
 
-  // Lista de layouts mantida na raiz para que a tela de Validação enxergue o que foi salvo na tela de Parametrização
   const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([
     {
       cliente: "PM Sertãozinho - SP",
@@ -19,7 +17,9 @@ export function App() {
       formatoPapel: "Personalizado",
       larguraPaginaMm: 70,
       alturaPaginaMm: 30,
+      quantidadePaginasPadrao: 1,
       campos: [],
+      queriesValidacao: [],
     },
   ]);
 
@@ -28,76 +28,155 @@ export function App() {
       id="root-app"
       style={{
         minHeight: "100vh",
-        backgroundColor: "#f8fafc",
-        padding: "20px",
-        fontFamily: "Segoe UI, sans-serif",
+        backgroundColor: "#f0f2f5",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Barra de Navegação no Topo */}
-      <nav
-        id="barra-navegacao-global"
+      {/* CABEÇALHO SUPERIOR CORPORATIVO */}
+      <header
+        id="cabecalho-principal-empresa"
         style={{
-          maxWidth: "1320px",
-          margin: "0 auto 20px auto",
           backgroundColor: "#ffffff",
-          padding: "12px 20px",
-          borderRadius: "8px",
-          border: "1px solid #cbd5e1",
+          height: "48px",
+          borderBottom: "1px solid #cfd8dc",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 16px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          zIndex: 100,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Brasão / Logotipo Institucional */}
+          <div
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "4px",
+              backgroundColor: "#e0f2f1",
+              border: "1px solid #009688",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1rem",
+            }}
+          >
+            🏛️
+          </div>
+
+          <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+            <span
+              style={{
+                fontSize: "1rem",
+                fontWeight: 700,
+                color: "#00796b",
+                letterSpacing: "0.5px",
+              }}
+            >
+              SMARrsvd
+            </span>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                color: "#78909c",
+                fontWeight: 600,
+              }}
+            >
+              | Sistema de Validação de Documentos
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* FITA DE NAVEGAÇÃO / BREADCRUMB (Idêntico ao padrão dos sistemas de referência) */}
+      <div
+        id="barra-navegacao-fitas"
+        style={{
+          backgroundColor: "#ffffff",
+          borderBottom: "1px solid #cfd8dc",
+          padding: "6px 16px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         }}
       >
-        <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "1.2rem" }}>
-          SMARrsvp
-        </div>
-
-        {/* Botões para trocar de tela */}
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <button
-            id="btn-aba-validacao"
-            type="button"
-            onClick={() => setAbaAtiva("validacao")}
-            style={{
-              padding: "8px 18px",
-              borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: "0.9rem",
-              backgroundColor: abaAtiva === "validacao" ? "#2563eb" : "#f1f5f9",
-              color: abaAtiva === "validacao" ? "#ffffff" : "#475569",
-              transition: "all 0.2s ease",
-            }}
-          >
-            1. Importação
-          </button>
-
-          <button
-            id="btn-aba-parametrizacao"
             type="button"
             onClick={() => setAbaAtiva("parametrizacao")}
             style={{
-              padding: "8px 18px",
-              borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: "0.9rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "5px 14px",
+              borderRadius: "3px",
+              border:
+                abaAtiva === "parametrizacao"
+                  ? "1px solid #009688"
+                  : "1px solid #cfd8dc",
               backgroundColor:
-                abaAtiva === "parametrizacao" ? "#2563eb" : "#f1f5f9",
-              color: abaAtiva === "parametrizacao" ? "#ffffff" : "#475569",
-              transition: "all 0.2s ease",
+                abaAtiva === "parametrizacao" ? "#e0f2f1" : "#f8fafc",
+              color: abaAtiva === "parametrizacao" ? "#00796b" : "#455a64",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              cursor: "pointer",
             }}
           >
-            2. Layout
+            <span>📐</span>
+            <span>Parametrização de Layouts</span>
+          </button>
+
+          <span style={{ color: "#b0bec5", fontSize: "0.8rem" }}>›</span>
+
+          <button
+            type="button"
+            onClick={() => setAbaAtiva("validacao")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "5px 14px",
+              borderRadius: "3px",
+              border:
+                abaAtiva === "validacao"
+                  ? "1px solid #009688"
+                  : "1px solid #cfd8dc",
+              backgroundColor: abaAtiva === "validacao" ? "#e0f2f1" : "#f8fafc",
+              color: abaAtiva === "validacao" ? "#00796b" : "#455a64",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              cursor: "pointer",
+            }}
+          >
+            <span>📑</span>
+            <span>Importação e Validação de PDF</span>
           </button>
         </div>
-      </nav>
 
-      {/* Exibição condicional da tela selecionada */}
-      <main id="conteudo-tela-ativa">
+        <div
+          style={{
+            fontSize: "0.75rem",
+            color: "#78909c",
+            fontWeight: 600,
+          }}
+        >
+          Ambiente Corporativo • .NET 6 / React
+        </div>
+      </div>
+
+      {/* ÁREA PRINCIPAL DO CONTEÚDO */}
+      <main
+        id="conteudo-tela-ativa"
+        style={{
+          flex: 1,
+          padding: "16px",
+          maxWidth: "1400px",
+          width: "100%",
+          margin: "0 auto",
+          boxSizing: "border-box",
+        }}
+      >
         {abaAtiva === "parametrizacao" ? (
           <ParametrizacaoPage
             layoutsSalvos={layoutsSalvos}

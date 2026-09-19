@@ -8,20 +8,40 @@ export interface RegiaoCampo {
   yMm: number;
   larguraMm: number;
   alturaMm: number;
-  consultaSql: string;
+  pagina: number;
   ehIdentificadorPrimeiraPagina?: boolean;
   textoEsperadoIdentificador?: string;
 }
 
-// O layout agora é associado a um Cliente / Município
+export interface RegraValidacao {
+  id: string;
+  campoRetornado: string;
+  operador: string;
+  campoCarne: string;
+}
+
+export interface QueryValidacao {
+  id: string;
+  nome: string;
+  sql: string;
+  parametrosEncontrados: string[];
+  camposRetornados: string[];
+  regras: RegraValidacao[];
+}
+
 export interface LayoutCliente {
   id?: string;
-  cliente: string; // Ex: "PM Sertãozinho - SP", "PM Serra - ES"
-  nomeModelo: string; // Ex: "Carnê IPTU/ISS 2026 - Padrão"
+  cliente: string;
+  nomeModelo: string;
   versao: number;
   orientacao: OrientacaoPagina;
   formatoPapel: FormatoPapel;
   larguraPaginaMm: number;
   alturaPaginaMm: number;
+  quantidadePaginasPadrao: number;
   campos: RegiaoCampo[];
+  queriesValidacao: QueryValidacao[];
+  // Armazena as imagens de gabarito das páginas quando originado de um PDF modelo
+  paginasModeloBase64?: string[];
+  nomeArquivoModelo?: string;
 }

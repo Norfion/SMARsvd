@@ -1,3 +1,26 @@
+:root {
+  --smar-teal-primary: #009688;
+  --smar-teal-dark: #00796b;
+  --smar-teal-darker: #004d40;
+  --smar-teal-light: #e0f2f1;
+  --smar-teal-border: #b2dfdb;
+  --smar-teal-hover: #00897b;
+
+  --smar-navy: #1e2530;
+  --smar-navy-light: #263238;
+
+  --smar-bg-page: #f0f2f5;
+  --smar-bg-card: #ffffff;
+  --smar-border-color: #cfd8dc;
+  --smar-border-light: #eceff1;
+
+  --smar-text-primary: #263238;
+  --smar-text-secondary: #546e7a;
+  --smar-text-muted: #78909c;
+
+  --smar-radius: 4px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6,8 +29,46 @@
 
 body {
   font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-    Cantarell, sans-serif;
-  background-color: #f4f6f8;
-  color: #333;
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Roboto",
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  background-color: var(--smar-bg-page);
+  color: var(--smar-text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Barra de rolagem padronizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b0bec5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #78909c;
 }
