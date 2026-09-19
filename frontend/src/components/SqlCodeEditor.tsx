@@ -234,7 +234,7 @@ export function SqlCodeEditor({
           <span
             style={{ fontSize: "0.8rem", fontWeight: 700, color: "#475569" }}
           >
-            Editor T-SQL {expandido}
+            Script SQL {expandido}
           </span>
           <button
             type="button"
@@ -300,7 +300,7 @@ export function SqlCodeEditor({
             onKeyDown={aoPressionarTecla}
             onScroll={aoRolar}
             spellCheck={false}
-            placeholder="SELECT Nome AS NomeContribuinte FROM Contribuintes WHERE Crc = $CRC"
+            placeholder={`Utilize $campo para referenciar campos mapeados no documento. \nExemplo: \n\nSELECT Nome AS NomeQuery FROM Contribuintes C WHERE C.CRC = $CRCCampo`}
             style={{
               position: "absolute",
               top: 0,
@@ -311,6 +311,7 @@ export function SqlCodeEditor({
               padding: "12px",
               fontFamily: 'Consolas, "Fira Code", monospace',
               fontSize: "0.9rem",
+              fontStyle: "italic",
               lineHeight: "1.5",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",

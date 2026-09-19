@@ -53,7 +53,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
 
   const executarValidacao = () => {
     if (!arquivo) {
-      alert("Selecione um arquivo PDF de carnê primeiro.");
+      alert("Selecione um arquivo PDF para validação primeiro.");
       return;
     }
     if (!layoutSelecionadoId) {
@@ -66,10 +66,6 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
       setResultados(MOCK_RESULTADOS);
       setProcessando(false);
     }, 1200);
-  };
-
-  const emitirRelatorioGeral = () => {
-    window.print();
   };
 
   const resultadosFiltrados = filtroApenasErros
@@ -98,51 +94,8 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
               margin: 0,
             }}
           >
-            Validação de lotes de documentos
+            Importar documentos
           </h2>
-        </div>
-
-        {/* Barra de Botões Quadrados em Teal (Toolbar das Imagens 2 e 3) */}
-        <div style={{ display: "flex", gap: "4px" }}>
-          <button
-            type="button"
-            title="Atualizar / Recarregar"
-            onClick={executarValidacao}
-            style={{
-              width: "30px",
-              height: "30px",
-              backgroundColor: "#009688",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 700,
-            }}
-          >
-            ↻
-          </button>
-          <button
-            type="button"
-            title="Emitir Relatório / Imprimir"
-            onClick={emitirRelatorioGeral}
-            style={{
-              width: "30px",
-              height: "30px",
-              backgroundColor: "#009688",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            🖨️
-          </button>
         </div>
       </div>
 
@@ -169,7 +122,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
             textTransform: "uppercase",
           }}
         >
-          Parâmetros do Lote de Entrada
+          Parâmetros para configuração
         </div>
 
         <div style={{ padding: "14px" }}>
@@ -279,7 +232,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                       maxWidth: "200px",
                     }}
                   >
-                    {arquivo ? arquivo.name : "Selecionar carnê em PDF..."}
+                    {arquivo ? arquivo.name : "Selecionar documento em PDF..."}
                   </span>
                 </div>
 
@@ -315,7 +268,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                 boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
               }}
             >
-              {processando ? "Validando..." : "Validar"}
+              {processando ? "Auditando..." : "Validar"}
             </button>
           </div>
         </div>
@@ -361,28 +314,69 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                       : "1px solid #c8e6c9",
                 }}
               >
-                {totalComErro} com inconsistência
+                {totalComErro} documento com inconsistências
               </span>
             </div>
 
-            <label
+            {/* Switch Liga / Desliga para filtro de divergências */}
+            <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
-                fontSize: "0.75rem",
+                gap: "10px",
                 cursor: "pointer",
-                color: "#455a64",
-                fontWeight: 600,
               }}
+              onClick={() => setFiltroApenasErros(!filtroApenasErros)}
             >
-              <input
-                type="checkbox"
-                checked={filtroApenasErros}
-                onChange={(e) => setFiltroApenasErros(e.target.checked)}
-              ></input>
-              Exibir apenas carnês com divergências
-            </label>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  fontWeight: 600,
+                  userSelect: "none",
+                }}
+              >
+                Exibir apenas documentos com divergências
+              </span>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={filtroApenasErros}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFiltroApenasErros(!filtroApenasErros);
+                }}
+                style={{
+                  position: "relative",
+                  width: "44px",
+                  height: "22px",
+                  borderRadius: "11px",
+                  backgroundColor: filtroApenasErros ? "#009688" : "#b0bec5",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "2px",
+                  display: "flex",
+                  alignItems: "center",
+                  transition: "background-color 0.2s ease",
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                    transform: filtroApenasErros
+                      ? "translateX(22px)"
+                      : "translateX(0px)",
+                    transition: "transform 0.2s ease",
+                  }}
+                ></span>
+              </button>
+            </div>
           </div>
 
           <table
@@ -401,26 +395,27 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                   color: "#ffffff",
                 }}
               >
-                <th style={{ padding: "8px 10px", fontWeight: 700 }}>
-                  FOLHA ▾
-                </th>
-                <th style={{ padding: "8px 10px", fontWeight: 700 }}>
-                  DOCUMENTO ▾
-                </th>
-                <th style={{ padding: "8px 10px", fontWeight: 700 }}>
-                  CONTRIBUINTE ▾
+                <th
+                  style={{
+                    padding: "8px 10px",
+                    fontWeight: 700,
+                    width: "120px",
+                  }}
+                >
+                  LOCALIZAÇÃO
                 </th>
                 <th
                   style={{
                     padding: "8px 10px",
                     fontWeight: 700,
                     textAlign: "center",
+                    width: "120px",
                   }}
                 >
-                  SITUAÇÃO ▾
+                  SITUAÇÃO
                 </th>
                 <th style={{ padding: "8px 10px", fontWeight: 700 }}>
-                  AUDITORIA SQL SERVER
+                  RESULTADO DA VALIDAÇÃO
                 </th>
               </tr>
             </thead>
@@ -446,18 +441,6 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                     }}
                   >
                     Página {item.pagina}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      fontWeight: 700,
-                      color: "#00796b",
-                    }}
-                  >
-                    {item.numeroDocumento}
-                  </td>
-                  <td style={{ padding: "8px 10px", color: "#263238" }}>
-                    {item.contribuinte}
                   </td>
                   <td style={{ padding: "8px 10px", textAlign: "center" }}>
                     <span
@@ -487,7 +470,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                           fontWeight: 600,
                         }}
                       >
-                        ✓ Registros 100% conformes com o banco
+                        ✓ Registros conformes as informações no banco de dados
                       </span>
                     ) : (
                       <ul

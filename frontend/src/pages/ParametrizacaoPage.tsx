@@ -640,10 +640,13 @@ export function ParametrizacaoPage({
         </div>
 
         {/* Menu "+ Novo Layout" */}
-        <div style={{ position: "relative" }}>
+        <div
+          style={{ position: "relative" }}
+          onMouseEnter={() => setModalNovoLayoutAberto(true)}
+          onMouseLeave={() => setModalNovoLayoutAberto(false)}
+        >
           <button
             type="button"
-            onClick={() => setModalNovoLayoutAberto(!modalNovoLayoutAberto)}
             disabled={carregandoPdfModelo}
             style={{
               backgroundColor: "#009688",
@@ -670,7 +673,7 @@ export function ParametrizacaoPage({
             <div
               style={{
                 position: "absolute",
-                top: "105%",
+                top: "100%",
                 right: 0,
                 backgroundColor: "#ffffff",
                 border: "1px solid #b0bec5",
@@ -712,7 +715,6 @@ export function ParametrizacaoPage({
                   padding: "10px 14px",
                   background: "none",
                   border: "none",
-                  borderBottom: "1px solid #eceff1",
                   fontSize: "0.8rem",
                   fontWeight: 600,
                   color: "#37474f",
@@ -1088,7 +1090,7 @@ export function ParametrizacaoPage({
                 fontSize: "0.85rem",
               }}
             >
-              {!layoutConcluido ? "🔒" : etapaAberta === "campos" ? "▼" : "▶"}
+              {etapaAberta === "campos" ? "▼" : "▶"}
             </span>
             <strong
               style={{
@@ -1101,7 +1103,7 @@ export function ParametrizacaoPage({
           </div>
 
           <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
-            {campos.length} campo(s) parametrizado(s)
+            {campos.length} campos parametrizados
           </span>
         </div>
 
@@ -1448,7 +1450,7 @@ export function ParametrizacaoPage({
                   }}
                 >
                   <strong style={{ fontSize: "0.8rem", color: "#00796b" }}>
-                    {campoEmEdicaoId ? "Editar Campo" : "Novo Campo"}
+                    {campoEmEdicaoId ? "Editar Campo" : "Criar Campo"}
                   </strong>
                   {campoEmEdicaoId && (
                     <button
@@ -1740,7 +1742,7 @@ export function ParametrizacaoPage({
                               onClick={() =>
                                 removerRegiaoCampo(c.id, c.nomeCampo)
                               }
-                              title="Excluir"
+                              title="Remover"
                               style={{
                                 border: "1px solid #ffcdd2",
                                 background: "#ffebee",
@@ -1835,11 +1837,7 @@ export function ParametrizacaoPage({
                 fontSize: "0.85rem",
               }}
             >
-              {!camposConcluidos
-                ? "🔒"
-                : etapaAberta === "validacoes"
-                  ? "▼"
-                  : "▶"}
+              {etapaAberta === "validacoes" ? "▼" : "▶"}
             </span>
             <strong
               style={{
@@ -1852,7 +1850,7 @@ export function ParametrizacaoPage({
           </div>
 
           <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
-            {queries.length} query(ies) ativa(s)
+            {queries.length} validações ativas
           </span>
         </div>
 
@@ -1934,7 +1932,7 @@ export function ParametrizacaoPage({
                     textTransform: "uppercase",
                   }}
                 >
-                  Instrução T-SQL (utilize $campo para referenciar campos)
+                  Regra para validar
                 </label>
 
                 <SqlCodeEditor
@@ -2137,7 +2135,7 @@ export function ParametrizacaoPage({
                           color: "#455a64",
                         }}
                       >
-                        Campo no Carnê
+                        Campo no Documento
                       </label>
                       <select
                         value={regraCampoCarne}
@@ -2192,7 +2190,9 @@ export function ParametrizacaoPage({
                           textAlign: "left",
                         }}
                       >
-                        <th style={{ padding: "6px 8px" }}>Campo DB</th>
+                        <th style={{ padding: "6px 8px" }}>
+                          Campo Banco de Dados
+                        </th>
                         <th
                           style={{
                             padding: "6px 8px",
@@ -2201,7 +2201,7 @@ export function ParametrizacaoPage({
                         >
                           Operador
                         </th>
-                        <th style={{ padding: "6px 8px" }}>Campo Carnê</th>
+                        <th style={{ padding: "6px 8px" }}>Campo Documento</th>
                         <th
                           style={{
                             padding: "6px 8px",
@@ -2322,7 +2322,7 @@ export function ParametrizacaoPage({
                         cursor: "pointer",
                       }}
                     >
-                      Salvar Query
+                      Salvar Validação
                     </button>
                   </div>
                 </div>
@@ -2349,7 +2349,7 @@ export function ParametrizacaoPage({
                     color: "#455a64",
                   }}
                 >
-                  CONSULTAS CONFIGURADAS ({queries.length})
+                  VALIDAÇÕES CONFIGURADAS ({queries.length})
                 </div>
 
                 <div
@@ -2397,7 +2397,7 @@ export function ParametrizacaoPage({
                           marginBottom: "8px",
                         }}
                       >
-                        {q.regras.length} regra(s) vinculada(s)
+                        {q.regras.length} regras vinculadas
                       </div>
                       <div style={{ display: "flex", gap: "6px" }}>
                         <button
@@ -2430,7 +2430,7 @@ export function ParametrizacaoPage({
                             fontWeight: 600,
                           }}
                         >
-                          Excluir
+                          Remover
                         </button>
                       </div>
                     </div>

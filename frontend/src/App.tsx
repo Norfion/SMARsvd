@@ -123,7 +123,7 @@ export function App() {
               cursor: "pointer",
             }}
           >
-            <span>Parametrização</span>
+            <span>Configurações</span>
           </button>
 
           <span style={{ color: "#b0bec5", fontSize: "0.8rem" }}>›</span>
