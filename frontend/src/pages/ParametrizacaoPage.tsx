@@ -288,16 +288,16 @@ export function ParametrizacaoPage({
     cancelarEdicaoQuery();
   };
 
-  // Salva de forma centralizada todas as configurações de todas as sessões
   const salvarTudo = () => {
-    if (!nomeModelo.trim()) {
+    const nomeNormalizado = nomeModelo.trim();
+    if (!nomeNormalizado) {
       alert("Informe o nome do layout antes de salvar.");
       return;
     }
 
     const layoutFinal: LayoutCliente = {
       cliente,
-      nomeModelo: nomeModelo.trim(),
+      nomeModelo: nomeNormalizado,
       versao: 1,
       orientacao,
       formatoPapel,
@@ -317,18 +317,39 @@ export function ParametrizacaoPage({
       },
     };
 
-    if (layoutSelecionadoId) {
+    // Verifica se já existe um layout salvo com o ID selecionado
+    const layoutJaExiste = layoutsSalvos.some(
+      (l) => l.nomeModelo === layoutSelecionadoId,
+    );
+
+    if (layoutJaExiste) {
+      // Atualiza o registro existente
       onSalvarLayouts(
         layoutsSalvos.map((l) =>
           l.nomeModelo === layoutSelecionadoId ? layoutFinal : l,
         ),
       );
-      setLayoutSelecionadoId(layoutFinal.nomeModelo);
     } else {
-      onSalvarLayouts([...layoutsSalvos, layoutFinal]);
-      setLayoutSelecionadoId(layoutFinal.nomeModelo);
+      // Se o usuário renomeou para um nome que já existe na lista, evita duplicatas
+      const nomeDuplicado = layoutsSalvos.some(
+        (l) => l.nomeModelo.toLowerCase() === nomeNormalizado.toLowerCase(),
+      );
+
+      if (nomeDuplicado) {
+        onSalvarLayouts(
+          layoutsSalvos.map((l) =>
+            l.nomeModelo.toLowerCase() === nomeNormalizado.toLowerCase()
+              ? layoutFinal
+              : l,
+          ),
+        );
+      } else {
+        // Novo registro: adiciona ao array de layouts
+        onSalvarLayouts([...layoutsSalvos, layoutFinal]);
+      }
     }
 
+    setLayoutSelecionadoId(layoutFinal.nomeModelo);
     alert("Todas as configurações do layout foram salvas com sucesso!");
   };
 
