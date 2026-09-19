@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Fundo com cantos arredondados sutis -->
+  <rect width="64" height="64" rx="14" fill="#ffffff"/>
+  
+  <!-- Parênteses característicos da marca (smar) -->
+  <!-- Parêntese esquerdo -->
+  <path d="M 14 14 C 7 24, 7 40, 14 50" fill="none" stroke="#8a85bd" stroke-width="5.5" stroke-linecap="round"/>
+  <!-- Parêntese direito -->
+  <path d="M 50 14 C 57 24, 57 40, 50 50" fill="none" stroke="#8a85bd" stroke-width="5.5" stroke-linecap="round"/>
+
+  <!-- Documento / Carnê centralizado -->
+  <rect x="22" y="16" width="20" height="28" rx="2.5" fill="#f0fdfa" stroke="#00796b" stroke-width="2.5"/>
+  
+  <!-- Linhas representativas do carnê/guia tributária -->
+  <line x1="26" y1="22" x2="38" y2="22" stroke="#b2dfdb" stroke-width="2" stroke-linecap="round"/>
+  <line x1="26" y1="27" x2="34" y2="27" stroke="#b2dfdb" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Círculo e Ícone de Validação / Auditoria (SVD) -->
+  <circle cx="38" cy="40" r="10.5" fill="#009688" stroke="#ffffff" stroke-width="2"/>
+  <path d="M 33.5 40 L 36.5 43 L 42.5 37" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
