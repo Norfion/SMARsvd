@@ -38,4 +38,27 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+
+
+// --- BLOCO PARA REINICIAR O BANCO NA INICIALIZAÇÃO ---
+if (true)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<SMARsvpDbContext>();
+
+        // 1. Apaga fisicamente o banco de dados existente e todos os seus dados
+        dbContext.Database.EnsureDeleted();
+
+        // 2. Recria o banco e todas as tabelas com base nas entidades mapeadas
+        dbContext.Database.EnsureCreated();
+
+        // Dica: Se preferir aplicar via migrations em vez de EnsureCreated(), use:
+        // dbContext.Database.Migrate();
+    }
+}
+// -----------------------------------------------------
+
+app.Run();
+
 app.Run();

@@ -18,4 +18,8 @@ export const layoutService = {
     const resposta = await api.post<string>("/layouts", layout);
     return resposta.data;
   },
+
+  excluir: async (id: string): Promise<void> => {
+    await api.delete(`/layouts/${id}`);
+  },
 };

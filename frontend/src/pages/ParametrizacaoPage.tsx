@@ -14,11 +14,13 @@ import type {
 interface ParametrizacaoPageProps {
   layoutsSalvos: LayoutCliente[];
   onSalvarLayouts: (layouts: LayoutCliente[]) => void;
+  onExcluirLayout?: (idOuNome: string) => void;
 }
 
 export function ParametrizacaoPage({
   layoutsSalvos,
   onSalvarLayouts,
+  onExcluirLayout,
 }: ParametrizacaoPageProps) {
   const CLIENTES_DISPONIVEIS = [
     "PM Sertãozinho - SP",
@@ -31,7 +33,9 @@ export function ParametrizacaoPage({
   // ==========================================
   // ESTADOS DO FLUXO GERAL E ACCORDIONS
   // ==========================================
+  // Identificador do modelo no select e o ID (GUID) real do banco
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
+  const [layoutId, setLayoutId] = useState<string | undefined>(undefined);
   const [etapaAberta, setEtapaAberta] = useState<
     "layout" | "campos" | "validacoes" | "conexao" | null
   >(null);
@@ -138,6 +142,7 @@ export function ParametrizacaoPage({
   const iniciarCriacaoManual = () => {
     const nomePadrao = "Novo Layout";
     setModalNovoLayoutAberto(false);
+    setLayoutId(undefined); // <-- Garante que é um novo layout
     setLayoutSelecionadoId(nomePadrao);
     setCliente("PM Sertãozinho - SP");
     setNomeModelo(nomePadrao);
@@ -180,6 +185,7 @@ export function ParametrizacaoPage({
       const dados = await processarArquivoPdfModelo(arquivo);
       const nomeIdentificador = arquivo.name.replace(/\.[^/.]+$/, "");
 
+      setLayoutId(undefined); // <-- Garante que é um novo layout importado
       setLayoutSelecionadoId(nomeIdentificador);
       setCliente("PM Sertãozinho - SP");
       setNomeModelo(nomeIdentificador);
@@ -237,6 +243,12 @@ export function ParametrizacaoPage({
       return;
     }
 
+    // 1. Aciona a exclusão persistente no banco de dados através da rota DELETE da API
+    if (onExcluirLayout) {
+      onExcluirLayout(layoutId || layoutSelecionadoId);
+    }
+
+    // 2. Atualiza o estado em memória localmente
     const novaLista = layoutsSalvos.filter(
       (l) => l.nomeModelo !== layoutSelecionadoId,
     );
@@ -244,7 +256,13 @@ export function ParametrizacaoPage({
 
     alert(`O layout "${layoutSelecionadoId}" foi removido com sucesso!`);
 
+    // 3. Limpa o formulário e os campos da tela
     setLayoutSelecionadoId("");
+    setLayoutId(undefined);
+    setCampos([]);
+    setQueries([]);
+    setPaginasModelo([]);
+    setNomeArquivoModelo("");
     setEtapaAberta(null);
     cancelarEdicaoCampo();
     cancelarEdicaoQuery();
@@ -252,6 +270,7 @@ export function ParametrizacaoPage({
 
   const carregarLayout = (nomeLayout: string) => {
     if (!nomeLayout) {
+      setLayoutId(undefined);
       setLayoutSelecionadoId("");
       setEtapaAberta(null);
       return;
@@ -260,6 +279,7 @@ export function ParametrizacaoPage({
     const layout = layoutsSalvos.find((l) => l.nomeModelo === nomeLayout);
     if (!layout) return;
 
+    setLayoutId(layout.id); // <-- Armazena o ID do layout existente
     setLayoutSelecionadoId(layout.nomeModelo);
     setCliente(layout.cliente);
     setNomeModelo(layout.nomeModelo);
@@ -296,6 +316,7 @@ export function ParametrizacaoPage({
     }
 
     const layoutFinal: LayoutCliente = {
+      id: layoutId, // <-- Envia o ID para o backend reconhecer a atualização
       cliente,
       nomeModelo: nomeNormalizado,
       versao: 1,

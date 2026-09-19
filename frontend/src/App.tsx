@@ -10,20 +10,7 @@ export function App() {
     "validacao",
   );
 
-  const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([
-    {
-      cliente: "PM Sertãozinho - SP",
-      nomeModelo: "Carnê Geral 2026 - Padrão",
-      versao: 1,
-      orientacao: "Paisagem",
-      formatoPapel: "Personalizado",
-      larguraPaginaMm: 70,
-      alturaPaginaMm: 30,
-      quantidadePaginasPadrao: 1,
-      campos: [],
-      queriesValidacao: [],
-    },
-  ]);
+  const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([]);
 
   // Carrega os layouts salvos no banco de dados ao iniciar a aplicação
   useEffect(() => {
@@ -38,6 +25,30 @@ export function App() {
         console.error("Falha ao carregar layouts da API:", erro);
       });
   }, []);
+
+  // Função para excluir fisicamente o layout no banco e na tela
+  const lidarComExcluirLayout = async (idOuNome: string) => {
+    const layoutParaRemover = layoutsSalvos.find(
+      (l) => l.id === idOuNome || l.nomeModelo === idOuNome,
+    );
+
+    if (!layoutParaRemover) return;
+
+    try {
+      // Se o layout possuir ID registrado no banco, chama a API
+      if (layoutParaRemover.id) {
+        await layoutService.excluir(layoutParaRemover.id);
+      }
+
+      // Remove da memória do React
+      setLayoutsSalvos((anteriores) =>
+        anteriores.filter((l) => l.nomeModelo !== layoutParaRemover.nomeModelo),
+      );
+    } catch (erro: unknown) {
+      console.error("Erro ao excluir layout do banco de dados:", erro);
+      alert("Erro ao excluir o layout no banco de dados. Verifique a API.");
+    }
+  };
 
   // Função centralizada para salvar e persistir os layouts no banco de dados
   const lidarComSalvarLayouts = async (novosLayouts: LayoutCliente[]) => {
@@ -236,6 +247,7 @@ export function App() {
           <ParametrizacaoPage
             layoutsSalvos={layoutsSalvos}
             onSalvarLayouts={lidarComSalvarLayouts}
+            onExcluirLayout={lidarComExcluirLayout}
           ></ParametrizacaoPage>
         ) : (
           <ValidacaoPage layoutsDisponiveis={layoutsSalvos}></ValidacaoPage>
