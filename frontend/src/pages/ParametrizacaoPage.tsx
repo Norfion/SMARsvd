@@ -1485,9 +1485,6 @@ export function ParametrizacaoPage({
                         }}
                       >
                         <span>PREFEITURA MUNICIPAL — GUIA ARRECADATÓRIA</span>
-                        <span style={{ color: "#009688", fontWeight: 700 }}>
-                          PÁGINA {paginaAtivaCanvas}
-                        </span>
                       </div>
                     </div>
                   )}
@@ -2256,10 +2253,6 @@ export function ParametrizacaoPage({
                       >
                         <option value="=">=</option>
                         <option value="<>">&lt;&gt;</option>
-                        <option value=">">&gt;</option>
-                        <option value="<">&lt;</option>
-                        <option value=">=">&gt;=</option>
-                        <option value="<=">&lt;=</option>
                       </select>
                     </div>
 
