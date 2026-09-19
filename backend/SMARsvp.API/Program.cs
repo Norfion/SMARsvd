@@ -41,7 +41,7 @@ app.MapControllers();
 
 
 // --- BLOCO PARA REINICIAR O BANCO NA INICIALIZAÇÃO ---
-if (true)
+if (false)
 {
     using (var scope = app.Services.CreateScope())
     {
