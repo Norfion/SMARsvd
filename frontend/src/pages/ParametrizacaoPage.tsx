@@ -78,16 +78,6 @@ export function ParametrizacaoPage({
   const alturaVisualPx = Math.round(alturaMm * escalaPxPorMm);
 
   const [campos, setCampos] = useState<RegiaoCampo[]>([]);
-  const [inicioPos, setInicioPos] = useState<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  });
-  const [retanguloAtual, setRetanguloAtual] = useState<{
-    x: number;
-    y: number;
-    largura: number;
-    altura: number;
-  } | null>(null);
 
   const [campoEmEdicaoId, setCampoEmEdicaoId] = useState<string | null>(null);
   const [nomeCampo, setNomeCampo] = useState("");
@@ -197,10 +187,59 @@ export function ParametrizacaoPage({
       alert(
         `PDF "${dados.nomeArquivo}" carregado com sucesso!\n• Páginas: ${dados.quantidadePaginas}\n• Dimensões: ${dados.larguraMm} x ${dados.alturaMm} mm (${dados.formatoPapel})`,
       );
-    } catch (err: any) {
-      alert(`Erro na leitura do modelo: ${err.message}`);
+    } catch (err: unknown) {
+      const mensagemErro =
+        err instanceof Error
+          ? err.message
+          : "Falha desconhecida no processamento";
+      alert(`Erro na leitura do modelo: ${mensagemErro}`);
     } finally {
       setCarregandoPdfModelo(false);
+    }
+  };
+
+  // Senha temporária para exclusão de layouts (altere aqui quando desejar)
+  const SENHA_EXCLUSAO = "teste123";
+
+  const removerLayoutAtual = () => {
+    if (!layoutSelecionadoId) {
+      alert("Por favor, selecione um layout antes de tentar remover.");
+      return;
+    }
+
+    // 1. Pergunta de confirmação inicial
+    const confirmou = window.confirm(
+      `Tem certeza de que deseja apagar o layout "${layoutSelecionadoId}"?\nEsta ação não poderá ser desfeita.`,
+    );
+    if (!confirmou) return;
+
+    // 2. Solicitação da senha de autorização
+    const senhaDigitada = window.prompt(
+      "Digite a senha de segurança para confirmar a exclusão:",
+    );
+
+    // Se o usuário clicar em "Cancelar" no prompt
+    if (senhaDigitada === null) return;
+
+    // 3. Validação da senha
+    if (senhaDigitada !== SENHA_EXCLUSAO) {
+      alert("Senha incorreta! A exclusão foi cancelada.");
+      return;
+    }
+
+    // 4. Remove o layout da lista
+    const novaLista = layoutsSalvos.filter(
+      (l) => l.nomeModelo !== layoutSelecionadoId,
+    );
+    onSalvarLayouts(novaLista);
+
+    alert(`O layout "${layoutSelecionadoId}" foi removido com sucesso!`);
+
+    // 5. Se ainda restarem layouts, seleciona o primeiro; se não houver mais nenhum, limpa a tela
+    if (novaLista.length > 0) {
+      carregarLayout(novaLista[0].nomeModelo);
+    } else {
+      iniciarCriacaoManual();
     }
   };
 
@@ -765,6 +804,37 @@ export function ParametrizacaoPage({
             </div>
           )}
         </div>
+
+        {/* Botão Remover Layout */}
+        <button
+          type="button"
+          onClick={removerLayoutAtual}
+          disabled={!layoutSelecionadoId}
+          title={
+            !layoutSelecionadoId
+              ? "Selecione um layout para remover"
+              : `Excluir o layout "${layoutSelecionadoId}"`
+          }
+          style={{
+            backgroundColor: !layoutSelecionadoId ? "#f5f5f5" : "#ffebee",
+            color: !layoutSelecionadoId ? "#9e9e9e" : "#c62828",
+            border: !layoutSelecionadoId
+              ? "1px solid #e0e0e0"
+              : "1px solid #ffcdd2",
+            padding: "6px 14px",
+            borderRadius: "4px",
+            fontWeight: 700,
+            cursor: !layoutSelecionadoId ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            height: "32px",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          }}
+        >
+          <span style={{ fontSize: "0.85rem" }}>🗑️</span>
+          <span>Remover Layout</span>
+        </button>
       </div>
 
       {/* ========================================== */}
@@ -810,7 +880,7 @@ export function ParametrizacaoPage({
                 color: etapaAberta === "layout" ? "#00796b" : "#263238",
               }}
             >
-              1. Configurações do layout
+              1. Configurações do documento
             </strong>
           </div>
 
@@ -1911,7 +1981,7 @@ export function ParametrizacaoPage({
                 color: etapaAberta === "validacoes" ? "#00796b" : "#263238",
               }}
             >
-              3. Regras de Validação
+              3. Regras de validação
             </strong>
           </div>
 
