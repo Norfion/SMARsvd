@@ -14,12 +14,12 @@ public class SMARsvpDbContext : DbContext
     public DbSet<QueryValidacao> QueriesValidacao { get; set; } = null!;
     public DbSet<RegraValidacao> RegrasValidacao { get; set; } = null!;
     public DbSet<PaginaModeloImagem> PaginasModelo { get; set; } = null!;
+    public DbSet<ConexaoBancoLayout> ConexoesBanco { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configuração da Tabela de Layout
         modelBuilder.Entity<LayoutCliente>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -28,7 +28,11 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.LarguraPaginaMm).HasPrecision(10, 2);
             entity.Property(e => e.AlturaPaginaMm).HasPrecision(10, 2);
 
-            // Relacionamentos 1:N com exclusão em cascata (se deletar o layout, limpa os filhos)
+            entity.HasOne(e => e.ConexaoBanco)
+                  .WithOne(e => e.LayoutCliente)
+                  .HasForeignKey<ConexaoBancoLayout>(e => e.LayoutClienteId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasMany(e => e.Campos)
                   .WithOne(e => e.LayoutCliente)
                   .HasForeignKey(e => e.LayoutClienteId)
@@ -45,7 +49,6 @@ public class SMARsvpDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configuração da Tabela de Regiões / Coordenadas
         modelBuilder.Entity<RegiaoCampo>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -57,7 +60,15 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.TextoEsperadoIdentificador).HasMaxLength(250);
         });
 
-        // Configuração de Queries e Regras
+        modelBuilder.Entity<ConexaoBancoLayout>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Provedor).HasMaxLength(50);
+            entity.Property(e => e.Servidor).IsRequired().HasMaxLength(250);
+            entity.Property(e => e.Usuario).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Senha).HasMaxLength(250);
+        });
+
         modelBuilder.Entity<QueryValidacao>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -78,7 +89,6 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.CampoCarne).IsRequired().HasMaxLength(100);
         });
 
-        // Configuração de Imagens de Gabarito
         modelBuilder.Entity<PaginaModeloImagem>(entity =>
         {
             entity.HasKey(e => e.Id);

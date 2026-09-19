@@ -12,7 +12,7 @@ public class RegiaoCampo
     public int Pagina { get; set; } = 1;
     public bool EhIdentificadorPrimeiraPagina { get; set; }
     public string? TextoEsperadoIdentificador { get; set; }
+    public string? ConsultaSql { get; set; }
 
-    // Navegação reversa para o Layout pai
     public LayoutCliente? LayoutCliente { get; set; }
 }

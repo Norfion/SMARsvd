@@ -7,8 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // 2. Registar o SMARsvpDbContext usando o provedor SQL Server
+// Substitua o .UseSqlServer(...) por .UseSqlite(...)
 builder.Services.AddDbContext<SMARsvpDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

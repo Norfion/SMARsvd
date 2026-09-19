@@ -13,18 +13,16 @@ public class LayoutsController : ControllerBase
 {
     private readonly SMARsvpDbContext _context;
 
-    // O DbContext é injetado automaticamente pelo .NET
     public LayoutsController(SMARsvpDbContext context)
     {
         _context = context;
     }
 
-    // GET: api/layouts
-    // Retorna todos os layouts cadastrados para carregar na inicialização do React
     [HttpGet]
     public async Task<ActionResult<IEnumerable<LayoutClienteDto>>> ListarTodos()
     {
         var layouts = await _context.Layouts
+            .Include(l => l.ConexaoBanco)
             .Include(l => l.Campos)
             .Include(l => l.QueriesValidacao)
                 .ThenInclude(q => q.Regras)
@@ -44,6 +42,14 @@ public class LayoutsController : ControllerBase
             AlturaPaginaMm = l.AlturaPaginaMm,
             QuantidadePaginasPadrao = l.QuantidadePaginasPadrao,
             NomeArquivoModelo = l.NomeArquivoModelo,
+            ConexaoBanco = l.ConexaoBanco == null ? null : new ConexaoBancoLayoutDto
+            {
+                Provedor = l.ConexaoBanco.Provedor,
+                Servidor = l.ConexaoBanco.Servidor,
+                Porta = l.ConexaoBanco.Porta,
+                Usuario = l.ConexaoBanco.Usuario,
+                Senha = l.ConexaoBanco.Senha
+            },
             Campos = l.Campos.Select(c => new RegiaoCampoDto
             {
                 Id = c.Id,
@@ -54,7 +60,8 @@ public class LayoutsController : ControllerBase
                 AlturaMm = c.AlturaMm,
                 Pagina = c.Pagina,
                 EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
-                TextoEsperadoIdentificador = c.TextoEsperadoIdentificador
+                TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                ConsultaSql = c.ConsultaSql
             }).ToList(),
             QueriesValidacao = l.QueriesValidacao.Select(q => new QueryValidacaoDto
             {
@@ -78,8 +85,6 @@ public class LayoutsController : ControllerBase
         return Ok(resultado);
     }
 
-    // POST: api/layouts
-    // Recebe o payload do layout desenhado no front e grava no SQL Server
     [HttpPost]
     public async Task<ActionResult<Guid>> SalvarLayout([FromBody] LayoutClienteDto dto)
     {
@@ -88,16 +93,15 @@ public class LayoutsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        // Converter string de Enum para os Enums seguros de domínio
         Enum.TryParse<OrientacaoPagina>(dto.Orientacao, true, out var orientacaoEnum);
         Enum.TryParse<FormatoPapel>(dto.FormatoPapel, true, out var formatoEnum);
 
         LayoutCliente? entidadeLayout = null;
 
-        // Se já vier com Id, tenta localizar para atualizar
         if (dto.Id.HasValue && dto.Id.Value != Guid.Empty)
         {
             entidadeLayout = await _context.Layouts
+                .Include(l => l.ConexaoBanco)
                 .Include(l => l.Campos)
                 .Include(l => l.QueriesValidacao)
                     .ThenInclude(q => q.Regras)
@@ -105,7 +109,6 @@ public class LayoutsController : ControllerBase
                 .FirstOrDefaultAsync(l => l.Id == dto.Id.Value);
         }
 
-        // Se não existir, criamos um novo
         if (entidadeLayout == null)
         {
             entidadeLayout = new LayoutCliente
@@ -116,13 +119,15 @@ public class LayoutsController : ControllerBase
         }
         else
         {
-            // Limpa as coleções antigas para recriar as regiões e regras atualizadas
             _context.RegioesCampos.RemoveRange(entidadeLayout.Campos);
             _context.QueriesValidacao.RemoveRange(entidadeLayout.QueriesValidacao);
             _context.PaginasModelo.RemoveRange(entidadeLayout.PaginasModelo);
+            if (entidadeLayout.ConexaoBanco != null)
+            {
+                _context.ConexoesBanco.Remove(entidadeLayout.ConexaoBanco);
+            }
         }
 
-        // Mapeia os dados do DTO para a Entidade de Banco
         entidadeLayout.Cliente = dto.Cliente;
         entidadeLayout.NomeModelo = dto.NomeModelo;
         entidadeLayout.Versao = dto.Versao;
@@ -133,7 +138,20 @@ public class LayoutsController : ControllerBase
         entidadeLayout.QuantidadePaginasPadrao = dto.QuantidadePaginasPadrao;
         entidadeLayout.NomeArquivoModelo = dto.NomeArquivoModelo;
 
-        // Mapeia os campos/coordenadas demarcadas
+        if (dto.ConexaoBanco != null && !string.IsNullOrWhiteSpace(dto.ConexaoBanco.Servidor))
+        {
+            entidadeLayout.ConexaoBanco = new ConexaoBancoLayout
+            {
+                Id = Guid.NewGuid(),
+                LayoutClienteId = entidadeLayout.Id,
+                Provedor = dto.ConexaoBanco.Provedor ?? "SQL Server",
+                Servidor = dto.ConexaoBanco.Servidor,
+                Porta = dto.ConexaoBanco.Porta,
+                Usuario = dto.ConexaoBanco.Usuario,
+                Senha = dto.ConexaoBanco.Senha
+            };
+        }
+
         entidadeLayout.Campos = dto.Campos.Select(c => new RegiaoCampo
         {
             Id = c.Id.HasValue && c.Id.Value != Guid.Empty ? c.Id.Value : Guid.NewGuid(),
@@ -145,10 +163,10 @@ public class LayoutsController : ControllerBase
             Pagina = c.Pagina,
             EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
             TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+            ConsultaSql = c.ConsultaSql,
             LayoutClienteId = entidadeLayout.Id
         }).ToList();
 
-        // Mapeia as queries e regras de validação
         entidadeLayout.QueriesValidacao = dto.QueriesValidacao.Select(q => new QueryValidacao
         {
             Id = q.Id.HasValue && q.Id.Value != Guid.Empty ? q.Id.Value : Guid.NewGuid(),
@@ -164,7 +182,6 @@ public class LayoutsController : ControllerBase
             }).ToList()
         }).ToList();
 
-        // Mapeia as imagens de gabarito (se houver)
         if (dto.PaginasModeloBase64 != null)
         {
             int numeroPagina = 1;
@@ -178,7 +195,6 @@ public class LayoutsController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
-
         return Ok(entidadeLayout.Id);
     }
 
@@ -193,7 +209,6 @@ public class LayoutsController : ControllerBase
 
         _context.Layouts.Remove(layout);
         await _context.SaveChangesAsync();
-
         return NoContent();
     }
 }
