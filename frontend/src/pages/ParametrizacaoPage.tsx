@@ -43,9 +43,6 @@ export function ParametrizacaoPage({
   const [dbUsuario, setDbUsuario] = useState<string>("");
   const [dbSenha, setDbSenha] = useState<string>("");
 
-  const [layoutConcluido, setLayoutConcluido] = useState<boolean>(false);
-  const [camposConcluidos, setCamposConcluidos] = useState<boolean>(false);
-
   // Estados de Criação de Layout (Menu de Opções)
   const [modalNovoLayoutAberto, setModalNovoLayoutAberto] = useState(false);
   const [carregandoPdfModelo, setCarregandoPdfModelo] = useState(false);
@@ -135,18 +132,6 @@ export function ParametrizacaoPage({
   // Layout não selecionado trava todos os acordeões
   const semLayoutSelecionado = !layoutSelecionadoId;
 
-  // Avança da Seção 3 para a Seção 4
-  const salvarEtapaValidacoes = () => {
-    if (queries.length === 0) {
-      const prosseguir = window.confirm(
-        "Nenhuma regra de validação foi cadastrada. Deseja avançar para a conexão com o banco mesmo assim?",
-      );
-      if (!prosseguir) return;
-    }
-    salvarNoBanco();
-    setEtapaAberta("conexao");
-  };
-
   // ==========================================
   // GESTÃO DE LAYOUT E IMPORTAÇÃO DE MODELO
   // ==========================================
@@ -171,8 +156,6 @@ export function ParametrizacaoPage({
     setDbUsuario("");
     setDbSenha("");
 
-    setLayoutConcluido(false);
-    setCamposConcluidos(false);
     setEtapaAberta("layout");
     cancelarEdicaoCampo();
     cancelarEdicaoQuery();
@@ -210,8 +193,6 @@ export function ParametrizacaoPage({
 
       setCampos([]);
       setQueries([]);
-      setLayoutConcluido(false);
-      setCamposConcluidos(false);
       setEtapaAberta("layout");
       setPaginaAtivaCanvas(1);
       setPaginaCampo(1);
@@ -300,8 +281,6 @@ export function ParametrizacaoPage({
     setDbUsuario(layout.conexaoBanco?.usuario || "");
     setDbSenha(layout.conexaoBanco?.senha || "");
 
-    setLayoutConcluido(true);
-    setCamposConcluidos(true);
     setEtapaAberta("layout");
     setPaginaAtivaCanvas(1);
     setPaginaCampo(1);
@@ -309,10 +288,13 @@ export function ParametrizacaoPage({
     cancelarEdicaoQuery();
   };
 
-  const salvarNoBanco = (
-    novosCampos?: RegiaoCampo[],
-    novasQueries?: QueryValidacao[],
-  ) => {
+  // Salva de forma centralizada todas as configurações de todas as sessões
+  const salvarTudo = () => {
+    if (!nomeModelo.trim()) {
+      alert("Informe o nome do layout antes de salvar.");
+      return;
+    }
+
     const layoutFinal: LayoutCliente = {
       cliente,
       nomeModelo: nomeModelo.trim(),
@@ -322,8 +304,8 @@ export function ParametrizacaoPage({
       larguraPaginaMm: larguraMm,
       alturaPaginaMm: alturaMm,
       quantidadePaginasPadrao,
-      campos: novosCampos || campos,
-      queriesValidacao: novasQueries || queries,
+      campos,
+      queriesValidacao: queries,
       paginasModeloBase64: paginasModelo,
       nomeArquivoModelo,
       conexaoBanco: {
@@ -346,29 +328,8 @@ export function ParametrizacaoPage({
       onSalvarLayouts([...layoutsSalvos, layoutFinal]);
       setLayoutSelecionadoId(layoutFinal.nomeModelo);
     }
-  };
 
-  // Salvar tudo de todas as seções
-  const salvarTudo = () => {
-    if (!nomeModelo.trim()) {
-      alert("Informe o nome do layout antes de salvar.");
-      return;
-    }
-    salvarNoBanco();
     alert("Todas as configurações do layout foram salvas com sucesso!");
-  };
-
-  // ==========================================
-  // FUNÇÕES DA ETAPA 1 (LAYOUT)
-  // ==========================================
-  const salvarEtapaLayout = () => {
-    if (!nomeModelo.trim()) {
-      alert("Informe o nome do layout antes de continuar.");
-      return;
-    }
-    salvarNoBanco();
-    setLayoutConcluido(true);
-    setEtapaAberta("campos");
   };
 
   // ==========================================
@@ -504,30 +465,14 @@ export function ParametrizacaoPage({
       : [...campos, payloadCampo];
 
     setCampos(novosCampos);
-    salvarNoBanco(novosCampos, queries);
     cancelarEdicaoCampo();
   };
 
   const removerRegiaoCampo = (id: string, nome: string) => {
     if (window.confirm(`Tem certeza que deseja apagar o campo "${nome}"?`)) {
-      const novos = campos.filter((c) => c.id !== id);
-      setCampos(novos);
-      salvarNoBanco(novos, queries);
+      setCampos(campos.filter((c) => c.id !== id));
       if (campoEmEdicaoId === id) cancelarEdicaoCampo();
     }
-  };
-
-  const salvarEtapaCampos = () => {
-    if (campos.length === 0) {
-      if (
-        !window.confirm(
-          "Nenhum campo foi configurado. Deseja avançar sem campos?",
-        )
-      )
-        return;
-    }
-    setCamposConcluidos(true);
-    setEtapaAberta("validacoes");
   };
 
   // ==========================================
@@ -645,15 +590,12 @@ export function ParametrizacaoPage({
       : [...queries, payload];
 
     setQueries(novas);
-    salvarNoBanco(campos, novas);
     cancelarEdicaoQuery();
   };
 
   const removerQuery = (id: string, nome: string) => {
     if (window.confirm(`Deseja remover a query "${nome}" e suas validações?`)) {
-      const novas = queries.filter((q) => q.id !== id);
-      setQueries(novas);
-      salvarNoBanco(campos, novas);
+      setQueries(queries.filter((q) => q.id !== id));
     }
   };
 
@@ -675,13 +617,6 @@ export function ParametrizacaoPage({
     if (campos.length > 0) {
       setRegraCampoCarne(campos[0].nomeCampo);
     }
-  };
-
-  // Salvar conexão e fechar acordeão
-  const salvarEtapaConexao = () => {
-    salvarNoBanco();
-    setEtapaAberta(null);
-    alert("Configurações de conexão salvas no layout com sucesso!");
   };
 
   return (
@@ -1059,7 +994,6 @@ export function ParametrizacaoPage({
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
               gap: "14px",
-              marginBottom: "20px",
             }}
           >
             <div>
@@ -1210,27 +1144,6 @@ export function ParametrizacaoPage({
               ></input>
             </div>
           </div>
-
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              onClick={salvarEtapaLayout}
-              style={{
-                backgroundColor: "#009688",
-                color: "#ffffff",
-                border: "none",
-                padding: "7px 20px",
-                borderRadius: "4px",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-              }}
-            >
-              <span>Salvar</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -1245,20 +1158,18 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
-          opacity:
-            semLayoutSelecionado || !layoutConcluido || emModoEdicao ? 0.65 : 1,
+          opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1,
         }}
       >
         <div
           onClick={() => {
-            if (!semLayoutSelecionado && layoutConcluido && !emModoEdicao)
-              alternarEtapa("campos");
+            if (!semLayoutSelecionado && !emModoEdicao) alternarEtapa("campos");
           }}
           style={{
             backgroundColor: etapaAberta === "campos" ? "#e0f2f1" : "#f8fafc",
             padding: "10px 16px",
             cursor:
-              !semLayoutSelecionado && layoutConcluido && !emModoEdicao
+              !semLayoutSelecionado && !emModoEdicao
                 ? "pointer"
                 : "not-allowed",
             borderBottom:
@@ -1296,10 +1207,7 @@ export function ParametrizacaoPage({
 
         <div
           className={`accordion-content-wrapper ${
-            etapaAberta === "campos" &&
-            !semLayoutSelecionado &&
-            layoutConcluido &&
-            !emModoEdicao
+            etapaAberta === "campos" && !semLayoutSelecionado && !emModoEdicao
               ? "accordion-content-open"
               : "accordion-content-closed"
           }`}
@@ -1976,35 +1884,6 @@ export function ParametrizacaoPage({
               </div>
             </div>
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              marginTop: "16px",
-              paddingTop: "12px",
-              borderTop: "1px solid #eceff1",
-            }}
-          >
-            <button
-              onClick={salvarEtapaCampos}
-              style={{
-                backgroundColor: "#009688",
-                color: "#ffffff",
-                border: "none",
-                padding: "7px 20px",
-                borderRadius: "4px",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-              }}
-            >
-              <span>Salvar</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -2019,15 +1898,12 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
-          opacity:
-            semLayoutSelecionado || !camposConcluidos || emModoEdicao
-              ? 0.65
-              : 1,
+          opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1,
         }}
       >
         <div
           onClick={() => {
-            if (!semLayoutSelecionado && camposConcluidos && !emModoEdicao)
+            if (!semLayoutSelecionado && !emModoEdicao)
               alternarEtapa("validacoes");
           }}
           style={{
@@ -2035,7 +1911,7 @@ export function ParametrizacaoPage({
               etapaAberta === "validacoes" ? "#e0f2f1" : "#f8fafc",
             padding: "10px 16px",
             cursor:
-              !semLayoutSelecionado && camposConcluidos && !emModoEdicao
+              !semLayoutSelecionado && !emModoEdicao
                 ? "pointer"
                 : "not-allowed",
             borderBottom:
@@ -2075,7 +1951,6 @@ export function ParametrizacaoPage({
           className={`accordion-content-wrapper ${
             etapaAberta === "validacoes" &&
             !semLayoutSelecionado &&
-            camposConcluidos &&
             !emModoEdicao
               ? "accordion-content-open"
               : "accordion-content-closed"
@@ -2664,42 +2539,6 @@ export function ParametrizacaoPage({
               </div>
             </div>
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              marginTop: "16px",
-              paddingTop: "12px",
-              borderTop: "1px solid #eceff1",
-            }}
-          >
-            <button
-              type="button"
-              onClick={salvarEtapaValidacoes}
-              disabled={emModoEdicao}
-              title={
-                emModoEdicao
-                  ? "Conclua ou cancele a edição da consulta antes de avançar"
-                  : "Salvar validações e avançar para conexão"
-              }
-              style={{
-                backgroundColor: emModoEdicao ? "#9e9e9e" : "#009688",
-                color: "#ffffff",
-                border: "none",
-                padding: "7px 20px",
-                borderRadius: "4px",
-                fontWeight: 700,
-                cursor: emModoEdicao ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-              }}
-            >
-              <span>Salvar</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -2714,15 +2553,12 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
-          opacity:
-            semLayoutSelecionado || emModoEdicao || !camposConcluidos
-              ? 0.65
-              : 1,
+          opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1,
         }}
       >
         <div
           onClick={() => {
-            if (!semLayoutSelecionado && !emModoEdicao && camposConcluidos) {
+            if (!semLayoutSelecionado && !emModoEdicao) {
               alternarEtapa("conexao");
             }
           }}
@@ -2730,7 +2566,7 @@ export function ParametrizacaoPage({
             backgroundColor: etapaAberta === "conexao" ? "#e0f2f1" : "#f8fafc",
             padding: "10px 16px",
             cursor:
-              !semLayoutSelecionado && !emModoEdicao && camposConcluidos
+              !semLayoutSelecionado && !emModoEdicao
                 ? "pointer"
                 : "not-allowed",
             borderBottom:
@@ -2813,7 +2649,7 @@ export function ParametrizacaoPage({
             </div>
           </div>
 
-          {/* NOVO CAMPO: BANCO DE DADOS (PRIMEIRO CAMPO DA SEÇÃO 4) */}
+          {/* BANCO DE DADOS */}
           <div style={{ marginBottom: "14px" }}>
             <label
               style={{
@@ -2923,7 +2759,6 @@ export function ParametrizacaoPage({
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: "14px",
-              marginBottom: "16px",
             }}
           >
             <div>
@@ -2982,27 +2817,6 @@ export function ParametrizacaoPage({
               ></input>
             </div>
           </div>
-
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              onClick={salvarEtapaConexao}
-              style={{
-                backgroundColor: "#009688",
-                color: "#ffffff",
-                border: "none",
-                padding: "7px 20px",
-                borderRadius: "4px",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-              }}
-            >
-              <span>Salvar</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -3047,7 +2861,7 @@ export function ParametrizacaoPage({
             gap: "8px",
           }}
         >
-          <span>Salvar tudo</span>
+          <span>Salvar</span>
         </button>
       </div>
     </div>

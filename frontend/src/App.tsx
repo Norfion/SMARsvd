@@ -3,6 +3,7 @@ import type { LayoutCliente } from "./types/layout";
 import { ParametrizacaoPage } from "./pages/ParametrizacaoPage";
 import { ValidacaoPage } from "./pages/ValidacaoPage";
 import { layoutService } from "./services/layoutService";
+import logoImg from "./assets/logo-smartb.png";
 
 export function App() {
   const [abaAtiva, setAbaAtiva] = useState<"parametrizacao" | "validacao">(
@@ -65,18 +66,23 @@ export function App() {
           {/* Brasão / Logotipo Institucional */}
           <div
             style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "4px",
-              backgroundColor: "#e0f2f1",
-              border: "1px solid #009688",
+              width: "80px",
+              height: "80px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "1rem",
             }}
           >
-            🏛️
+            <img
+              src={logoImg}
+              alt="Logotipo Institucional"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+            ></img>
           </div>
 
           <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
@@ -88,7 +94,7 @@ export function App() {
                 letterSpacing: "0.5px",
               }}
             >
-              SMARrsvd
+              SVD
             </span>
             <span
               style={{
@@ -140,7 +146,20 @@ export function App() {
             <span>Configurações</span>
           </button>
 
-          <span style={{ color: "#b0bec5", fontSize: "0.8rem" }}>›</span>
+          {/* Separador centralizado verticalmente */}
+          <span
+            style={{
+              color: "#b0bec5",
+              fontSize: "1.6rem",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              lineHeight: 1,
+              userSelect: "none",
+            }}
+          >
+            ›
+          </span>
 
           <button
             type="button"
