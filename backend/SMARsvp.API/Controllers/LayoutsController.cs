@@ -139,7 +139,6 @@ public class LayoutsController : ControllerBase
         }
         else
         {
-            // Remove registros antigos do contexto de exclusão
             var queriesAntigasIds = entidadeLayout.QueriesValidacao.Select(q => q.Id).ToList();
             if (queriesAntigasIds.Any())
             {
@@ -151,7 +150,7 @@ public class LayoutsController : ControllerBase
             _context.QueriesValidacao.RemoveRange(entidadeLayout.QueriesValidacao);
             _context.PaginasModelo.RemoveRange(entidadeLayout.PaginasModelo);
 
-            // IMPORTANTE: Limpar a coleção monitorada em vez de reatribuir uma nova lista
+            // IMPORTANTE: Esvazia as coleções rastreadas em memória para desvincular os proxies do EF Core
             entidadeLayout.Campos.Clear();
             entidadeLayout.QueriesValidacao.Clear();
             entidadeLayout.PaginasModelo.Clear();

@@ -52,33 +52,28 @@ export function App() {
 
   // Função centralizada para salvar e persistir os layouts no banco de dados
   const lidarComSalvarLayouts = async (novosLayouts: LayoutCliente[]) => {
-    // 1. Atualiza o estado no React para refletir instantaneamente na tela
-    setLayoutsSalvos(novosLayouts);
-
-    // 2. Identifica qual layout foi adicionado ou alterado em relação à lista anterior
-    const layoutParaSalvar =
-      novosLayouts.find((novo) => {
-        const anterior = layoutsSalvos.find(
-          (l) => l.nomeModelo === novo.nomeModelo,
-        );
-        return !anterior || JSON.stringify(anterior) !== JSON.stringify(novo);
-      }) || novosLayouts[novosLayouts.length - 1];
+    const layoutParaSalvar = novosLayouts[novosLayouts.length - 1];
 
     if (!layoutParaSalvar) return;
 
     try {
-      // 3. Dispara a requisição HTTP POST para a API em .NET
-      await layoutService.salvar(layoutParaSalvar);
+      // 1. Envia para a API e obtém o ID gerado/confirmado
+      const idRetornado = await layoutService.salvar(layoutParaSalvar);
 
-      // 4. Recarrega os dados do banco para sincronizar os IDs gerados pelo backend
-      const dadosAtualizados = await layoutService.listarTodos();
-      if (dadosAtualizados && dadosAtualizados.length > 0) {
-        setLayoutsSalvos(dadosAtualizados);
-      }
+      // 2. Garante que o layout na memória receba o ID gerado pelo banco
+      const layoutsAtualizados = novosLayouts.map((l, index) => {
+        if (index === novosLayouts.length - 1) {
+          return { ...l, id: idRetornado };
+        }
+        return l;
+      });
+
+      setLayoutsSalvos(layoutsAtualizados);
+      console.log("Layout persistido com sucesso no banco de dados!");
     } catch (erro: unknown) {
       console.error("Erro ao persistir o layout no banco de dados:", erro);
       alert(
-        "Atenção: Os dados foram alterados na tela, mas ocorreu um erro ao gravar no banco de dados. Verifique se o backend está ativo.",
+        "Atenção: Ocorreu um erro ao gravar as informações no banco de dados.",
       );
     }
   };

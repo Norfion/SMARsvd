@@ -27,7 +27,7 @@ export function ParametrizacaoPage({
     "PM Serra - ES",
     "PM Birigui - SP",
     "PM Araraquara - SP",
-    "Outro / Geral",
+    "Outro",
   ];
 
   // ==========================================
