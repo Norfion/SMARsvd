@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { LayoutCliente } from "./types/layout";
 import { ParametrizacaoPage } from "./pages/ParametrizacaoPage";
 import { ValidacaoPage } from "./pages/ValidacaoPage";
+import { layoutService } from "./services/layoutService";
 
 export function App() {
   const [abaAtiva, setAbaAtiva] = useState<"parametrizacao" | "validacao">(
-    "parametrizacao",
+    "validacao",
   );
 
   const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([
@@ -22,6 +23,19 @@ export function App() {
       queriesValidacao: [],
     },
   ]);
+
+  useEffect(() => {
+    layoutService
+      .listarTodos()
+      .then((dados) => {
+        if (dados && dados.length > 0) {
+          setLayoutsSalvos(dados);
+        }
+      })
+      .catch((erro: unknown) => {
+        console.error("Falha ao carregar layouts da API:", erro);
+      });
+  }, []);
 
   return (
     <div

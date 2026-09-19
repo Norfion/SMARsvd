@@ -8,6 +8,7 @@ import type {
   LayoutCliente,
   QueryValidacao,
   RegraValidacao,
+  TipoProvedorBanco,
 } from "../types/layout";
 
 interface ParametrizacaoPageProps {
@@ -32,8 +33,15 @@ export function ParametrizacaoPage({
   // ==========================================
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [etapaAberta, setEtapaAberta] = useState<
-    "layout" | "campos" | "validacoes" | null
-  >("layout");
+    "layout" | "campos" | "validacoes" | "conexao" | null
+  >(null);
+
+  // Estados de conexão com o banco de dados
+  const [dbProvedor, setDbProvedor] = useState<TipoProvedorBanco>("SQL Server");
+  const [dbServidor, setDbServidor] = useState<string>("");
+  const [dbPorta, setDbPorta] = useState<string>("1433");
+  const [dbUsuario, setDbUsuario] = useState<string>("");
+  const [dbSenha, setDbSenha] = useState<string>("");
 
   const [layoutConcluido, setLayoutConcluido] = useState<boolean>(false);
   const [camposConcluidos, setCamposConcluidos] = useState<boolean>(false);
@@ -43,8 +51,11 @@ export function ParametrizacaoPage({
   const [carregandoPdfModelo, setCarregandoPdfModelo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Alterna o acordeão: se já estiver aberto, fecha (null); se fechado, abre.
-  const alternarEtapa = (etapa: "layout" | "campos" | "validacoes") => {
+  // Alterna o acordeão somente se houver layout selecionado
+  const alternarEtapa = (
+    etapa: "layout" | "campos" | "validacoes" | "conexao",
+  ) => {
+    if (!layoutSelecionadoId) return;
     setEtapaAberta((etapaAtual) => (etapaAtual === etapa ? null : etapa));
   };
 
@@ -89,9 +100,7 @@ export function ParametrizacaoPage({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
 
-  // Permite aproximar/afastar segurando Ctrl ou alternar zoom pela roda do mouse dentro da caixa
   const lidarComRodaMouse = (e: React.WheelEvent<HTMLDivElement>) => {
-    // Se o usuário estiver segurando Ctrl ou desejar dar zoom com o scroll
     if (e.ctrlKey) {
       e.preventDefault();
       const delta = e.deltaY < 0 ? 10 : -10;
@@ -120,14 +129,33 @@ export function ParametrizacaoPage({
   const [regraOperador, setRegraOperador] = useState<string>("=");
   const [regraCampoCarne, setRegraCampoCarne] = useState<string>("");
 
+  // Flag unificada: indica se alguma edição pontual está em andamento
+  const emModoEdicao = campoEmEdicaoId !== null || queryEmEdicaoId !== null;
+
+  // Layout não selecionado trava todos os acordeões
+  const semLayoutSelecionado = !layoutSelecionadoId;
+
+  // Avança da Seção 3 para a Seção 4
+  const salvarEtapaValidacoes = () => {
+    if (queries.length === 0) {
+      const prosseguir = window.confirm(
+        "Nenhuma regra de validação foi cadastrada. Deseja avançar para a conexão com o banco mesmo assim?",
+      );
+      if (!prosseguir) return;
+    }
+    salvarNoBanco();
+    setEtapaAberta("conexao");
+  };
+
   // ==========================================
   // GESTÃO DE LAYOUT E IMPORTAÇÃO DE MODELO
   // ==========================================
   const iniciarCriacaoManual = () => {
+    const nomePadrao = "Novo Layout";
     setModalNovoLayoutAberto(false);
-    setLayoutSelecionadoId("");
+    setLayoutSelecionadoId(nomePadrao);
     setCliente("PM Sertãozinho - SP");
-    setNomeModelo("");
+    setNomeModelo(nomePadrao);
     setOrientacao("Paisagem");
     setFormatoPapel("A4");
     setLarguraMm(70);
@@ -137,6 +165,11 @@ export function ParametrizacaoPage({
     setQueries([]);
     setPaginasModelo([]);
     setNomeArquivoModelo("");
+    setDbProvedor("SQL Server");
+    setDbServidor("");
+    setDbPorta("1433");
+    setDbUsuario("");
+    setDbSenha("");
 
     setLayoutConcluido(false);
     setCamposConcluidos(false);
@@ -162,10 +195,11 @@ export function ParametrizacaoPage({
     try {
       setCarregandoPdfModelo(true);
       const dados = await processarArquivoPdfModelo(arquivo);
+      const nomeIdentificador = arquivo.name.replace(/\.[^/.]+$/, "");
 
-      setLayoutSelecionadoId("");
+      setLayoutSelecionadoId(nomeIdentificador);
       setCliente("PM Sertãozinho - SP");
-      setNomeModelo(arquivo.name.replace(/\.[^/.]+$/, ""));
+      setNomeModelo(nomeIdentificador);
       setOrientacao(dados.orientacao);
       setFormatoPapel(dados.formatoPapel);
       setLarguraMm(dados.larguraMm);
@@ -198,7 +232,6 @@ export function ParametrizacaoPage({
     }
   };
 
-  // Senha temporária para exclusão de layouts (altere aqui quando desejar)
   const SENHA_EXCLUSAO = "teste123";
 
   const removerLayoutAtual = () => {
@@ -207,27 +240,22 @@ export function ParametrizacaoPage({
       return;
     }
 
-    // 1. Pergunta de confirmação inicial
     const confirmou = window.confirm(
       `Tem certeza de que deseja apagar o layout "${layoutSelecionadoId}"?\nEsta ação não poderá ser desfeita.`,
     );
     if (!confirmou) return;
 
-    // 2. Solicitação da senha de autorização
     const senhaDigitada = window.prompt(
       "Digite a senha de segurança para confirmar a exclusão:",
     );
 
-    // Se o usuário clicar em "Cancelar" no prompt
     if (senhaDigitada === null) return;
 
-    // 3. Validação da senha
     if (senhaDigitada !== SENHA_EXCLUSAO) {
       alert("Senha incorreta! A exclusão foi cancelada.");
       return;
     }
 
-    // 4. Remove o layout da lista
     const novaLista = layoutsSalvos.filter(
       (l) => l.nomeModelo !== layoutSelecionadoId,
     );
@@ -235,15 +263,19 @@ export function ParametrizacaoPage({
 
     alert(`O layout "${layoutSelecionadoId}" foi removido com sucesso!`);
 
-    // 5. Se ainda restarem layouts, seleciona o primeiro; se não houver mais nenhum, limpa a tela
-    if (novaLista.length > 0) {
-      carregarLayout(novaLista[0].nomeModelo);
-    } else {
-      iniciarCriacaoManual();
-    }
+    setLayoutSelecionadoId("");
+    setEtapaAberta(null);
+    cancelarEdicaoCampo();
+    cancelarEdicaoQuery();
   };
 
   const carregarLayout = (nomeLayout: string) => {
+    if (!nomeLayout) {
+      setLayoutSelecionadoId("");
+      setEtapaAberta(null);
+      return;
+    }
+
     const layout = layoutsSalvos.find((l) => l.nomeModelo === nomeLayout);
     if (!layout) return;
 
@@ -259,6 +291,14 @@ export function ParametrizacaoPage({
     setQueries(layout.queriesValidacao || []);
     setPaginasModelo(layout.paginasModeloBase64 || []);
     setNomeArquivoModelo(layout.nomeArquivoModelo || "");
+
+    setDbProvedor(layout.conexaoBanco?.provedor || "SQL Server");
+    setDbServidor(layout.conexaoBanco?.servidor || "");
+    setDbPorta(
+      layout.conexaoBanco?.porta ? String(layout.conexaoBanco.porta) : "1433",
+    );
+    setDbUsuario(layout.conexaoBanco?.usuario || "");
+    setDbSenha(layout.conexaoBanco?.senha || "");
 
     setLayoutConcluido(true);
     setCamposConcluidos(true);
@@ -286,6 +326,13 @@ export function ParametrizacaoPage({
       queriesValidacao: novasQueries || queries,
       paginasModeloBase64: paginasModelo,
       nomeArquivoModelo,
+      conexaoBanco: {
+        provedor: dbProvedor,
+        servidor: dbServidor.trim(),
+        porta: dbPorta ? Number(dbPorta) : 1433,
+        usuario: dbUsuario.trim(),
+        senha: dbSenha,
+      },
     };
 
     if (layoutSelecionadoId) {
@@ -294,10 +341,21 @@ export function ParametrizacaoPage({
           l.nomeModelo === layoutSelecionadoId ? layoutFinal : l,
         ),
       );
+      setLayoutSelecionadoId(layoutFinal.nomeModelo);
     } else {
       onSalvarLayouts([...layoutsSalvos, layoutFinal]);
       setLayoutSelecionadoId(layoutFinal.nomeModelo);
     }
+  };
+
+  // Salvar tudo de todas as seções
+  const salvarTudo = () => {
+    if (!nomeModelo.trim()) {
+      alert("Informe o nome do layout antes de salvar.");
+      return;
+    }
+    salvarNoBanco();
+    alert("Todas as configurações do layout foram salvas com sucesso!");
   };
 
   // ==========================================
@@ -316,8 +374,6 @@ export function ParametrizacaoPage({
   // ==========================================
   // FUNÇÕES DA ETAPA 2 (CAMPOS CARTESIANOS)
   // ==========================================
-  // Estados de demarcação: armazenam as coordenadas reais em milímetros (mm)
-  // para se manterem idênticas independentemente do nível de zoom
   const [desenhando, setDesenhando] = useState(false);
   const [inicioPosMm, setInicioPosMm] = useState<{ xMm: number; yMm: number }>({
     xMm: 0,
@@ -336,7 +392,6 @@ export function ParametrizacaoPage({
     const xPx = Math.max(0, e.clientX - rect.left);
     const yPx = Math.max(0, e.clientY - rect.top);
 
-    // Converte os pixels clicados na tela para milímetros reais do documento
     const xMm = Number((xPx / escalaPxPorMm).toFixed(2));
     const yMm = Number((yPx / escalaPxPorMm).toFixed(2));
 
@@ -357,7 +412,6 @@ export function ParametrizacaoPage({
       Math.min(alturaVisualPx, e.clientY - rect.top),
     );
 
-    // Converte a posição do cursor para milímetros reais
     const cursorXMm = cursorXPx / escalaPxPorMm;
     const cursorYMm = cursorYPx / escalaPxPorMm;
 
@@ -390,7 +444,6 @@ export function ParametrizacaoPage({
     setPaginaAtivaCanvas(paginaDoCampo);
     setEhIdentificador(!!campo.ehIdentificadorPrimeiraPagina);
     setTextoEsperado(campo.textoEsperadoIdentificador || "");
-    // Armazena as medidas em milímetros, sem sofrer alteração com o zoom
     setRetanguloAtualMm({
       xMm: campo.xMm,
       yMm: campo.yMm,
@@ -605,21 +658,34 @@ export function ParametrizacaoPage({
   };
 
   const editarQuery = (query: QueryValidacao) => {
+    const params = query.parametrosEncontrados ?? [];
+    const retornos = query.camposRetornados ?? [];
+
     setQueryEmEdicaoId(query.id);
     setNomeQuery(query.nome);
     setSqlQuery(query.sql);
-    setParametrosEncontrados(query.parametrosEncontrados);
-    setCamposRetornados(query.camposRetornados);
+    setParametrosEncontrados(params);
+    setCamposRetornados(retornos);
     setRegrasAtuais(query.regras);
     setSqlAnalisado(true);
-    if (query.camposRetornados.length > 0)
-      setRegraCampoRetornado(query.camposRetornados[0]);
-    if (campos.length > 0) setRegraCampoCarne(campos[0].nomeCampo);
+
+    if (retornos.length > 0) {
+      setRegraCampoRetornado(retornos[0]);
+    }
+    if (campos.length > 0) {
+      setRegraCampoCarne(campos[0].nomeCampo);
+    }
+  };
+
+  // Salvar conexão e fechar acordeão
+  const salvarEtapaConexao = () => {
+    salvarNoBanco();
+    setEtapaAberta(null);
+    alert("Configurações de conexão salvas no layout com sucesso!");
   };
 
   return (
     <div id="container-parametrizacao">
-      {/* Estilos da animação de abertura/fechamento dos acordeões */}
       <style>
         {`
           .accordion-content-wrapper {
@@ -636,10 +702,19 @@ export function ParametrizacaoPage({
             opacity: 0;
             padding: 0 16px;
           }
+
+          input[type="number"]::-webkit-inner-spin-button,
+          input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+
+          input[type="number"] {
+            -moz-appearance: textfield;
+          }
         `}
       </style>
 
-      {/* Input Oculto de Upload de PDF de Modelo */}
       <input
         ref={fileInputRef}
         type="file"
@@ -702,9 +777,7 @@ export function ParametrizacaoPage({
                 height: "32px",
               }}
             >
-              <option value="" disabled>
-                (Selecione um layout)
-              </option>
+              <option value="">(Selecione um layout)</option>
               {layoutsSalvos.map((layout) => (
                 <option key={layout.nomeModelo} value={layout.nomeModelo}>
                   {layout.nomeModelo} ({layout.cliente})
@@ -713,6 +786,37 @@ export function ParametrizacaoPage({
             </select>
           </div>
         </div>
+
+        {/* Botão Remover Layout */}
+        <button
+          type="button"
+          onClick={removerLayoutAtual}
+          disabled={!layoutSelecionadoId}
+          title={
+            !layoutSelecionadoId
+              ? "Selecione um layout para remover"
+              : `Excluir o layout "${layoutSelecionadoId}"`
+          }
+          style={{
+            backgroundColor: !layoutSelecionadoId ? "#f5f5f5" : "#ffebee",
+            color: !layoutSelecionadoId ? "#9e9e9e" : "#c62828",
+            border: !layoutSelecionadoId
+              ? "1px solid #e0e0e0"
+              : "1px solid #ffcdd2",
+            padding: "6px 14px",
+            borderRadius: "4px",
+            fontWeight: 700,
+            cursor: !layoutSelecionadoId ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            height: "32px",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+            marginRight: "8px",
+          }}
+        >
+          <span>Remover</span>
+        </button>
 
         {/* Menu "+ Novo Layout" */}
         <div
@@ -738,9 +842,7 @@ export function ParametrizacaoPage({
               boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
             }}
           >
-            <span>
-              {carregandoPdfModelo ? "Processando..." : "Novo Layout"}
-            </span>
+            <span>{carregandoPdfModelo ? "Processando..." : "Novo"}</span>
             <span style={{ fontSize: "0.65rem" }}>▼</span>
           </button>
 
@@ -804,37 +906,6 @@ export function ParametrizacaoPage({
             </div>
           )}
         </div>
-
-        {/* Botão Remover Layout */}
-        <button
-          type="button"
-          onClick={removerLayoutAtual}
-          disabled={!layoutSelecionadoId}
-          title={
-            !layoutSelecionadoId
-              ? "Selecione um layout para remover"
-              : `Excluir o layout "${layoutSelecionadoId}"`
-          }
-          style={{
-            backgroundColor: !layoutSelecionadoId ? "#f5f5f5" : "#ffebee",
-            color: !layoutSelecionadoId ? "#9e9e9e" : "#c62828",
-            border: !layoutSelecionadoId
-              ? "1px solid #e0e0e0"
-              : "1px solid #ffcdd2",
-            padding: "6px 14px",
-            borderRadius: "4px",
-            fontWeight: 700,
-            cursor: !layoutSelecionadoId ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            height: "32px",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-          }}
-        >
-          <span style={{ fontSize: "0.85rem" }}>🗑️</span>
-          <span>Remover Layout</span>
-        </button>
       </div>
 
       {/* ========================================== */}
@@ -848,14 +919,20 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
+          opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1,
         }}
       >
         <div
-          onClick={() => alternarEtapa("layout")}
+          onClick={() => {
+            if (!semLayoutSelecionado && !emModoEdicao) alternarEtapa("layout");
+          }}
           style={{
             backgroundColor: etapaAberta === "layout" ? "#e0f2f1" : "#f8fafc",
             padding: "10px 16px",
-            cursor: "pointer",
+            cursor:
+              !semLayoutSelecionado && !emModoEdicao
+                ? "pointer"
+                : "not-allowed",
             borderBottom:
               etapaAberta === "layout" ? "1px solid #b2dfdb" : "none",
             display: "flex",
@@ -903,7 +980,7 @@ export function ParametrizacaoPage({
 
         <div
           className={`accordion-content-wrapper ${
-            etapaAberta === "layout"
+            etapaAberta === "layout" && !semLayoutSelecionado && !emModoEdicao
               ? "accordion-content-open"
               : "accordion-content-closed"
           }`}
@@ -1152,7 +1229,6 @@ export function ParametrizacaoPage({
               }}
             >
               <span>Salvar</span>
-              <span>→</span>
             </button>
           </div>
         </div>
@@ -1169,17 +1245,22 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
-          opacity: !layoutConcluido ? 0.65 : 1,
+          opacity:
+            semLayoutSelecionado || !layoutConcluido || emModoEdicao ? 0.65 : 1,
         }}
       >
         <div
           onClick={() => {
-            if (layoutConcluido) alternarEtapa("campos");
+            if (!semLayoutSelecionado && layoutConcluido && !emModoEdicao)
+              alternarEtapa("campos");
           }}
           style={{
             backgroundColor: etapaAberta === "campos" ? "#e0f2f1" : "#f8fafc",
             padding: "10px 16px",
-            cursor: layoutConcluido ? "pointer" : "not-allowed",
+            cursor:
+              !semLayoutSelecionado && layoutConcluido && !emModoEdicao
+                ? "pointer"
+                : "not-allowed",
             borderBottom:
               etapaAberta === "campos" ? "1px solid #b2dfdb" : "none",
             display: "flex",
@@ -1215,7 +1296,10 @@ export function ParametrizacaoPage({
 
         <div
           className={`accordion-content-wrapper ${
-            etapaAberta === "campos" && layoutConcluido
+            etapaAberta === "campos" &&
+            !semLayoutSelecionado &&
+            layoutConcluido &&
+            !emModoEdicao
               ? "accordion-content-open"
               : "accordion-content-closed"
           }`}
@@ -1228,19 +1312,17 @@ export function ParametrizacaoPage({
               flexWrap: "wrap",
             }}
           >
-            {/* CANVAS CARTESIANO COM BARRA DE FERRAMENTAS ESTILO EMPRESA */}
             {/* CANVAS CARTESIANO COM BARRA DE FERRAMENTAS */}
             <div
               id="coluna-canvas-documento"
               style={{
-                flex: "1 1 650px", // Define uma base fixa para não empurrar os componentes ao lado
-                maxWidth: "calc(100% - 340px)", // Garante espaço para a barra lateral de 320px
+                flex: "1 1 650px",
+                maxWidth: "calc(100% - 340px)",
                 minWidth: "320px",
                 display: "flex",
                 flexDirection: "column",
               }}
             >
-              {/* BARRA DE FERRAMENTAS DO CANVAS */}
               <div
                 id="barra-navegacao-paginas-canvas"
                 style={{
@@ -1266,7 +1348,6 @@ export function ParametrizacaoPage({
                   {orientacao} • {larguraMm} x {alturaMm} (mm)
                 </div>
 
-                {/* Controle de Opacidade */}
                 {paginasModelo.length > 0 && (
                   <div
                     style={{
@@ -1300,7 +1381,6 @@ export function ParametrizacaoPage({
                   </div>
                 )}
 
-                {/* Zoom Manual e Dica */}
                 <div
                   style={{
                     display: "flex",
@@ -1352,7 +1432,6 @@ export function ParametrizacaoPage({
                   </button>
                 </div>
 
-                {/* Botões das Páginas */}
                 <div style={{ display: "flex", gap: "4px" }}>
                   {Array.from(
                     {
@@ -1416,27 +1495,26 @@ export function ParametrizacaoPage({
                 </div>
               </div>
 
-              {/* CAIXA FIXA (VIEWPORT COM SCROLL PARA NAVEGAÇÃO INTERNA) */}
+              {/* VIEWPORT COM SCROLL */}
               <div
                 id="caixa-viewport-documento"
                 ref={viewportRef}
                 onWheel={lidarComRodaMouse}
                 style={{
                   width: "100%",
-                  height: "560px", // Altura fixa da caixa de visualização
-                  backgroundColor: "#cfd8dc", // Fundo cinza neutro estilo leitor de PDF
+                  height: "560px",
+                  backgroundColor: "#cfd8dc",
                   border: "1px solid #90a4ae",
                   borderRadius: "4px",
-                  overflow: "auto", // Cria as barras de rolagem se o zoom ultrapassar a caixa
+                  overflow: "auto",
                   position: "relative",
                   boxSizing: "border-box",
                   padding: "16px",
-                  display: "flex", // Centraliza o documento caso ele seja menor que a caixa
+                  display: "flex",
                   alignItems: "flex-start",
                   justifyContent: "flex-start",
                 }}
               >
-                {/* ÁREA REAL DO DOCUMENTO QUE RECEBE O ZOOM */}
                 <div
                   id="canvas-area-demarcacao"
                   ref={containerRef}
@@ -1455,7 +1533,7 @@ export function ParametrizacaoPage({
                     cursor: "crosshair",
                     userSelect: "none",
                     boxShadow: "0 3px 10px rgba(0,0,0,0.25)",
-                    flexShrink: 0, // Impede que o flexbox esmague o documento
+                    flexShrink: 0,
                   }}
                 >
                   {paginasModelo.length >= paginaAtivaCanvas ? (
@@ -1925,7 +2003,6 @@ export function ParametrizacaoPage({
               }}
             >
               <span>Salvar</span>
-              <span>→</span>
             </button>
           </div>
         </div>
@@ -1942,18 +2019,25 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
-          opacity: !camposConcluidos ? 0.65 : 1,
+          opacity:
+            semLayoutSelecionado || !camposConcluidos || emModoEdicao
+              ? 0.65
+              : 1,
         }}
       >
         <div
           onClick={() => {
-            if (camposConcluidos) alternarEtapa("validacoes");
+            if (!semLayoutSelecionado && camposConcluidos && !emModoEdicao)
+              alternarEtapa("validacoes");
           }}
           style={{
             backgroundColor:
               etapaAberta === "validacoes" ? "#e0f2f1" : "#f8fafc",
             padding: "10px 16px",
-            cursor: camposConcluidos ? "pointer" : "not-allowed",
+            cursor:
+              !semLayoutSelecionado && camposConcluidos && !emModoEdicao
+                ? "pointer"
+                : "not-allowed",
             borderBottom:
               etapaAberta === "validacoes" ? "1px solid #b2dfdb" : "none",
             display: "flex",
@@ -1989,7 +2073,10 @@ export function ParametrizacaoPage({
 
         <div
           className={`accordion-content-wrapper ${
-            etapaAberta === "validacoes" && camposConcluidos
+            etapaAberta === "validacoes" &&
+            !semLayoutSelecionado &&
+            camposConcluidos &&
+            !emModoEdicao
               ? "accordion-content-open"
               : "accordion-content-closed"
           }`}
@@ -2078,25 +2165,35 @@ export function ParametrizacaoPage({
                 ></SqlCodeEditor>
               </div>
 
-              <button
-                onClick={analisarQuerySQL}
+              {/* Contêiner flexível para alinhar o botão Analisar à direita */}
+              <div
+                id="container-botao-analisar"
                 style={{
-                  backgroundColor: "#37474f",
-                  color: "#ffffff",
-                  border: "none",
-                  padding: "6px 14px",
-                  borderRadius: "4px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  fontSize: "0.8rem",
-                  marginBottom: "16px",
                   display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
+                  justifyContent: "flex-end",
+                  marginBottom: "16px",
                 }}
               >
-                <span>Analisar</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={analisarQuerySQL}
+                  style={{
+                    backgroundColor: "#37474f",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "6px 14px",
+                    borderRadius: "4px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontSize: "0.8rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span>Analisar</span>
+                </button>
+              </div>
 
               {sqlAnalisado && (
                 <div
@@ -2302,7 +2399,6 @@ export function ParametrizacaoPage({
                     </button>
                   </div>
 
-                  {/* TABELA DE REGRAS NO ESTILO DA EMPRESA */}
                   <table
                     style={{
                       width: "100%",
@@ -2568,7 +2664,391 @@ export function ParametrizacaoPage({
               </div>
             </div>
           </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: "16px",
+              paddingTop: "12px",
+              borderTop: "1px solid #eceff1",
+            }}
+          >
+            <button
+              type="button"
+              onClick={salvarEtapaValidacoes}
+              disabled={emModoEdicao}
+              title={
+                emModoEdicao
+                  ? "Conclua ou cancele a edição da consulta antes de avançar"
+                  : "Salvar validações e avançar para conexão"
+              }
+              style={{
+                backgroundColor: emModoEdicao ? "#9e9e9e" : "#009688",
+                color: "#ffffff",
+                border: "none",
+                padding: "7px 20px",
+                borderRadius: "4px",
+                fontWeight: 700,
+                cursor: emModoEdicao ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              }}
+            >
+              <span>Salvar</span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* ========================================== */}
+      {/* SEÇÃO 4: CONEXÃO COM BANCO DE DADOS        */}
+      {/* ========================================== */}
+      <div
+        id="accordion-conexao-banco"
+        style={{
+          marginBottom: "12px",
+          backgroundColor: "#ffffff",
+          border: "1px solid #cfd8dc",
+          borderRadius: "4px",
+          overflow: "hidden",
+          opacity:
+            semLayoutSelecionado || emModoEdicao || !camposConcluidos
+              ? 0.65
+              : 1,
+        }}
+      >
+        <div
+          onClick={() => {
+            if (!semLayoutSelecionado && !emModoEdicao && camposConcluidos) {
+              alternarEtapa("conexao");
+            }
+          }}
+          style={{
+            backgroundColor: etapaAberta === "conexao" ? "#e0f2f1" : "#f8fafc",
+            padding: "10px 16px",
+            cursor:
+              !semLayoutSelecionado && !emModoEdicao && camposConcluidos
+                ? "pointer"
+                : "not-allowed",
+            borderBottom:
+              etapaAberta === "conexao" ? "1px solid #b2dfdb" : "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            userSelect: "none",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              style={{
+                color: etapaAberta === "conexao" ? "#00796b" : "#546e7a",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+              }}
+            >
+              {etapaAberta === "conexao" ? "▼" : "▶"}
+            </span>
+            <strong
+              style={{
+                fontSize: "0.9rem",
+                color: etapaAberta === "conexao" ? "#00796b" : "#263238",
+              }}
+            >
+              4. Conexão com banco de dados
+            </strong>
+          </div>
+
+          <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
+            {semLayoutSelecionado
+              ? "(Layout não selecionado)"
+              : emModoEdicao
+                ? "(Bloqueado durante edição)"
+                : dbServidor
+                  ? `${dbProvedor}: ${dbServidor}`
+                  : "Não configurado"}
+          </span>
+        </div>
+
+        <div
+          className={`accordion-content-wrapper ${
+            etapaAberta === "conexao" && !semLayoutSelecionado && !emModoEdicao
+              ? "accordion-content-open"
+              : "accordion-content-closed"
+          }`}
+        >
+          {/* AVISO DE SEGURANÇA: USUÁRIO SOMENTE LEITURA */}
+          <div
+            id="alerta-seguranca-banco"
+            style={{
+              backgroundColor: "#fff8e1",
+              border: "1px solid #ffe082",
+              borderRadius: "4px",
+              padding: "12px 14px",
+              marginBottom: "16px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+            }}
+          >
+            <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>⚠️</span>
+            <div
+              style={{ fontSize: "0.8rem", color: "#6d4c41", lineHeight: 1.4 }}
+            >
+              <strong>Atenção às permissões de acesso:</strong>
+              <p style={{ margin: "4px 0 0 0" }}>
+                Por motivos de segurança e integridade das informações
+                corporativas, utilize exclusivamente credenciais de um usuário
+                com{" "}
+                <strong>permissão restrita de leitura (db_datareader)</strong>{" "}
+                no banco de dados.
+              </p>
+              <p style={{ margin: "4px 0 0 0" }}>
+                Caso não possua um usuário apenas com permissão de leitura,
+                solicite ao DBA ou crie um usuário dedicado com acesso restrito
+                antes de prosseguir.
+              </p>
+            </div>
+          </div>
+
+          {/* NOVO CAMPO: BANCO DE DADOS (PRIMEIRO CAMPO DA SEÇÃO 4) */}
+          <div style={{ marginBottom: "14px" }}>
+            <label
+              style={{
+                display: "block",
+                fontWeight: 700,
+                fontSize: "0.75rem",
+                color: "#455a64",
+                marginBottom: "4px",
+                textTransform: "uppercase",
+              }}
+            >
+              Banco de dados
+            </label>
+            <select
+              value={dbProvedor}
+              onChange={(e) =>
+                setDbProvedor(e.target.value as TipoProvedorBanco)
+              }
+              style={{
+                width: "100%",
+                maxWidth: "280px",
+                padding: "6px 10px",
+                borderRadius: "4px",
+                border: "1px solid #cfd8dc",
+                height: "34px",
+                backgroundColor: "#ffffff",
+                color: "#263238",
+                fontWeight: 600,
+              }}
+            >
+              <option value="SQL Server">SQL Server</option>
+            </select>
+          </div>
+
+          {/* CAMPOS DO FORMULÁRIO DE CONEXÃO */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "2fr 1fr",
+              gap: "14px",
+              marginBottom: "14px",
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Servidor
+              </label>
+              <input
+                type="text"
+                value={dbServidor}
+                onChange={(e) => setDbServidor(e.target.value)}
+                placeholder={
+                  dbProvedor === "Azure"
+                    ? "Ex: meubanco.database.windows.net"
+                    : "Ex: PMTesteSQL2 ou 172.168.0.00"
+                }
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                }}
+              ></input>
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Porta
+              </label>
+              <input
+                type="number"
+                value={dbPorta}
+                onChange={(e) => setDbPorta(e.target.value)}
+                placeholder="1433"
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                }}
+              ></input>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "14px",
+              marginBottom: "16px",
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Usuário
+              </label>
+              <input
+                type="text"
+                value={dbUsuario}
+                onChange={(e) => setDbUsuario(e.target.value)}
+                placeholder="Ex: smartbValidacao"
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                }}
+              ></input>
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Senha
+              </label>
+              <input
+                type="password"
+                value={dbSenha}
+                onChange={(e) => setDbSenha(e.target.value)}
+                placeholder="••••••••"
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                }}
+              ></input>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              onClick={salvarEtapaConexao}
+              style={{
+                backgroundColor: "#009688",
+                color: "#ffffff",
+                border: "none",
+                padding: "7px 20px",
+                borderRadius: "4px",
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              }}
+            >
+              <span>Salvar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================== */}
+      {/* BOTÃO GLOBAL "SALVAR TUDO"                */}
+      {/* ========================================== */}
+      <div
+        id="rodape-salvar-tudo"
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginTop: "20px",
+          paddingTop: "16px",
+          borderTop: "2px solid #cfd8dc",
+        }}
+      >
+        <button
+          type="button"
+          onClick={salvarTudo}
+          disabled={semLayoutSelecionado || emModoEdicao}
+          title={
+            semLayoutSelecionado
+              ? "Selecione ou crie um layout antes de salvar"
+              : emModoEdicao
+                ? "Finalize as edições pendentes antes de salvar tudo"
+                : "Salvar todas as seções simultaneamente"
+          }
+          style={{
+            backgroundColor:
+              semLayoutSelecionado || emModoEdicao ? "#b0bec5" : "#00796b",
+            color: "#ffffff",
+            border: "none",
+            padding: "10px 20px",
+            borderRadius: "4px",
+            fontWeight: 700,
+            fontSize: "0.9rem",
+            cursor:
+              semLayoutSelecionado || emModoEdicao ? "not-allowed" : "pointer",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
+          <span>Salvar tudo</span>
+        </button>
       </div>
     </div>
   );

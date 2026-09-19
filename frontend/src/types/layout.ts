@@ -1,5 +1,6 @@
 export type OrientacaoPagina = "Retrato" | "Paisagem";
 export type FormatoPapel = "A4" | "Carta" | "Personalizado";
+export type TipoProvedorBanco = "SQL Server";
 
 export interface RegiaoCampo {
   id: string;
@@ -8,9 +9,10 @@ export interface RegiaoCampo {
   yMm: number;
   larguraMm: number;
   alturaMm: number;
-  pagina: number;
+  pagina?: number;
   ehIdentificadorPrimeiraPagina?: boolean;
   textoEsperadoIdentificador?: string;
+  consultaSql?: string;
 }
 
 export interface RegraValidacao {
@@ -24,9 +26,17 @@ export interface QueryValidacao {
   id: string;
   nome: string;
   sql: string;
-  parametrosEncontrados: string[];
-  camposRetornados: string[];
+  parametrosEncontrados?: string[];
+  camposRetornados?: string[];
   regras: RegraValidacao[];
+}
+
+export interface ConexaoBancoLayout {
+  provedor?: TipoProvedorBanco;
+  servidor: string;
+  porta?: number;
+  usuario: string;
+  senha?: string;
 }
 
 export interface LayoutCliente {
@@ -38,10 +48,10 @@ export interface LayoutCliente {
   formatoPapel: FormatoPapel;
   larguraPaginaMm: number;
   alturaPaginaMm: number;
-  quantidadePaginasPadrao: number;
+  quantidadePaginasPadrao?: number;
   campos: RegiaoCampo[];
-  queriesValidacao: QueryValidacao[];
-  // Armazena as imagens de gabarito das páginas quando originado de um PDF modelo
+  queriesValidacao?: QueryValidacao[];
   paginasModeloBase64?: string[];
   nomeArquivoModelo?: string;
+  conexaoBanco?: ConexaoBancoLayout;
 }

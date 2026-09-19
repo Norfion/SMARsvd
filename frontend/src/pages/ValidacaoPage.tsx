@@ -37,9 +37,7 @@ const MOCK_RESULTADOS: ResultadoValidacaoCarne[] = [
 ];
 
 export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
-  const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>(
-    layoutsDisponiveis[0]?.nomeModelo || "",
-  );
+  const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [processando, setProcessando] = useState(false);
   const [resultados, setResultados] = useState<ResultadoValidacaoCarne[]>([]);
@@ -52,12 +50,12 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
   };
 
   const executarValidacao = () => {
-    if (!arquivo) {
-      alert("Selecione um arquivo PDF para validação primeiro.");
+    if (!layoutSelecionadoId) {
+      alert("Por favor, selecione um layout antes de validar o arquivo.");
       return;
     }
-    if (!layoutSelecionadoId) {
-      alert("Selecione o layout que será utilizado na validação.");
+    if (!arquivo) {
+      alert("Selecione um arquivo PDF para validação primeiro.");
       return;
     }
 
@@ -84,20 +82,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
           alignItems: "center",
           marginBottom: "12px",
         }}
-      >
-        <div>
-          <h2
-            style={{
-              fontSize: "1.2rem",
-              fontWeight: 700,
-              color: "#00796b",
-              margin: 0,
-            }}
-          >
-            Importar documentos
-          </h2>
-        </div>
-      </div>
+      ></div>
 
       {/* CARD DE IMPORTAÇÃO (Padrão de Card e Campos da Empresa) */}
       <section
@@ -122,7 +107,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
             textTransform: "uppercase",
           }}
         >
-          Parâmetros para configuração
+          Importar documentos
         </div>
 
         <div style={{ padding: "14px" }}>
@@ -162,6 +147,7 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
                   color: "#263238",
                 }}
               >
+                <option value="">(Selecione um layout)</option>
                 {layoutsDisponiveis.map((l) => (
                   <option key={l.nomeModelo} value={l.nomeModelo}>
                     {l.nomeModelo} ({l.cliente})
