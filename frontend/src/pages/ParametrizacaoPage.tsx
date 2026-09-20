@@ -59,9 +59,13 @@ export function ParametrizacaoPage({
   // NOVO: Controla se o usuário está criando um novo layout (Manual ou via Importação de PDF)
   const [criandoNovoLayout, setCriandoNovoLayout] = useState(false);
 
+  // NOVO: Armazena a versão original em JSON do layout selecionado para detectar alterações
+  const [dadosOriginaisJson, setDadosOriginaisJson] = useState<string>("");
+
   // NOVO: Função para cancelar a criação do layout sem persistir dados
   const cancelarCriacaoNovoLayout = () => {
     setCriandoNovoLayout(false);
+    setDadosOriginaisJson("");
     setLayoutSelecionadoId("");
     setLayoutId(undefined);
     setNomeModelo("");
@@ -201,6 +205,35 @@ export function ParametrizacaoPage({
 
   // Layout não selecionado trava todos os acordeões
   const semLayoutSelecionado = !layoutSelecionadoId;
+
+  // NOVO: Gera a estrutura comparável do formulário atual
+  const obterSnapshotAtual = () => {
+    return JSON.stringify({
+      cliente,
+      nomeModelo: nomeModelo.trim(),
+      orientacao,
+      formatoPapel,
+      larguraPaginaMm: larguraMm,
+      alturaPaginaMm: alturaMm,
+      quantidadePaginasPadrao,
+      campos,
+      queriesValidacao: queries,
+      paginasModeloBase64: paginasModelo,
+      conexaoBanco: {
+        provedor: dbProvedor,
+        servidor: dbServidor.trim(),
+        porta: dbPorta ? Number(dbPorta) : 1433,
+        usuario: dbUsuario.trim(),
+        senha: dbSenha,
+      },
+    });
+  };
+
+  // NOVO: Se estiver criando layout novo, sempre permite salvar. Se for layout existente, só habilita se os dados mudaram.
+  const houveAlteracao =
+    criandoNovoLayout ||
+    (Boolean(dadosOriginaisJson) &&
+      obterSnapshotAtual() !== dadosOriginaisJson);
 
   // ==========================================
   // GESTÃO DE LAYOUT E IMPORTAÇÃO DE MODELO
@@ -358,10 +391,11 @@ export function ParametrizacaoPage({
   };
 
   const carregarLayout = (nomeLayout: string) => {
-    setCriandoNovoLayout(false); // <-- Sai do modo de criação se selecionar layout da lista
+    setCriandoNovoLayout(false);
     if (!nomeLayout) {
       setLayoutId(undefined);
       setLayoutSelecionadoId("");
+      setDadosOriginaisJson(""); // <-- Limpa quando nenhum layout é selecionado
       setEtapaAberta(null);
       return;
     }
@@ -369,7 +403,7 @@ export function ParametrizacaoPage({
     const layout = layoutsSalvos.find((l) => l.nomeModelo === nomeLayout);
     if (!layout) return;
 
-    setLayoutId(layout.id); // <-- Armazena o ID do layout existente
+    setLayoutId(layout.id);
     setLayoutSelecionadoId(layout.nomeModelo);
     setCliente(layout.cliente);
     setNomeModelo(layout.nomeModelo);
@@ -383,13 +417,42 @@ export function ParametrizacaoPage({
     setPaginasModelo(layout.paginasModeloBase64 || []);
     setNomeArquivoModelo(layout.nomeArquivoModelo || "");
 
-    setDbProvedor(layout.conexaoBanco?.provedor || "SQL Server");
-    setDbServidor(layout.conexaoBanco?.servidor || "");
-    setDbPorta(
-      layout.conexaoBanco?.porta ? String(layout.conexaoBanco.porta) : "1433",
+    const provedorBanco = layout.conexaoBanco?.provedor || "SQL Server";
+    const servidorBanco = layout.conexaoBanco?.servidor || "";
+    const portaBanco = layout.conexaoBanco?.porta
+      ? String(layout.conexaoBanco.porta)
+      : "1433";
+    const usuarioBanco = layout.conexaoBanco?.usuario || "";
+    const senhaBanco = layout.conexaoBanco?.senha || "";
+
+    setDbProvedor(provedorBanco);
+    setDbServidor(servidorBanco);
+    setDbPorta(portaBanco);
+    setDbUsuario(usuarioBanco);
+    setDbSenha(senhaBanco);
+
+    // NOVO: Salva o estado original do layout existente para controlar o botão Salvar
+    setDadosOriginaisJson(
+      JSON.stringify({
+        cliente: layout.cliente,
+        nomeModelo: layout.nomeModelo.trim(),
+        orientacao: layout.orientacao,
+        formatoPapel: layout.formatoPapel,
+        larguraPaginaMm: layout.larguraPaginaMm,
+        alturaPaginaMm: layout.alturaPaginaMm,
+        quantidadePaginasPadrao: layout.quantidadePaginasPadrao || 1,
+        campos: layout.campos || [],
+        queriesValidacao: layout.queriesValidacao || [],
+        paginasModeloBase64: layout.paginasModeloBase64 || [],
+        conexaoBanco: {
+          provedor: provedorBanco,
+          servidor: servidorBanco.trim(),
+          porta: portaBanco ? Number(portaBanco) : 1433,
+          usuario: usuarioBanco.trim(),
+          senha: senhaBanco,
+        },
+      }),
     );
-    setDbUsuario(layout.conexaoBanco?.usuario || "");
-    setDbSenha(layout.conexaoBanco?.senha || "");
 
     setEtapaAberta("layout");
     setPaginaAtivaCanvas(1);
@@ -465,7 +528,10 @@ export function ParametrizacaoPage({
     }
 
     setLayoutSelecionadoId(layoutFinal.nomeModelo);
-    setCriandoNovoLayout(false); // <-- Desativa o modo de criação após salvar com sucesso
+    setCriandoNovoLayout(false);
+    // NOVO: Atualiza a fotografia original com os dados recém-salvos
+    setDadosOriginaisJson(obterSnapshotAtual());
+
     exibirMensagem(
       "sucesso",
       "Layout Salvo",
@@ -3034,17 +3100,21 @@ export function ParametrizacaoPage({
         <button
           type="button"
           onClick={salvarTudo}
-          disabled={semLayoutSelecionado || emModoEdicao}
+          disabled={semLayoutSelecionado || emModoEdicao || !houveAlteracao}
           title={
             semLayoutSelecionado
               ? "Selecione ou crie um layout antes de salvar"
               : emModoEdicao
                 ? "Finalize as edições pendentes antes de salvar tudo"
-                : "Salvar todas as alterações"
+                : !houveAlteracao
+                  ? "Nenhuma alteração foi realizada para salvar"
+                  : "Salvar todas as alterações"
           }
           style={{
             backgroundColor:
-              semLayoutSelecionado || emModoEdicao ? "#b0bec5" : "#00796b",
+              semLayoutSelecionado || emModoEdicao || !houveAlteracao
+                ? "#b0bec5"
+                : "#00796b",
             color: "#ffffff",
             border: "none",
             padding: "10px 20px",
@@ -3052,7 +3122,9 @@ export function ParametrizacaoPage({
             fontWeight: 700,
             fontSize: "0.9rem",
             cursor:
-              semLayoutSelecionado || emModoEdicao ? "not-allowed" : "pointer",
+              semLayoutSelecionado || emModoEdicao || !houveAlteracao
+                ? "not-allowed"
+                : "pointer",
             boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
             display: "flex",
             alignItems: "center",
