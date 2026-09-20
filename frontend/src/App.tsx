@@ -12,6 +12,9 @@ export function App() {
     "parametrizacao" | "validacao" | "resultado"
   >("validacao");
 
+  // Estado para controlar o carregamento inicial dos dados do banco
+  const [carregando, setCarregando] = useState<boolean>(true);
+
   // Estado para armazenar o resultado da última auditoria executada
   const [resultadoAuditoria, setResultadoAuditoria] =
     useState<ResultadoValidacaoLote | null>(null);
@@ -20,6 +23,7 @@ export function App() {
 
   // Carrega os layouts salvos no banco de dados ao iniciar a aplicação
   useEffect(() => {
+    setCarregando(true);
     layoutService
       .listarTodos()
       .then((dados) => {
@@ -29,6 +33,10 @@ export function App() {
       })
       .catch((erro: unknown) => {
         console.error("Falha ao carregar layouts da API:", erro);
+      })
+      .finally(() => {
+        // Libera a tela após a resposta (com sucesso ou com erro)
+        setCarregando(false);
       });
   }, []);
 
@@ -88,8 +96,97 @@ export function App() {
         backgroundColor: "#f0f2f5",
         display: "flex",
         flexDirection: "column",
+        position: "relative",
       }}
     >
+      <style>
+        {`
+          @keyframes animacaoGiroSpinner {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(360deg);
+            }
+          }
+        `}
+      </style>
+
+      {/* BLOQUEIO DE TELA / COMPONENTE DE CARREGAMENTO */}
+      {carregando && (
+        <div
+          id="overlay-bloqueio-carregamento"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(255, 255, 255, 0.82)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            cursor: "wait",
+            userSelect: "none",
+          }}
+        >
+          <div
+            id="card-status-carregamento"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #cfd8dc",
+              borderRadius: "8px",
+              padding: "24px 32px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "14px",
+              boxShadow: "0 6px 20px rgba(0, 0, 0, 0.12)",
+              maxWidth: "360px",
+              textAlign: "center",
+            }}
+          >
+            {/* Círculo indicador / Spinner em verde-petróleo */}
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                border: "4px solid #e0f2f1",
+                borderTop: "4px solid #00796b",
+                animation: "animacaoGiroSpinner 0.85s linear infinite",
+              }}
+            ></div>
+
+            <div>
+              <strong
+                style={{
+                  display: "block",
+                  color: "#00796b",
+                  fontSize: "0.95rem",
+                  marginBottom: "4px",
+                  fontWeight: 700,
+                }}
+              >
+                Carregando...
+              </strong>
+              <span
+                style={{
+                  fontSize: "0.8rem",
+                  color: "#546e7a",
+                  lineHeight: 1.4,
+                }}
+              >
+                Sincronizando com o banco de dados.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CABEÇALHO SUPERIOR CORPORATIVO */}
       <header
         id="cabecalho-principal-empresa"

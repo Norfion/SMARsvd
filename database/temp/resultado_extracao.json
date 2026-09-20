@@ -1,0 +1,24 @@
+{
+  "Amostragem": 100,
+  "TotalDocumentos": 1,
+  "DocumentosProcessados": 1,
+  "Documentos": [
+    {
+      "Documento": 1,
+      "Inicio": 1,
+      "Fim": 1,
+      "Campos": [
+        {
+          "Nome": "Nro Parcelamento",
+          "Valor": "",
+          "Status": "Erro: Regi\u00E3o excede limites do documento."
+        },
+        {
+          "Nome": "CRC",
+          "Valor": "Dado Extra\u00EDdo Digitalmente",
+          "Status": "Digital"
+        }
+      ]
+    }
+  ]
+}

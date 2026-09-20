@@ -1,15 +1,22 @@
 using Microsoft.EntityFrameworkCore;
+using SMARsvp.Application.Interfaces;
+using SMARsvp.Application.Services;
 using SMARsvp.Infrastructure.Data;
+using SMARsvp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Obter a string de conexão configurada no appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// 2. Registar o SMARsvpDbContext usando o provedor SQL Server
-// Substitua o .UseSqlServer(...) por .UseSqlite(...)
+// 2. Registrar o SMARsvpDbContext usando SQLite
 builder.Services.AddDbContext<SMARsvpDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlite(connectionString));
+
+// 3. Registrar os Serviços no Container de Injeção de Dependência (DI)
+builder.Services.AddScoped<IExtratorPdfService, ExtratorPdfService>();
+builder.Services.AddScoped<IOcrService, OcrService>();
+builder.Services.AddScoped<ProcessadorCarnesService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -37,28 +44,5 @@ app.UseCors("PermitirFrontend");
 app.UseAuthorization();
 
 app.MapControllers();
-
-
-
-// --- BLOCO PARA REINICIAR O BANCO NA INICIALIZAÇÃO ---
-if (false)
-{
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<SMARsvpDbContext>();
-
-        // 1. Apaga fisicamente o banco de dados existente e todos os seus dados
-        dbContext.Database.EnsureDeleted();
-
-        // 2. Recria o banco e todas as tabelas com base nas entidades mapeadas
-        dbContext.Database.EnsureCreated();
-
-        // Dica: Se preferir aplicar via migrations em vez de EnsureCreated(), use:
-        // dbContext.Database.Migrate();
-    }
-}
-// -----------------------------------------------------
-
-app.Run();
 
 app.Run();

@@ -3,9 +3,12 @@ import {
   ModalInformativo,
   type TipoModalInformativo,
 } from "../components/ModalInformativo";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { LayoutCliente } from "../types/layout";
-import type { ResultadoValidacaoLote } from "../types/validacao";
+import type {
+  InconsistenciaItem,
+  ResultadoValidacaoLote,
+} from "../types/validacao";
 
 interface ValidacaoPageProps {
   layoutsDisponiveis: LayoutCliente[];
@@ -20,19 +23,32 @@ export function ValidacaoPage({
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [processando, setProcessando] = useState(false);
 
-  // Estados para validação integral vs amostragem
+  /// Estados para validação integral vs amostragem
   const [validarIntegralmente, setValidarIntegralmente] =
     useState<boolean>(true);
   const [percentualAmostragem, setPercentualAmostragem] = useState<number>(100);
 
+  // Referência direta para focar e selecionar o input de amostragem
+  const inputAmostragemRef = useRef<HTMLInputElement | null>(null);
+
+  // Alterna o botão Liga/Desliga
   // Alterna o botão Liga/Desliga
   const alternarModoValidacao = () => {
     const novoModoIntegral = !validarIntegralmente;
     setValidarIntegralmente(novoModoIntegral);
+
     if (novoModoIntegral) {
       setPercentualAmostragem(100); // Trava em 100% quando integral
     } else {
-      setPercentualAmostragem(30); // Sugestão inicial de amostragem (ex: 10%)
+      setPercentualAmostragem(30); // Sugestão inicial de amostragem (ex: 30%)
+
+      // Aguarda a renderização do React habilitar o campo para aplicar foco e seleção
+      setTimeout(() => {
+        if (inputAmostragemRef.current) {
+          inputAmostragemRef.current.focus();
+          inputAmostragemRef.current.select();
+        }
+      }, 50);
     }
   };
 
@@ -128,21 +144,78 @@ export function ValidacaoPage({
     setProcessando(true);
 
     try {
-      // Envia o arquivo, o layout e o percentual de amostragem já controlado na tela
-      const resultado = await processamentoService.validarLote(
+      // 1. Interfaces locais estritas para eliminar o uso de "any"
+      interface CampoApi {
+        nome?: string;
+        valor?: string;
+        status?: string;
+      }
+
+      interface DocumentoApi {
+        documento?: number;
+        inicio?: number;
+        fim?: number;
+        campos?: CampoApi[];
+      }
+
+      interface RespostaProcessamentoApi {
+        totalDocumentos?: number;
+        documentosProcessados?: number;
+        documentos?: DocumentoApi[];
+      }
+
+      // 2. Chama a API tipando a resposta com segurança
+      const dadosApi = (await processamentoService.validarLote(
         arquivo,
         layoutEncontrado.id,
-        percentualAmostragem,
-      );
+        percentualAmostragem ?? 100,
+      )) as unknown as RespostaProcessamentoApi;
 
-      // Transfere o resultado real para a tela de Resultado
-      onConcluirValidacao(resultado);
+      // 3. Extrai e compila as inconsistências encontradas na extração dos carnês
+      const divergenciasEncontradas: InconsistenciaItem[] = [];
+      let guiasComErro = 0;
+
+      if (Array.isArray(dadosApi.documentos)) {
+        dadosApi.documentos.forEach((doc) => {
+          let docTemErro = false;
+          (doc.campos || []).forEach((c) => {
+            if (c.status && c.status.startsWith("Erro")) {
+              docTemErro = true;
+              divergenciasEncontradas.push({
+                identificadorGuia: `Documento #${doc.documento ?? 1} (Pgs ${doc.inicio ?? 1}-${doc.fim ?? 1})`,
+                campo: c.nome || "Campo",
+                valorExtraidoPdf: c.valor || "—",
+                valorEsperadoBanco: "—",
+                mensagem: c.status,
+              });
+            }
+          });
+          if (docTemErro) guiasComErro++;
+        });
+      }
+
+      const totalDocs =
+        dadosApi.documentosProcessados ?? dadosApi.totalDocumentos ?? 0;
+      const guiasValidas = Math.max(0, totalDocs - guiasComErro);
+
+      // 4. Monta o objeto completo e compatível com ResultadoPage
+      const resultadoConsolidado: ResultadoValidacaoLote = {
+        nomeArquivo: arquivo.name,
+        layoutUtilizado: layoutEncontrado.nomeModelo,
+        totalGuiasAnalisadas: totalDocs,
+        guiasValidas: guiasValidas,
+        guiasComInconsistencia: guiasComErro,
+        inconsistencias: divergenciasEncontradas,
+      };
+
+      // 5. Redireciona para a aba "Resultado" com os dados preenchidos
+      onConcluirValidacao(resultadoConsolidado);
     } catch (erro: unknown) {
       console.error("Erro ao validar o lote de documentos:", erro);
       exibirMensagem(
         "erro",
-        "Falha na Auditoria",
-        "Ocorreu um erro durante o processamento do arquivo. Verifique se o backend está em execução.",
+        "Falha na Validação",
+        "Ocorreu um erro ao processar o arquivo. Verifique se o backend está em execução.",
       );
     } finally {
       setProcessando(false);
@@ -342,18 +415,21 @@ export function ValidacaoPage({
           </div>
 
           {/* Linha 2: Configuração de Amostragem / Integral */}
+          {/* Linha 2: Configuração de Amostragem / Integral */}
           <div
             id="painel-opcoes-amostragem"
             style={{
               backgroundColor: "#f8fafc",
               border: "1px solid #cfd8dc",
               borderRadius: "4px",
-              padding: "12px",
+              padding: "10px 14px",
               display: "flex",
               flexWrap: "wrap",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: "12px",
+              gap: "14px",
+              minHeight: "56px",
+              boxSizing: "border-box",
             }}
           >
             {/* Controles de Seleção */}
@@ -363,11 +439,17 @@ export function ValidacaoPage({
                 alignItems: "center",
                 gap: "20px",
                 flexWrap: "wrap",
+                flexShrink: 0,
               }}
             >
-              {/* Botão Liga / Desliga (Switch) */}
+              {/* Botão Liga / Desliga (Switch) com largura fixa para não empurrar os lados */}
               <div
-                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  minWidth: "210px",
+                }}
               >
                 <button
                   type="button"
@@ -385,6 +467,7 @@ export function ValidacaoPage({
                     cursor: "pointer",
                     padding: "2px",
                     transition: "background-color 0.2s ease",
+                    flexShrink: 0,
                   }}
                 >
                   <span
@@ -406,11 +489,12 @@ export function ValidacaoPage({
                     fontSize: "0.8rem",
                     fontWeight: 700,
                     color: validarIntegralmente ? "#00796b" : "#455a64",
+                    userSelect: "none",
                   }}
                 >
                   {validarIntegralmente
-                    ? "Validar todo o arquivo"
-                    : "Validar por amostragem"}
+                    ? "Validar Integralmente"
+                    : "Validar por Amostragem"}
                 </span>
               </div>
 
@@ -431,6 +515,7 @@ export function ValidacaoPage({
                 </label>
                 <div style={{ position: "relative", width: "60px" }}>
                   <input
+                    ref={inputAmostragemRef}
                     id="input-percentual-amostragem"
                     type="number"
                     min="0"
@@ -472,61 +557,70 @@ export function ValidacaoPage({
               </div>
             </div>
 
-            {/* Mensagens Informativas */}
-            <div style={{ flex: "1 1 300px", minWidth: "260px" }}>
+            {/* Mensagens Informativas com altura e dimensões estabilizadas */}
+            <div
+              style={{
+                flex: "1 1 360px",
+                minWidth: "280px",
+                display: "flex",
+                alignItems: "stretch",
+              }}
+            >
               {validarIntegralmente ? (
                 <div
                   id="aviso-validacao-integral"
                   style={{
+                    width: "100%",
+                    minHeight: "44px",
+                    boxSizing: "border-box",
                     backgroundColor: "#e0f2f1",
                     border: "1px solid #b2dfdb",
                     borderRadius: "4px",
-                    padding: "6px 10px",
+                    padding: "6px 12px",
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
                   }}
                 >
-                  <span style={{ fontSize: "0.95rem" }}>⏱️</span>
+                  <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>⏱️</span>
                   <span
                     style={{
                       fontSize: "0.75rem",
                       color: "#004d40",
-                      lineHeight: 1.3,
+                      lineHeight: 1.25,
                     }}
                   >
-                    <strong>Validação Integral (100%):</strong> Processar todas
-                    as páginas do arquivo pode demandar mais tempo dependendo da
-                    quantidade de carnês.
+                    <strong>Validação Integral (100%):</strong> Todas as páginas
+                    serão auditadas. Porém, a validação pode demorar.
                   </span>
                 </div>
               ) : (
                 <div
                   id="aviso-validacao-amostragem"
                   style={{
+                    width: "100%",
+                    minHeight: "44px",
+                    boxSizing: "border-box",
                     backgroundColor: "#fff8e1",
                     border: "1px solid #ffe082",
                     borderRadius: "4px",
-                    padding: "6px 10px",
+                    padding: "6px 12px",
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
                   }}
                 >
-                  <span style={{ fontSize: "0.95rem" }}>⚠️</span>
+                  <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>⚠️</span>
                   <span
                     style={{
                       fontSize: "0.75rem",
                       color: "#795548",
-                      lineHeight: 1.3,
+                      lineHeight: 1.25,
                     }}
                   >
-                    <strong>
-                      Validação por Amostragem ({percentualAmostragem}%):
-                    </strong>{" "}
-                    A auditoria é mais rápida, mas não validará todo o carnê;
-                    páginas aleatórias serão sorteadas e erros pontuais podem
-                    acabar passando.
+                    <strong>Amostragem ({percentualAmostragem}%):</strong>{" "}
+                    Auditoria por amostragem aleatória. Mais rápido, porém
+                    inconsistências fora da amostra podem não ser detectadas.
                   </span>
                 </div>
               )}

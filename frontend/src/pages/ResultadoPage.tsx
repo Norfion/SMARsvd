@@ -42,10 +42,10 @@ export function ResultadoPage({
     );
 
     // Itens de inconsistência
-    if (resultadoAuditoria.inconsistencias.length === 0) {
+    if ((resultadoAuditoria.inconsistencias?.length ?? 0) === 0) {
       linhas.push(`Nenhuma divergência detectada;;;;`);
     } else {
-      resultadoAuditoria.inconsistencias.forEach((item) => {
+      (resultadoAuditoria.inconsistencias ?? []).forEach((item) => {
         const sanitizar = (txt: string) =>
           `"${(txt || "").replace(/"/g, '""')}"`;
 
@@ -124,7 +124,7 @@ export function ResultadoPage({
       </Row>
     `;
 
-    if (resultadoAuditoria.inconsistencias.length === 0) {
+    if ((resultadoAuditoria.inconsistencias?.length ?? 0) === 0) {
       linhasXml += `
         <Row>
           <Cell><Data ss:Type="String">Nenhuma inconsistência encontrada.</Data></Cell>
@@ -269,9 +269,9 @@ export function ResultadoPage({
     ];
 
     const dadosTabela =
-      resultadoAuditoria.inconsistencias.length === 0
+      (resultadoAuditoria.inconsistencias?.length ?? 0) === 0
         ? [["—", "—", "—", "—", "Nenhuma inconsistência detectada."]]
-        : resultadoAuditoria.inconsistencias.map((item, idx) => [
+        : (resultadoAuditoria.inconsistencias ?? []).map((item, idx) => [
             item.identificadorGuia || `Item #${idx + 1}`,
             item.campo,
             item.valorExtraidoPdf || "—",
@@ -668,7 +668,7 @@ export function ResultadoPage({
       </div>
 
       {/* Tabela de Inconsistências / Detalhes */}
-      {resultadoAuditoria.inconsistencias.length === 0 ? (
+      {(resultadoAuditoria.inconsistencias?.length ?? 0) === 0 ? (
         <div
           style={{
             padding: "20px",
@@ -712,7 +712,7 @@ export function ResultadoPage({
               </tr>
             </thead>
             <tbody>
-              {resultadoAuditoria.inconsistencias.map((item, idx) => (
+              {(resultadoAuditoria.inconsistencias ?? []).map((item, idx) => (
                 <tr
                   key={idx}
                   style={{

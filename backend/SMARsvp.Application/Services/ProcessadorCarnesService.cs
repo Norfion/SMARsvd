@@ -50,9 +50,23 @@ public class ProcessadorCarnesService
         }
 
         // 2. Salvar estrutura temporária
-        string pastaTemp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "database", "temp");
+        // Resolve o caminho subindo até a raiz onde fica a pasta database/ (igual ao controller e appsettings)
+        string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
+
+        // Se a pasta não existir no caminho relativo acima, usa uma resolução segura a partir do diretório de trabalho atual
+        if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
+        {
+            pastaTemp = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", "temp");
+        }
+
         Directory.CreateDirectory(pastaTemp);
-        await File.WriteAllTextAsync(Path.Combine(pastaTemp, "documentos_estrutura.json"), JsonSerializer.Serialize(estrutura, new JsonSerializerOptions { WriteIndented = true }));
+
+        string caminhoEstruturaJson = Path.Combine(pastaTemp, "documentos_estrutura.json");
+        await File.WriteAllTextAsync(
+            caminhoEstruturaJson,
+            JsonSerializer.Serialize(estrutura, new JsonSerializerOptions { WriteIndented = true })
+        );
+        Console.WriteLine($"[ProcessadorCarnes] Arquivo gerado com sucesso em: {caminhoEstruturaJson}");
 
         // 3. Aplicação da Amostragem
         int qtdAmostra = (int)Math.Ceiling(estrutura.Count * (amostragem / 100m));
@@ -102,7 +116,12 @@ public class ProcessadorCarnesService
         }
 
         // 5. Salvar resultado final
-        await File.WriteAllTextAsync(Path.Combine(pastaTemp, "resultado_extracao.json"), JsonSerializer.Serialize(resultadoFinal, new JsonSerializerOptions { WriteIndented = true }));
+        string caminhoResultadoJson = Path.Combine(pastaTemp, "resultado_extracao.json");
+        await File.WriteAllTextAsync(
+            caminhoResultadoJson,
+            JsonSerializer.Serialize(resultadoFinal, new JsonSerializerOptions { WriteIndented = true })
+        );
+        Console.WriteLine($"[ProcessadorCarnes] Arquivo gerado com sucesso em: {caminhoResultadoJson}");
 
         return resultadoFinal;
     }

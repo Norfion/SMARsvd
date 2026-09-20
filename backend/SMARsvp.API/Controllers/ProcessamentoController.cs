@@ -19,7 +19,7 @@ public class ProcessamentoController : ControllerBase
         _context = context;
     }
 
-    [HttpPost("processar")]
+    [HttpPost("lote")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> ProcessarPdf([FromForm] ProcessarPdfRequest request)
     {
@@ -37,7 +37,12 @@ public class ProcessamentoController : ControllerBase
             return NotFound("Layout não encontrado no banco de dados.");
 
         // Salvar PDF temporariamente para processamento incremental
-        string pastaTemp = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "database", "temp");
+        string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
+        if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
+        {
+            pastaTemp = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", "temp");
+        }
+
         Directory.CreateDirectory(pastaTemp);
         string caminhoPdf = Path.Combine(pastaTemp, request.ArquivoPdf.FileName);
 
