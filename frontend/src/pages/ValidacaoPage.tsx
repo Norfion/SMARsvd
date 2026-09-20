@@ -4,10 +4,14 @@ import {
 } from "../components/ModalInformativo";
 import { useState } from "react";
 import type { LayoutCliente } from "../types/layout";
-import type { ResultadoValidacaoCarne } from "../types/validacao";
+import type {
+  ResultadoValidacaoCarne,
+  ResultadoValidacaoLote,
+} from "../types/validacao";
 
 interface ValidacaoPageProps {
   layoutsDisponiveis: LayoutCliente[];
+  onConcluirValidacao: (resultado: ResultadoValidacaoLote) => void;
 }
 
 const MOCK_RESULTADOS: ResultadoValidacaoCarne[] = [
@@ -40,12 +44,13 @@ const MOCK_RESULTADOS: ResultadoValidacaoCarne[] = [
   },
 ];
 
-export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
+export function ValidacaoPage({
+  layoutsDisponiveis,
+  onConcluirValidacao,
+}: ValidacaoPageProps) {
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [processando, setProcessando] = useState(false);
-  const [resultados, setResultados] = useState<ResultadoValidacaoCarne[]>([]);
-  const [filtroApenasErros, setFiltroApenasErros] = useState(true);
 
   // Estado para controlar o Modal Informativo, de Confirmação e Senha
   const [modalInfo, setModalInfo] = useState<{
@@ -73,12 +78,12 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
   };
 
   const lidarComArquivo = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const arquivo = e.target.files?.[0];
-    if (!arquivo) return;
+    const arquivoSelecionado = e.target.files?.[0];
+    if (!arquivoSelecionado) return;
 
     if (
-      arquivo.type !== "application/pdf" &&
-      !arquivo.name.toLowerCase().endsWith(".pdf")
+      arquivoSelecionado.type !== "application/pdf" &&
+      !arquivoSelecionado.name.toLowerCase().endsWith(".pdf")
     ) {
       exibirMensagem(
         "erro",
@@ -88,9 +93,9 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
       return;
     }
 
-    setArquivo(arquivo);
-    setResultados([]);
+    setArquivo(arquivoSelecionado);
   };
+
   const executarValidacao = () => {
     if (!layoutSelecionadoId) {
       exibirMensagem(
@@ -104,37 +109,50 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
       exibirMensagem(
         "aviso",
         "Documento Pendente",
-        "Faça o upload um arquivo PDF para validação primeiro.",
+        "Faça o upload de um arquivo PDF para validação primeiro.",
       );
       return;
     }
 
     setProcessando(true);
+
     setTimeout(() => {
-      setResultados(MOCK_RESULTADOS);
       setProcessando(false);
+
+      // Agrupa todas as inconsistências individuais para o relatório do lote
+      const inconsistenciasDetalhadas = MOCK_RESULTADOS.flatMap((item) =>
+        item.erros.map((erro) => ({
+          identificadorGuia: `Página ${item.pagina}`,
+          campo: erro.campo,
+          valorExtraidoPdf: erro.valorExtraido,
+          valorEsperadoBanco: erro.valorEsperado,
+          mensagem: erro.mensagem,
+        })),
+      );
+
+      const totalGuias = MOCK_RESULTADOS.length;
+      const guiasComErro = MOCK_RESULTADOS.filter(
+        (r) => r.status === "Com Erro",
+      ).length;
+      const guiasValidas = totalGuias - guiasComErro;
+
+      const resultadoConsolidado: ResultadoValidacaoLote = {
+        nomeArquivo: arquivo.name,
+        layoutUtilizado: layoutSelecionadoId,
+        totalGuiasAnalisadas: totalGuias,
+        guiasValidas: guiasValidas,
+        guiasComInconsistencia: guiasComErro,
+        inconsistencias: inconsistenciasDetalhadas,
+      };
+
+      // Notifica o App para registrar os dados e alternar para a aba "Resultado"
+      onConcluirValidacao(resultadoConsolidado);
     }, 1200);
   };
 
-  const resultadosFiltrados = filtroApenasErros
-    ? resultados.filter((item) => item.status === "Com Erro")
-    : resultados;
-
-  const totalComErro = resultados.filter((r) => r.status === "Com Erro").length;
-
   return (
     <div id="container-validacao-pdf">
-      {/* TÍTULO E TOOLBAR DE AÇÕES SUPERIOR (Idêntico ao padrão da Imagem 2 de referência) */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "12px",
-        }}
-      ></div>
-
-      {/* CARD DE IMPORTAÇÃO (Padrão de Card e Campos da Empresa) */}
+      {/* CARD DE IMPORTAÇÃO */}
       <section
         id="card-upload-parametrizacao"
         style={{
@@ -310,293 +328,6 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
         </div>
       </section>
 
-      {/* GRID / TABELA DE RESULTADOS (Reprodução fiel da Imagem 2) */}
-      {resultados.length > 0 && (
-        <section
-          id="card-resultados-auditoria"
-          style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #cfd8dc",
-            borderRadius: "4px",
-            overflow: "hidden",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div
-            style={{
-              padding: "10px 14px",
-              backgroundColor: "#f5f7f8",
-              borderBottom: "1px solid #cfd8dc",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <strong style={{ fontSize: "0.85rem", color: "#263238" }}>
-                Resultado da Auditoria
-              </strong>
-              <span
-                style={{
-                  backgroundColor: totalComErro > 0 ? "#ffebee" : "#e8f5e9",
-                  color: totalComErro > 0 ? "#c62828" : "#2e7d32",
-                  padding: "1px 6px",
-                  borderRadius: "10px",
-                  fontSize: "0.7rem",
-                  fontWeight: 700,
-                  border:
-                    totalComErro > 0
-                      ? "1px solid #ffcdd2"
-                      : "1px solid #c8e6c9",
-                }}
-              >
-                {totalComErro} documento com inconsistências
-              </span>
-            </div>
-
-            {/* Switch Liga / Desliga para filtro de divergências */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                cursor: "pointer",
-              }}
-              onClick={() => setFiltroApenasErros(!filtroApenasErros)}
-            >
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  fontWeight: 600,
-                  userSelect: "none",
-                }}
-              >
-                Exibir apenas documentos com divergências
-              </span>
-
-              <button
-                type="button"
-                role="switch"
-                aria-checked={filtroApenasErros}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFiltroApenasErros(!filtroApenasErros);
-                }}
-                style={{
-                  position: "relative",
-                  width: "44px",
-                  height: "22px",
-                  borderRadius: "11px",
-                  backgroundColor: filtroApenasErros ? "#009688" : "#b0bec5",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "2px",
-                  display: "flex",
-                  alignItems: "center",
-                  transition: "background-color 0.2s ease",
-                }}
-              >
-                <span
-                  style={{
-                    display: "block",
-                    width: "18px",
-                    height: "18px",
-                    borderRadius: "50%",
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                    transform: filtroApenasErros
-                      ? "translateX(22px)"
-                      : "translateX(0px)",
-                    transition: "transform 0.2s ease",
-                  }}
-                ></span>
-              </button>
-            </div>
-          </div>
-
-          <table
-            id="tabela-carnes-auditados"
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              textAlign: "left",
-              fontSize: "0.8rem",
-            }}
-          >
-            <thead>
-              <tr
-                style={{
-                  backgroundColor: "#009688",
-                  color: "#ffffff",
-                }}
-              >
-                <th
-                  style={{
-                    padding: "8px 10px",
-                    fontWeight: 700,
-                    width: "120px",
-                  }}
-                >
-                  LOCALIZAÇÃO
-                </th>
-                <th
-                  style={{
-                    padding: "8px 10px",
-                    fontWeight: 700,
-                    textAlign: "center",
-                    width: "120px",
-                  }}
-                >
-                  SITUAÇÃO
-                </th>
-                <th style={{ padding: "8px 10px", fontWeight: 700 }}>
-                  RESULTADO DA VALIDAÇÃO
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {resultadosFiltrados.map((item, idx) => (
-                <tr
-                  key={item.numeroDocumento}
-                  style={{
-                    borderBottom: "1px solid #eceff1",
-                    backgroundColor:
-                      idx % 2 === 0
-                        ? "#ffffff"
-                        : item.status === "Com Erro"
-                          ? "#fff8f8"
-                          : "#fbfcfc",
-                  }}
-                >
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      fontWeight: 700,
-                      color: "#37474f",
-                    }}
-                  >
-                    Página {item.pagina}
-                  </td>
-                  <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                    <span
-                      style={{
-                        padding: "2px 8px",
-                        borderRadius: "3px",
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        backgroundColor:
-                          item.status === "Valido" ? "#e8f5e9" : "#ffebee",
-                        color: item.status === "Valido" ? "#2e7d32" : "#c62828",
-                        border:
-                          item.status === "Valido"
-                            ? "1px solid #c8e6c9"
-                            : "1px solid #ffcdd2",
-                      }}
-                    >
-                      {item.status === "Valido" ? "VÁLIDO" : "DIVERGENTE"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "8px 10px" }}>
-                    {item.erros.length === 0 ? (
-                      <span
-                        style={{
-                          color: "#2e7d32",
-                          fontSize: "0.75rem",
-                          fontWeight: 600,
-                        }}
-                      >
-                        ✓ Registros conformes as informações no banco de dados
-                      </span>
-                    ) : (
-                      <ul
-                        style={{
-                          margin: 0,
-                          paddingLeft: "14px",
-                          color: "#c62828",
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        {item.erros.map((erro, eIdx) => (
-                          <li key={eIdx} style={{ marginBottom: "2px" }}>
-                            <strong>{erro.campo}:</strong> Extraído "
-                            {erro.valorExtraido}" ≠ Esperado "
-                            {erro.valorEsperado}" ({erro.mensagem})
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* RODAPÉ E PAGINAÇÃO (Idêntico ao padrão da Imagem 2) */}
-          <div
-            style={{
-              padding: "8px 14px",
-              backgroundColor: "#f5f7f8",
-              borderTop: "1px solid #cfd8dc",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: "0.75rem",
-              color: "#546e7a",
-            }}
-          >
-            <div>
-              Total de Registros: <strong>{resultados.length}</strong>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <button
-                type="button"
-                disabled
-                style={{
-                  padding: "2px 6px",
-                  borderRadius: "3px",
-                  border: "1px solid #cfd8dc",
-                  backgroundColor: "#ffffff",
-                  color: "#b0bec5",
-                  cursor: "not-allowed",
-                }}
-              >
-                &lt;
-              </button>
-              <button
-                type="button"
-                style={{
-                  padding: "2px 8px",
-                  borderRadius: "3px",
-                  border: "1px solid #009688",
-                  backgroundColor: "#009688",
-                  color: "#ffffff",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                1
-              </button>
-              <button
-                type="button"
-                disabled
-                style={{
-                  padding: "2px 6px",
-                  borderRadius: "3px",
-                  border: "1px solid #cfd8dc",
-                  backgroundColor: "#ffffff",
-                  color: "#b0bec5",
-                  cursor: "not-allowed",
-                }}
-              >
-                &gt;
-              </button>
-              <span style={{ marginLeft: "8px" }}>10 / página</span>
-            </div>
-          </div>
-        </section>
-      )}
       {/* Modal Informativo Centralizado */}
       <ModalInformativo
         aberto={modalInfo.aberto}

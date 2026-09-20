@@ -1,45 +1,35 @@
-import {
-  ModalInformativo,
-  type TipoModalInformativo,
-} from "./components/ModalInformativo";
 import { useState, useEffect } from "react";
 import type { LayoutCliente } from "./types/layout";
+import type { ResultadoValidacaoLote } from "./types/validacao";
 import { ParametrizacaoPage } from "./pages/ParametrizacaoPage";
 import { ValidacaoPage } from "./pages/ValidacaoPage";
+import { ResultadoPage } from "./pages/ResultadoPage";
 import { layoutService } from "./services/layoutService";
 import logoImg from "./assets/logo-smartb.png";
 
 export function App() {
-  // Estado para controlar o Modal Informativo, de Confirmação e Senha
-  const [modalInfo, setModalInfo] = useState<{
-    aberto: boolean;
-    tipo: TipoModalInformativo;
-    titulo: string;
-    mensagem: string;
-    textoConfirmar?: string;
-    exigeSenha?: boolean;
-    valorSenha?: string;
-    aoConfirmar?: () => void;
-  }>({
-    aberto: false,
-    tipo: "sucesso",
-    titulo: "",
-    mensagem: "",
-  });
+  const [abaAtiva, setAbaAtiva] = useState<
+    "parametrizacao" | "validacao" | "resultado"
+  >("validacao");
 
-  const exibirMensagem = (
-    tipo: TipoModalInformativo,
-    titulo: string,
-    mensagem: string,
-  ) => {
-    setModalInfo({ aberto: true, tipo, titulo, mensagem });
-  };
+  // Estado para armazenar o resultado da última auditoria executada
+  const [resultadoAuditoria, setResultadoAuditoria] =
+    useState<ResultadoValidacaoLote | null>(null);
 
-  const [abaAtiva, setAbaAtiva] = useState<"parametrizacao" | "validacao">(
-    "validacao",
-  );
-
-  const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([]);
+  const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([
+    {
+      cliente: "PM Sertãozinho - SP",
+      nomeModelo: "Carnê Geral 2026 - Padrão",
+      versao: 1,
+      orientacao: "Paisagem",
+      formatoPapel: "Personalizado",
+      larguraPaginaMm: 70,
+      alturaPaginaMm: 30,
+      quantidadePaginasPadrao: 1,
+      campos: [],
+      queriesValidacao: [],
+    },
+  ]);
 
   // Carrega os layouts salvos no banco de dados ao iniciar a aplicação
   useEffect(() => {
@@ -55,62 +45,38 @@ export function App() {
       });
   }, []);
 
-  // Função para excluir fisicamente o layout no banco e na tela
-  const lidarComExcluirLayout = async (idOuNome: string) => {
-    const layoutParaRemover = layoutsSalvos.find(
-      (l) => l.id === idOuNome || l.nomeModelo === idOuNome,
-    );
-
-    if (!layoutParaRemover) return;
-
-    try {
-      // Se o layout possuir ID registrado no banco, chama a API
-      if (layoutParaRemover.id) {
-        await layoutService.excluir(layoutParaRemover.id);
-      }
-
-      // Remove da memória do React
-      setLayoutsSalvos((anteriores) =>
-        anteriores.filter((l) => l.nomeModelo !== layoutParaRemover.nomeModelo),
-      );
-    } catch (erro: unknown) {
-      console.error("Erro ao excluir layout do banco de dados:", erro);
-      exibirMensagem(
-        "erro",
-        "Erro API",
-        "Erro ao excluir o layout no banco de dados. Verifique a API.",
-      );
-    }
-  };
-
-  // Função centralizada para salvar e persistir os layouts no banco de dados
+  // Centraliza o salvamento de layouts no backend
   const lidarComSalvarLayouts = async (novosLayouts: LayoutCliente[]) => {
-    const layoutParaSalvar = novosLayouts[novosLayouts.length - 1];
+    setLayoutsSalvos(novosLayouts);
+
+    const layoutParaSalvar =
+      novosLayouts.find((novo) => {
+        const anterior = layoutsSalvos.find(
+          (l) => l.nomeModelo === novo.nomeModelo,
+        );
+        return !anterior || JSON.stringify(anterior) !== JSON.stringify(novo);
+      }) || novosLayouts[novosLayouts.length - 1];
 
     if (!layoutParaSalvar) return;
 
     try {
-      // 1. Envia para a API e obtém o ID gerado/confirmado
-      const idRetornado = await layoutService.salvar(layoutParaSalvar);
-
-      // 2. Garante que o layout na memória receba o ID gerado pelo banco
-      const layoutsAtualizados = novosLayouts.map((l, index) => {
-        if (index === novosLayouts.length - 1) {
-          return { ...l, id: idRetornado };
-        }
-        return l;
-      });
-
-      setLayoutsSalvos(layoutsAtualizados);
-      console.log("Layout persistido com sucesso no banco de dados!");
+      await layoutService.salvar(layoutParaSalvar);
+      const dadosAtualizados = await layoutService.listarTodos();
+      if (dadosAtualizados && dadosAtualizados.length > 0) {
+        setLayoutsSalvos(dadosAtualizados);
+      }
     } catch (erro: unknown) {
       console.error("Erro ao persistir o layout no banco de dados:", erro);
-      exibirMensagem(
-        "erro",
-        "Erro banco de dados",
-        "Atenção: Ocorreu um erro ao gravar as informações no banco de dados.",
+      alert(
+        "Atenção: Os dados foram alterados na tela, mas ocorreu um erro ao gravar no banco de dados. Verifique se o backend está ativo.",
       );
     }
+  };
+
+  // Recebe o resultado da auditoria e direciona automaticamente para a aba Resultado
+  const lidarComConclusaoValidacao = (resultado: ResultadoValidacaoLote) => {
+    setResultadoAuditoria(resultado);
+    setAbaAtiva("resultado");
   };
 
   return (
@@ -138,7 +104,6 @@ export function App() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {/* Brasão / Logotipo Institucional */}
           <div
             style={{
               width: "80px",
@@ -184,7 +149,7 @@ export function App() {
         </div>
       </header>
 
-      {/* FITA DE NAVEGAÇÃO / BREADCRUMB */}
+      {/* FITA DE NAVEGAÇÃO / BREADCRUMB: Configurações > Validação > Resultado */}
       <div
         id="barra-navegacao-fitas"
         style={{
@@ -192,11 +157,11 @@ export function App() {
           borderBottom: "1px solid #cfd8dc",
           padding: "6px 16px",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          {/* Aba 1: Configurações */}
           <button
             type="button"
             onClick={() => setAbaAtiva("parametrizacao")}
@@ -221,7 +186,6 @@ export function App() {
             <span>Configurações</span>
           </button>
 
-          {/* Separador centralizado verticalmente */}
           <span
             style={{
               color: "#b0bec5",
@@ -236,6 +200,7 @@ export function App() {
             ›
           </span>
 
+          {/* Aba 2: Validação */}
           <button
             type="button"
             onClick={() => setAbaAtiva("validacao")}
@@ -258,6 +223,44 @@ export function App() {
           >
             <span>Validação</span>
           </button>
+
+          <span
+            style={{
+              color: "#b0bec5",
+              fontSize: "1.6rem",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              lineHeight: 1,
+              userSelect: "none",
+            }}
+          >
+            ›
+          </span>
+
+          {/* Aba 3: Resultado */}
+          <button
+            type="button"
+            onClick={() => setAbaAtiva("resultado")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "5px 14px",
+              borderRadius: "3px",
+              border:
+                abaAtiva === "resultado"
+                  ? "1px solid #009688"
+                  : "1px solid #cfd8dc",
+              backgroundColor: abaAtiva === "resultado" ? "#e0f2f1" : "#f8fafc",
+              color: abaAtiva === "resultado" ? "#00796b" : "#455a64",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              cursor: "pointer",
+            }}
+          >
+            <span>Resultado</span>
+          </button>
         </div>
       </div>
 
@@ -273,38 +276,27 @@ export function App() {
           boxSizing: "border-box",
         }}
       >
-        {abaAtiva === "parametrizacao" ? (
+        {abaAtiva === "parametrizacao" && (
           <ParametrizacaoPage
             layoutsSalvos={layoutsSalvos}
             onSalvarLayouts={lidarComSalvarLayouts}
-            onExcluirLayout={lidarComExcluirLayout}
           ></ParametrizacaoPage>
-        ) : (
-          <ValidacaoPage layoutsDisponiveis={layoutsSalvos}></ValidacaoPage>
+        )}
+
+        {abaAtiva === "validacao" && (
+          <ValidacaoPage
+            layoutsDisponiveis={layoutsSalvos}
+            onConcluirValidacao={lidarComConclusaoValidacao}
+          ></ValidacaoPage>
+        )}
+
+        {abaAtiva === "resultado" && (
+          <ResultadoPage
+            resultadoAuditoria={resultadoAuditoria}
+            onIrParaValidacao={() => setAbaAtiva("validacao")}
+          ></ResultadoPage>
         )}
       </main>
-      {/* Modal Informativo Centralizado */}
-      <ModalInformativo
-        aberto={modalInfo.aberto}
-        tipo={modalInfo.tipo}
-        titulo={modalInfo.titulo}
-        mensagem={modalInfo.mensagem}
-        textoConfirmar={modalInfo.textoConfirmar}
-        exigeSenha={modalInfo.exigeSenha}
-        valorSenha={modalInfo.valorSenha}
-        aoMudarSenha={(novaSenha) =>
-          setModalInfo((prev) => ({ ...prev, valorSenha: novaSenha }))
-        }
-        aoConfirmar={modalInfo.aoConfirmar}
-        aoFechar={() =>
-          setModalInfo((prev) => ({
-            ...prev,
-            aberto: false,
-            exigeSenha: false,
-            valorSenha: "",
-          }))
-        }
-      ></ModalInformativo>
     </div>
   );
 }
