@@ -15,6 +15,7 @@ public class SMARsvpDbContext : DbContext
     public DbSet<RegraValidacao> RegrasValidacao { get; set; } = null!;
     public DbSet<PaginaModeloImagem> PaginasModelo { get; set; } = null!;
     public DbSet<ConexaoBancoLayout> ConexoesBanco { get; set; } = null!;
+    public DbSet<LogSistema> Logs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -93,6 +94,19 @@ public class SMARsvpDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.ImagemBase64).IsRequired();
+        });
+
+        // Configuração da Tabela de Logs
+        modelBuilder.Entity<LogSistema>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Tipo).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Mensagem).IsRequired();
+            entity.Property(e => e.Origem).HasMaxLength(250);
+
+            // Índices para otimizar futuras pesquisas por data e tipo
+            entity.HasIndex(e => e.DataHora);
+            entity.HasIndex(e => e.Tipo);
         });
     }
 }

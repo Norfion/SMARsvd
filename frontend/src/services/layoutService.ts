@@ -1,10 +1,5 @@
-import axios from "axios";
 import type { LayoutCliente } from "../types/layout";
-
-// Configura a URL base da nossa API .NET
-const api = axios.create({
-  baseURL: "http://localhost:5224/api",
-});
+import { api } from "./api";
 
 export const layoutService = {
   // Busca todos os layouts salvos no banco

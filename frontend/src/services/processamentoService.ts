@@ -1,9 +1,5 @@
-import axios from "axios";
 import type { ResultadoValidacaoLote } from "../types/validacao";
-
-const api = axios.create({
-  baseURL: "http://localhost:5224/api",
-});
+import { api } from "./api";
 
 export const processamentoService = {
   validarLote: async (

@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
 import type { LayoutCliente } from "./types/layout";
 import type { ResultadoValidacaoLote } from "./types/validacao";
+import { useState, useEffect } from "react";
 import { ParametrizacaoPage } from "./pages/ParametrizacaoPage";
 import { ValidacaoPage } from "./pages/ValidacaoPage";
 import { ResultadoPage } from "./pages/ResultadoPage";
 import { layoutService } from "./services/layoutService";
+import { logService } from "./services/logService"; // <-- ADICIONE ESTA LINHA
 import logoImg from "./assets/logo-smartb.png";
 
 export function App() {
@@ -21,9 +22,23 @@ export function App() {
 
   const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([]);
 
+  useEffect(() => {
+    const capturarErroGlobal = (event: ErrorEvent) => {
+      logService.registrarErro({
+        tipo: "Exceção",
+        mensagem: event.message,
+        origem: "Window Error",
+        stackTrace: event.error?.stack,
+        detalhes: `Arquivo: ${event.filename} | Linha: ${event.lineno}`,
+      });
+    };
+
+    window.addEventListener("error", capturarErroGlobal);
+    return () => window.removeEventListener("error", capturarErroGlobal);
+  }, []);
+
   // Carrega os layouts salvos no banco de dados ao iniciar a aplicação
   useEffect(() => {
-    setCarregando(true);
     layoutService
       .listarTodos()
       .then((dados) => {

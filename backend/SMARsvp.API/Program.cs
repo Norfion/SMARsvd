@@ -3,6 +3,7 @@ using SMARsvp.Application.Interfaces;
 using SMARsvp.Application.Services;
 using SMARsvp.Infrastructure.Data;
 using SMARsvp.Infrastructure.Services;
+using SMARsvp.API.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,7 @@ builder.Services.AddDbContext<SMARsvpDbContext>(options =>
 builder.Services.AddScoped<IExtratorPdfService, ExtratorPdfService>();
 builder.Services.AddScoped<IOcrService, OcrService>();
 builder.Services.AddScoped<ProcessadorCarnesService>();
+builder.Services.AddScoped<ILogService, LogService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -32,6 +34,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
