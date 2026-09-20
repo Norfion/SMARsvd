@@ -52,6 +52,35 @@ export function ValidacaoPage({
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [processando, setProcessando] = useState(false);
 
+  // Estados para validação integral vs amostragem
+  const [validarIntegralmente, setValidarIntegralmente] =
+    useState<boolean>(true);
+  const [percentualAmostragem, setPercentualAmostragem] = useState<number>(100);
+
+  // Alterna o botão Liga/Desliga
+  const alternarModoValidacao = () => {
+    const novoModoIntegral = !validarIntegralmente;
+    setValidarIntegralmente(novoModoIntegral);
+    if (novoModoIntegral) {
+      setPercentualAmostragem(100); // Trava em 100% quando integral
+    } else {
+      setPercentualAmostragem(30); // Sugestão inicial de amostragem (ex: 10%)
+    }
+  };
+
+  // Trata a alteração manual do percentual garantindo intervalo de 0 a 100
+  const lidarComMudancaPercentual = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const valor = Number(e.target.value);
+    if (isNaN(valor)) return;
+    const valorLimitado = Math.min(100, Math.max(0, valor));
+    setPercentualAmostragem(valorLimitado);
+    if (valorLimitado === 100) {
+      setValidarIntegralmente(true);
+    }
+  };
+
   // Estado para controlar o Modal Informativo, de Confirmação e Senha
   const [modalInfo, setModalInfo] = useState<{
     aberto: boolean;
@@ -152,6 +181,20 @@ export function ValidacaoPage({
 
   return (
     <div id="container-validacao-pdf">
+      {/* Remove os controles de aumentar/diminuir do campo number */}
+      <style>
+        {`
+          input[type="number"]::-webkit-inner-spin-button,
+          input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+          }
+        `}
+      </style>
       {/* CARD DE IMPORTAÇÃO */}
       <section
         id="card-upload-parametrizacao"
@@ -179,12 +222,14 @@ export function ValidacaoPage({
         </div>
 
         <div style={{ padding: "14px" }}>
+          {/* Linha 1: Seleção de Layout, Upload de PDF e Botão Validar */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr auto",
               gap: "14px",
               alignItems: "flex-end",
+              marginBottom: "16px",
             }}
           >
             {/* Seletor do Layout */}
@@ -324,6 +369,198 @@ export function ValidacaoPage({
             >
               {processando ? "Auditando..." : "Validar"}
             </button>
+          </div>
+
+          {/* Linha 2: Configuração de Amostragem / Integral */}
+          <div
+            id="painel-opcoes-amostragem"
+            style={{
+              backgroundColor: "#f8fafc",
+              border: "1px solid #cfd8dc",
+              borderRadius: "4px",
+              padding: "12px",
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+            }}
+          >
+            {/* Controles de Seleção */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "20px",
+                flexWrap: "wrap",
+              }}
+            >
+              {/* Botão Liga / Desliga (Switch) */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <button
+                  type="button"
+                  id="btn-switch-modo-validacao"
+                  onClick={alternarModoValidacao}
+                  style={{
+                    position: "relative",
+                    width: "44px",
+                    height: "24px",
+                    borderRadius: "12px",
+                    backgroundColor: validarIntegralmente
+                      ? "#00796b"
+                      : "#78909c",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "2px",
+                    transition: "background-color 0.2s ease",
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "block",
+                      width: "20px",
+                      height: "20px",
+                      borderRadius: "50%",
+                      backgroundColor: "#ffffff",
+                      transform: validarIntegralmente
+                        ? "translateX(20px)"
+                        : "translateX(0px)",
+                      transition: "transform 0.2s ease",
+                    }}
+                  ></span>
+                </button>
+                <span
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    color: validarIntegralmente ? "#00796b" : "#455a64",
+                  }}
+                >
+                  {validarIntegralmente
+                    ? "Validar todo o arquivo"
+                    : "Validar por amostragem"}
+                </span>
+              </div>
+
+              {/* Campo Percentual */}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <label
+                  htmlFor="input-percentual-amostragem"
+                  style={{
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    color: "#455a64",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Amostragem:
+                </label>
+                <div style={{ position: "relative", width: "60px" }}>
+                  <input
+                    id="input-percentual-amostragem"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={percentualAmostragem}
+                    onChange={lidarComMudancaPercentual}
+                    disabled={validarIntegralmente}
+                    style={{
+                      width: "100%",
+                      padding: "4px 22px 4px 8px",
+                      borderRadius: "4px",
+                      border: "1px solid #cfd8dc",
+                      height: "30px",
+                      fontSize: "0.85rem",
+                      fontWeight: 700,
+                      color: validarIntegralmente ? "#78909c" : "#263238",
+                      backgroundColor: validarIntegralmente
+                        ? "#eceff1"
+                        : "#ffffff",
+                      cursor: validarIntegralmente ? "not-allowed" : "text",
+                      boxSizing: "border-box",
+                      textAlign: "right",
+                    }}
+                  ></input>
+                  <span
+                    style={{
+                      position: "absolute",
+                      right: "7px",
+                      top: "6px",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      color: validarIntegralmente ? "#90a4ae" : "#455a64",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    %
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Mensagens Informativas */}
+            <div style={{ flex: "1 1 300px", minWidth: "260px" }}>
+              {validarIntegralmente ? (
+                <div
+                  id="aviso-validacao-integral"
+                  style={{
+                    backgroundColor: "#e0f2f1",
+                    border: "1px solid #b2dfdb",
+                    borderRadius: "4px",
+                    padding: "6px 10px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span style={{ fontSize: "0.95rem" }}>⏱️</span>
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#004d40",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    <strong>Validação Integral (100%):</strong> Processar todas
+                    as páginas do arquivo pode demandar mais tempo dependendo da
+                    quantidade de carnês.
+                  </span>
+                </div>
+              ) : (
+                <div
+                  id="aviso-validacao-amostragem"
+                  style={{
+                    backgroundColor: "#fff8e1",
+                    border: "1px solid #ffe082",
+                    borderRadius: "4px",
+                    padding: "6px 10px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span style={{ fontSize: "0.95rem" }}>⚠️</span>
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#795548",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    <strong>
+                      Validação por Amostragem ({percentualAmostragem}%):
+                    </strong>{" "}
+                    A auditoria é mais rápida, mas não validará todo o carnê;
+                    páginas aleatórias serão sorteadas e erros pontuais podem
+                    acabar passando.
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

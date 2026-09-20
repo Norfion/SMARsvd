@@ -605,12 +605,13 @@ export function ParametrizacaoPage({
   };
 
   const iniciarEdicaoCampo = (campo: RegiaoCampo) => {
-    const paginaDoCampo = campo.pagina || 1;
+    const ehId = !!campo.ehIdentificadorPrimeiraPagina;
+    const paginaDoCampo = ehId ? 1 : campo.pagina || 1;
     setCampoEmEdicaoId(campo.id);
     setNomeCampo(campo.nomeCampo);
     setPaginaCampo(paginaDoCampo);
     setPaginaAtivaCanvas(paginaDoCampo);
-    setEhIdentificador(!!campo.ehIdentificadorPrimeiraPagina);
+    setEhIdentificador(ehId);
     setTextoEsperado(campo.textoEsperadoIdentificador || "");
     setRetanguloAtualMm({
       xMm: campo.xMm,
@@ -1611,11 +1612,13 @@ export function ParametrizacaoPage({
                 <div style={{ display: "flex", gap: "4px" }}>
                   {Array.from(
                     {
-                      length: Math.max(
-                        quantidadePaginasPadrao || 1,
-                        paginaCampo,
-                        ...campos.map((c) => c.pagina || 1),
-                      ),
+                      length: ehIdentificador
+                        ? 1 // Se for identificador de página, exibe estritamente a página 1
+                        : Math.max(
+                            quantidadePaginasPadrao || 1,
+                            paginaCampo,
+                            ...campos.map((c) => c.pagina || 1),
+                          ),
                     },
                     (_, i) => i + 1,
                   ).map((numPagina) => {
@@ -1934,7 +1937,16 @@ export function ParametrizacaoPage({
                       </span>
                       <button
                         type="button"
-                        onClick={() => setEhIdentificador(!ehIdentificador)}
+                        onClick={() => {
+                          const novoValor = !ehIdentificador;
+                          setEhIdentificador(novoValor);
+                          if (novoValor) {
+                            // Força a seleção para a página 1 e reseta seleções ativas em outras páginas
+                            setPaginaCampo(1);
+                            setPaginaAtivaCanvas(1);
+                            setRetanguloAtualMm(null);
+                          }
+                        }}
                         style={{
                           position: "relative",
                           width: "40px",
