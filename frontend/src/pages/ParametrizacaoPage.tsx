@@ -126,7 +126,7 @@ export function ParametrizacaoPage({
   // ==========================================
   // ESTADOS: ETAPA 1 - LAYOUT
   // ==========================================
-  const [cliente, setCliente] = useState<string>("PM Sertãozinho - SP");
+  const [cliente, setCliente] = useState<string>("Outro");
   const [nomeModelo, setNomeModelo] = useState<string>("");
   const [larguraMm, setLarguraMm] = useState<number>(70);
   const [alturaMm, setAlturaMm] = useState<number>(30);
@@ -232,7 +232,7 @@ export function ParametrizacaoPage({
     setLayoutId(undefined);
     setCriandoNovoLayout(true);
     setLayoutSelecionadoId(nomePadrao);
-    setCliente("PM Sertãozinho - SP");
+    setCliente("Outro");
     setNomeModelo(nomePadrao);
     setLarguraMm(70);
     setAlturaMm(30);
@@ -273,7 +273,7 @@ export function ParametrizacaoPage({
       setLayoutId(undefined);
       setCriandoNovoLayout(true);
       setLayoutSelecionadoId(nomeIdentificador);
-      setCliente("PM Sertãozinho - SP");
+      setCliente("Outro");
       setNomeModelo(nomeIdentificador);
       setLarguraMm(dados.larguraMm);
       setAlturaMm(dados.alturaMm);

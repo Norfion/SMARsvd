@@ -680,7 +680,7 @@ export function ValidacaoPage({
                     gap: "8px",
                   }}
                 >
-                  <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>⏱️</span>
+                  <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>🟢</span>
                   <span
                     style={{
                       fontSize: "0.75rem",
@@ -708,7 +708,7 @@ export function ValidacaoPage({
                     gap: "8px",
                   }}
                 >
-                  <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>⚠️</span>
+                  <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>🟡</span>
                   <span
                     style={{
                       fontSize: "0.75rem",
