@@ -39,6 +39,10 @@ export function App() {
   const [abaDestinoPendente, setAbaDestinoPendente] =
     useState<AbaNavegacao | null>(null);
 
+  // Modal para informar a conclusão com sucesso da validação
+  const [modalSucessoValidacaoAberto, setModalSucessoValidacaoAberto] =
+    useState<boolean>(false);
+
   // Escuta os eventos emitidos pelo interceptador do Axios
   useEffect(() => {
     const lidarComStatusConexao = (event: Event) => {
@@ -126,10 +130,11 @@ export function App() {
     }
   };
 
-  // Recebe o resultado da auditoria e direciona automaticamente para a aba Resultado
+  // Recebe o resultado da auditoria, direciona para a aba Resultado e abre o modal de sucesso
   const lidarComConclusaoValidacao = (resultado: ResultadoValidacaoLote) => {
     setResultadoAuditoria(resultado);
     setAbaAtiva("resultado");
+    setModalSucessoValidacaoAberto(true);
   };
 
   // Controla a troca de abas com interceptação de alterações não salvas
@@ -481,6 +486,16 @@ export function App() {
           setModalAvisoNavegacaoAberto(false);
           setAbaDestinoPendente(null);
         }}
+      ></ModalInformativo>
+
+      {/* MODAL DE SUCESSO AO CONCLUIR VALIDAÇÃO */}
+      <ModalInformativo
+        aberto={modalSucessoValidacaoAberto}
+        tipo="sucesso"
+        titulo="Validação Concluída"
+        mensagem={`A auditoria do arquivo foi finalizada.`}
+        textoConfirmar="OK"
+        aoFechar={() => setModalSucessoValidacaoAberto(false)}
       ></ModalInformativo>
     </div>
   );

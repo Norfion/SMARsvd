@@ -8,15 +8,15 @@
       "PaginaFim": 2,
       "Campos": [
         {
-          "Nome": "CRC",
-          "ValorExtraido": "650",
-          "PaginaExtraido": 1,
-          "ExtracaoMetodo": "Digital"
-        },
-        {
           "Nome": "Nro Parcelamento",
           "ValorExtraido": "27480056",
           "PaginaExtraido": 2,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "CRC",
+          "ValorExtraido": "650",
+          "PaginaExtraido": 1,
           "ExtracaoMetodo": "Digital"
         },
         {
@@ -38,15 +38,15 @@
       "PaginaFim": 4,
       "Campos": [
         {
-          "Nome": "CRC",
-          "ValorExtraido": "414990",
-          "PaginaExtraido": 3,
-          "ExtracaoMetodo": "Digital"
-        },
-        {
           "Nome": "Nro Parcelamento",
           "ValorExtraido": "27480059",
           "PaginaExtraido": 4,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "CRC",
+          "ValorExtraido": "414990",
+          "PaginaExtraido": 3,
           "ExtracaoMetodo": "Digital"
         },
         {
