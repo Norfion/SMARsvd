@@ -15,11 +15,8 @@ public class LayoutClienteDto
     public string Cliente { get; set; } = string.Empty;
     public string NomeModelo { get; set; } = string.Empty;
     public int Versao { get; set; } = 1;
-    public string Orientacao { get; set; } = "Paisagem";
-    public string FormatoPapel { get; set; } = "Personalizado";
     public decimal LarguraPaginaMm { get; set; }
     public decimal AlturaPaginaMm { get; set; }
-    public int QuantidadePaginasPadrao { get; set; } = 1;
     public string? NomeArquivoModelo { get; set; }
 
     public ConexaoBancoLayoutDto? ConexaoBanco { get; set; }

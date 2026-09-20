@@ -37,11 +37,8 @@ public class LayoutsController : ControllerBase
             Cliente = l.Cliente,
             NomeModelo = l.NomeModelo,
             Versao = l.Versao,
-            Orientacao = l.Orientacao.ToString(),
-            FormatoPapel = l.FormatoPapel.ToString(),
             LarguraPaginaMm = l.LarguraPaginaMm,
             AlturaPaginaMm = l.AlturaPaginaMm,
-            QuantidadePaginasPadrao = l.QuantidadePaginasPadrao,
             NomeArquivoModelo = l.NomeArquivoModelo,
             ConexaoBanco = l.ConexaoBanco == null ? null : new ConexaoBancoLayoutDto
             {
@@ -93,9 +90,6 @@ public class LayoutsController : ControllerBase
         {
             return BadRequest(ModelState);
         }
-
-        Enum.TryParse<OrientacaoPagina>(dto.Orientacao, true, out var orientacaoEnum);
-        Enum.TryParse<FormatoPapel>(dto.FormatoPapel, true, out var formatoEnum);
 
         LayoutCliente? entidadeLayout = null;
 
@@ -161,11 +155,8 @@ public class LayoutsController : ControllerBase
         entidadeLayout.Cliente = dto.Cliente;
         entidadeLayout.NomeModelo = dto.NomeModelo;
         entidadeLayout.Versao = dto.Versao;
-        entidadeLayout.Orientacao = orientacaoEnum;
-        entidadeLayout.FormatoPapel = formatoEnum;
         entidadeLayout.LarguraPaginaMm = dto.LarguraPaginaMm;
         entidadeLayout.AlturaPaginaMm = dto.AlturaPaginaMm;
-        entidadeLayout.QuantidadePaginasPadrao = dto.QuantidadePaginasPadrao;
         entidadeLayout.NomeArquivoModelo = dto.NomeArquivoModelo;
 
         // 6. Atualização in-place da ConexaoBanco (evita DELETE + UPDATE concorrente)

@@ -13,7 +13,6 @@ public class ExtratorPdfService : IExtratorPdfService
 
     public Task<int> ObterTotalPaginasAsync(string caminhoArquivo)
     {
-        // Abre apenas para ler o cabeçalho/quantidade de páginas sem sobrecarregar a memória
         using var pdf = PdfDocument.Open(caminhoArquivo);
         return Task.FromResult(pdf.NumberOfPages);
     }
@@ -60,6 +59,23 @@ public class ExtratorPdfService : IExtratorPdfService
             .Select(w => w.Text);
 
         string textoExtraido = string.Join(" ", palavrasOrdenadas).Trim();
+
+        if (string.IsNullOrWhiteSpace(textoExtraido))
+            return Task.FromResult<string?>(null);
+
+        // Tratamento do Identificador Anterior:
+        // Caso o usuário tenha informado um prefixo (ex: "RUA:" ou "BAIRRO:"),
+        // localizamos a ocorrência e extraímos apenas o conteúdo que vem depois dele.
+        if (!string.IsNullOrWhiteSpace(regiao.IdentificadorAnterior))
+        {
+            string identificador = regiao.IdentificadorAnterior.Trim();
+            int indiceIdentificador = textoExtraido.IndexOf(identificador, StringComparison.OrdinalIgnoreCase);
+
+            if (indiceIdentificador >= 0)
+            {
+                textoExtraido = textoExtraido.Substring(indiceIdentificador + identificador.Length).Trim();
+            }
+        }
 
         return Task.FromResult<string?>(string.IsNullOrWhiteSpace(textoExtraido) ? null : textoExtraido);
     }

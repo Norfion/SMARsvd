@@ -1,5 +1,3 @@
-export type OrientacaoPagina = "Retrato" | "Paisagem";
-export type FormatoPapel = "A4" | "Carta" | "Personalizado";
 export type TipoProvedorBanco = "SQL Server";
 
 export interface RegiaoCampo {
@@ -12,6 +10,7 @@ export interface RegiaoCampo {
   pagina?: number;
   ehIdentificadorPrimeiraPagina?: boolean;
   textoEsperadoIdentificador?: string;
+  identificadorAnterior?: string;
   consultaSql?: string;
 }
 
@@ -44,11 +43,8 @@ export interface LayoutCliente {
   cliente: string;
   nomeModelo: string;
   versao: number;
-  orientacao: OrientacaoPagina;
-  formatoPapel: FormatoPapel;
   larguraPaginaMm: number;
   alturaPaginaMm: number;
-  quantidadePaginasPadrao?: number;
   campos: RegiaoCampo[];
   queriesValidacao?: QueryValidacao[];
   paginasModeloBase64?: string[];

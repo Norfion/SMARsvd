@@ -11,5 +11,6 @@ public class RegiaoCampoDto
     public int Pagina { get; set; } = 1;
     public bool EhIdentificadorPrimeiraPagina { get; set; }
     public string? TextoEsperadoIdentificador { get; set; }
+    public string? IdentificadorAnterior { get; set; }
     public string? ConsultaSql { get; set; }
 }

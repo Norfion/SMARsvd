@@ -6,8 +6,6 @@ import { useState, useRef } from "react";
 import { SqlCodeEditor } from "../components/SqlCodeEditor";
 import { processarArquivoPdfModelo } from "../utils/pdfModelReader";
 import type {
-  OrientacaoPagina,
-  FormatoPapel,
   RegiaoCampo,
   LayoutCliente,
   QueryValidacao,
@@ -37,7 +35,6 @@ export function ParametrizacaoPage({
   // ==========================================
   // ESTADOS DO FLUXO GERAL E ACCORDIONS
   // ==========================================
-  // Identificador do modelo no select e o ID (GUID) real do banco
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [layoutId, setLayoutId] = useState<string | undefined>(undefined);
   const [etapaAberta, setEtapaAberta] = useState<
@@ -56,13 +53,9 @@ export function ParametrizacaoPage({
   const [carregandoPdfModelo, setCarregandoPdfModelo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // NOVO: Controla se o usuário está criando um novo layout (Manual ou via Importação de PDF)
   const [criandoNovoLayout, setCriandoNovoLayout] = useState(false);
-
-  // NOVO: Armazena a versão original em JSON do layout selecionado para detectar alterações
   const [dadosOriginaisJson, setDadosOriginaisJson] = useState<string>("");
 
-  // NOVO: Função para cancelar a criação do layout sem persistir dados
   const cancelarCriacaoNovoLayout = () => {
     setCriandoNovoLayout(false);
     setDadosOriginaisJson("");
@@ -76,12 +69,11 @@ export function ParametrizacaoPage({
     setDbServidor("");
     setDbUsuario("");
     setDbSenha("");
-    setEtapaAberta(null); // Fecha todos os acordeões
+    setEtapaAberta(null);
     cancelarEdicaoCampo();
     cancelarEdicaoQuery();
   };
 
-  // Estado para controlar o Modal Informativo, de Confirmação e Senha
   const [modalInfo, setModalInfo] = useState<{
     aberto: boolean;
     tipo: TipoModalInformativo;
@@ -122,7 +114,6 @@ export function ParametrizacaoPage({
     });
   };
 
-  // Alterna o acordeão somente se houver layout selecionado
   const alternarEtapa = (
     etapa: "layout" | "campos" | "validacoes" | "conexao",
   ) => {
@@ -135,14 +126,9 @@ export function ParametrizacaoPage({
   // ==========================================
   const [cliente, setCliente] = useState<string>("PM Sertãozinho - SP");
   const [nomeModelo, setNomeModelo] = useState<string>("");
-  const [orientacao, setOrientacao] = useState<OrientacaoPagina>("Paisagem");
-  const [formatoPapel, setFormatoPapel] = useState<FormatoPapel>("A4");
   const [larguraMm, setLarguraMm] = useState<number>(70);
   const [alturaMm, setAlturaMm] = useState<number>(30);
-  const [quantidadePaginasPadrao, setQuantidadePaginasPadrao] =
-    useState<number>(1);
 
-  // Armazena as imagens renderizadas das páginas do PDF de gabarito
   const [paginasModelo, setPaginasModelo] = useState<string[]>([]);
   const [nomeArquivoModelo, setNomeArquivoModelo] = useState<string>("");
 
@@ -167,6 +153,7 @@ export function ParametrizacaoPage({
   const [paginaAtivaCanvas, setPaginaAtivaCanvas] = useState<number>(1);
   const [ehIdentificador, setEhIdentificador] = useState(false);
   const [textoEsperado, setTextoEsperado] = useState("");
+  const [identificadorAnterior, setIdentificadorAnterior] = useState("");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -200,22 +187,15 @@ export function ParametrizacaoPage({
   const [regraOperador, setRegraOperador] = useState<string>("=");
   const [regraCampoCarne, setRegraCampoCarne] = useState<string>("");
 
-  // Flag unificada: indica se alguma edição pontual está em andamento
   const emModoEdicao = campoEmEdicaoId !== null || queryEmEdicaoId !== null;
-
-  // Layout não selecionado trava todos os acordeões
   const semLayoutSelecionado = !layoutSelecionadoId;
 
-  // NOVO: Gera a estrutura comparável do formulário atual
   const obterSnapshotAtual = () => {
     return JSON.stringify({
       cliente,
       nomeModelo: nomeModelo.trim(),
-      orientacao,
-      formatoPapel,
       larguraPaginaMm: larguraMm,
       alturaPaginaMm: alturaMm,
-      quantidadePaginasPadrao,
       campos,
       queriesValidacao: queries,
       paginasModeloBase64: paginasModelo,
@@ -229,7 +209,6 @@ export function ParametrizacaoPage({
     });
   };
 
-  // NOVO: Se estiver criando layout novo, sempre permite salvar. Se for layout existente, só habilita se os dados mudaram.
   const houveAlteracao =
     criandoNovoLayout ||
     (Boolean(dadosOriginaisJson) &&
@@ -246,11 +225,8 @@ export function ParametrizacaoPage({
     setLayoutSelecionadoId(nomePadrao);
     setCliente("PM Sertãozinho - SP");
     setNomeModelo(nomePadrao);
-    setOrientacao("Paisagem");
-    setFormatoPapel("A4");
     setLarguraMm(70);
     setAlturaMm(30);
-    setQuantidadePaginasPadrao(1);
     setCampos([]);
     setQueries([]);
     setPaginasModelo([]);
@@ -285,16 +261,13 @@ export function ParametrizacaoPage({
       const dados = await processarArquivoPdfModelo(arquivo);
       const nomeIdentificador = arquivo.name.replace(/\.[^/.]+$/, "");
 
-      setLayoutId(undefined); // <-- Garante que é um novo layout importado
-      setCriandoNovoLayout(true); // <-- Ativa modo de criação
+      setLayoutId(undefined);
+      setCriandoNovoLayout(true);
       setLayoutSelecionadoId(nomeIdentificador);
       setCliente("PM Sertãozinho - SP");
       setNomeModelo(nomeIdentificador);
-      setOrientacao(dados.orientacao);
-      setFormatoPapel(dados.formatoPapel);
       setLarguraMm(dados.larguraMm);
       setAlturaMm(dados.alturaMm);
-      setQuantidadePaginasPadrao(dados.quantidadePaginas);
       setPaginasModelo(dados.paginasBase64);
       setNomeArquivoModelo(dados.nomeArquivo);
 
@@ -309,7 +282,7 @@ export function ParametrizacaoPage({
       exibirMensagem(
         "sucesso",
         "Modelo Carregado",
-        `PDF "${dados.nomeArquivo}" carregado com sucesso!\n\n• Páginas: ${dados.quantidadePaginas}\n• Dimensões: ${dados.larguraMm} x ${dados.alturaMm} mm (${dados.formatoPapel})`,
+        `PDF "${dados.nomeArquivo}" carregado com sucesso!\n\n• Páginas: ${dados.quantidadePaginas}\n• Dimensões: ${dados.larguraMm} x ${dados.alturaMm} mm`,
       );
     } catch (err: unknown) {
       const mensagemErro =
@@ -329,7 +302,6 @@ export function ParametrizacaoPage({
   const SENHA_EXCLUSAO = "teste123";
 
   const executarExclusaoFisicaLayout = () => {
-    // 1. Aciona estritamente o evento de exclusão enviando o Guid do banco
     if (onExcluirLayout && layoutId) {
       onExcluirLayout(layoutId);
     } else if (!layoutId) {
@@ -347,7 +319,6 @@ export function ParametrizacaoPage({
       `O layout "${layoutSelecionadoId}" foi removido com sucesso!`,
     );
 
-    // 2. Limpa o formulário e os campos da tela
     setLayoutSelecionadoId("");
     setLayoutId(undefined);
     setCampos([]);
@@ -396,7 +367,7 @@ export function ParametrizacaoPage({
     if (!nomeLayout) {
       setLayoutId(undefined);
       setLayoutSelecionadoId("");
-      setDadosOriginaisJson(""); // <-- Limpa quando nenhum layout é selecionado
+      setDadosOriginaisJson("");
       setEtapaAberta(null);
       return;
     }
@@ -408,11 +379,8 @@ export function ParametrizacaoPage({
     setLayoutSelecionadoId(layout.nomeModelo);
     setCliente(layout.cliente);
     setNomeModelo(layout.nomeModelo);
-    setOrientacao(layout.orientacao);
-    setFormatoPapel(layout.formatoPapel);
     setLarguraMm(layout.larguraPaginaMm);
     setAlturaMm(layout.alturaPaginaMm);
-    setQuantidadePaginasPadrao(layout.quantidadePaginasPadrao || 1);
     setCampos(layout.campos || []);
     setQueries(layout.queriesValidacao || []);
     setPaginasModelo(layout.paginasModeloBase64 || []);
@@ -432,16 +400,12 @@ export function ParametrizacaoPage({
     setDbUsuario(usuarioBanco);
     setDbSenha(senhaBanco);
 
-    // NOVO: Salva o estado original do layout existente para controlar o botão Salvar
     setDadosOriginaisJson(
       JSON.stringify({
         cliente: layout.cliente,
         nomeModelo: layout.nomeModelo.trim(),
-        orientacao: layout.orientacao,
-        formatoPapel: layout.formatoPapel,
         larguraPaginaMm: layout.larguraPaginaMm,
         alturaPaginaMm: layout.alturaPaginaMm,
-        quantidadePaginasPadrao: layout.quantidadePaginasPadrao || 1,
         campos: layout.campos || [],
         queriesValidacao: layout.queriesValidacao || [],
         paginasModeloBase64: layout.paginasModeloBase64 || [],
@@ -474,15 +438,12 @@ export function ParametrizacaoPage({
     }
 
     const layoutFinal: LayoutCliente = {
-      id: layoutId, // <-- Envia o ID para o backend reconhecer a atualização
+      id: layoutId,
       cliente,
       nomeModelo: nomeNormalizado,
       versao: 1,
-      orientacao,
-      formatoPapel,
       larguraPaginaMm: larguraMm,
       alturaPaginaMm: alturaMm,
-      quantidadePaginasPadrao,
       campos,
       queriesValidacao: queries,
       paginasModeloBase64: paginasModelo,
@@ -496,20 +457,17 @@ export function ParametrizacaoPage({
       },
     };
 
-    // Verifica se já existe um layout salvo com o ID selecionado
     const layoutJaExiste = layoutsSalvos.some(
       (l) => l.nomeModelo === layoutSelecionadoId,
     );
 
     if (layoutJaExiste) {
-      // Atualiza o registro existente
       onSalvarLayouts(
         layoutsSalvos.map((l) =>
           l.nomeModelo === layoutSelecionadoId ? layoutFinal : l,
         ),
       );
     } else {
-      // Se o usuário renomeou para um nome que já existe na lista, evita duplicatas
       const nomeDuplicado = layoutsSalvos.some(
         (l) => l.nomeModelo.toLowerCase() === nomeNormalizado.toLowerCase(),
       );
@@ -523,14 +481,12 @@ export function ParametrizacaoPage({
           ),
         );
       } else {
-        // Novo registro: adiciona ao array de layouts
         onSalvarLayouts([...layoutsSalvos, layoutFinal]);
       }
     }
 
     setLayoutSelecionadoId(layoutFinal.nomeModelo);
     setCriandoNovoLayout(false);
-    // NOVO: Atualiza a fotografia original com os dados recém-salvos
     setDadosOriginaisJson(obterSnapshotAtual());
 
     exibirMensagem(
@@ -614,6 +570,7 @@ export function ParametrizacaoPage({
     setPaginaAtivaCanvas(paginaDoCampo);
     setEhIdentificador(ehId);
     setTextoEsperado(campo.textoEsperadoIdentificador || "");
+    setIdentificadorAnterior(campo.identificadorAnterior || "");
     setRetanguloAtualMm({
       xMm: campo.xMm,
       yMm: campo.yMm,
@@ -628,6 +585,7 @@ export function ParametrizacaoPage({
     setPaginaCampo(paginaAtivaCanvas);
     setEhIdentificador(false);
     setTextoEsperado("");
+    setIdentificadorAnterior("");
     setRetanguloAtualMm(null);
   };
 
@@ -675,6 +633,10 @@ export function ParametrizacaoPage({
       textoEsperadoIdentificador: ehIdentificador
         ? textoEsperado.trim()
         : undefined,
+      identificadorAnterior:
+        !ehIdentificador && identificadorAnterior.trim()
+          ? identificadorAnterior.trim()
+          : undefined,
     };
 
     const novosCampos = campoEmEdicaoId
@@ -965,7 +927,6 @@ export function ParametrizacaoPage({
           </div>
         </div>
 
-        {/* Alterna entre o Botão Cancelar (ao criar novo) e o Botão Remover (layout existente) */}
         {criandoNovoLayout ? (
           <button
             type="button"
@@ -1021,7 +982,6 @@ export function ParametrizacaoPage({
           </button>
         )}
 
-        {/* Menu "+ Novo Layout" (Oculto durante o modo de criação) */}
         {!criandoNovoLayout && (
           <div
             style={{ position: "relative" }}
@@ -1262,73 +1222,10 @@ export function ParametrizacaoPage({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+              gridTemplateColumns: "1fr 1fr",
               gap: "14px",
             }}
           >
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Orientação
-              </label>
-              <select
-                value={orientacao}
-                onChange={(e) =>
-                  setOrientacao(e.target.value as OrientacaoPagina)
-                }
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
-              >
-                <option value="Paisagem">Paisagem</option>
-                <option value="Retrato">Retrato</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Formato
-              </label>
-              <select
-                value={formatoPapel}
-                onChange={(e) =>
-                  setFormatoPapel(e.target.value as FormatoPapel)
-                }
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
-              >
-                <option value="A4">A4</option>
-                <option value="Carta">Carta</option>
-                <option value="Personalizado">Personalizado</option>
-              </select>
-            </div>
-
             <div>
               <label
                 style={{
@@ -1373,37 +1270,6 @@ export function ParametrizacaoPage({
                 type="number"
                 value={alturaMm}
                 onChange={(e) => setAlturaMm(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
-              ></input>
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Páginas do Documento
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="10"
-                value={quantidadePaginasPadrao}
-                onChange={(e) =>
-                  setQuantidadePaginasPadrao(Number(e.target.value))
-                }
                 style={{
                   width: "100%",
                   padding: "6px 10px",
@@ -1526,7 +1392,7 @@ export function ParametrizacaoPage({
                     fontSize: "0.75rem",
                   }}
                 >
-                  {orientacao} • {larguraMm} x {alturaMm} (mm)
+                  {larguraMm} x {alturaMm} (mm)
                 </div>
 
                 {paginasModelo.length > 0 && (
@@ -1617,9 +1483,9 @@ export function ParametrizacaoPage({
                   {Array.from(
                     {
                       length: ehIdentificador
-                        ? 1 // Se for identificador de página, exibe estritamente a página 1
+                        ? 1
                         : Math.max(
-                            quantidadePaginasPadrao || 1,
+                            paginasModelo.length || 1,
                             paginaCampo,
                             ...campos.map((c) => c.pagina || 1),
                           ),
@@ -1881,7 +1747,7 @@ export function ParametrizacaoPage({
                       type="text"
                       value={nomeCampo}
                       onChange={(e) => setNomeCampo(e.target.value)}
-                      placeholder="Ex: Contribuinte, Inscricao, Valor"
+                      placeholder="Ex: Rua, Bairro, Contribuinte"
                       style={{
                         width: "100%",
                         padding: "6px 10px",
@@ -1891,6 +1757,49 @@ export function ParametrizacaoPage({
                       }}
                     ></input>
                   </div>
+
+                  {/* NOVO CAMPO: Identificador Anterior */}
+                  {!ehIdentificador && (
+                    <div style={{ marginBottom: "10px" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          color: "#455a64",
+                          marginBottom: "4px",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Identificador anterior (opcional)
+                      </label>
+                      <input
+                        type="text"
+                        value={identificadorAnterior}
+                        onChange={(e) =>
+                          setIdentificadorAnterior(e.target.value)
+                        }
+                        placeholder="Ex: RUA:, BAIRRO:, CPF:"
+                        style={{
+                          width: "100%",
+                          padding: "6px 10px",
+                          borderRadius: "4px",
+                          border: "1px solid #cfd8dc",
+                          height: "32px",
+                        }}
+                      ></input>
+                      <span
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#78909c",
+                          marginTop: "2px",
+                          display: "block",
+                        }}
+                      >
+                        Texto que precede o valor dentro da área.
+                      </span>
+                    </div>
+                  )}
 
                   {retanguloAtualMm && (
                     <div
@@ -1945,7 +1854,6 @@ export function ParametrizacaoPage({
                           const novoValor = !ehIdentificador;
                           setEhIdentificador(novoValor);
                           if (novoValor) {
-                            // Força a seleção para a página 1 e reseta seleções ativas em outras páginas
                             setPaginaCampo(1);
                             setPaginaAtivaCanvas(1);
                             setRetanguloAtualMm(null);
@@ -2121,6 +2029,8 @@ export function ParametrizacaoPage({
                               }}
                             >
                               Pg: {c.pagina} • {c.larguraMm}x{c.alturaMm}mm
+                              {c.identificadorAnterior &&
+                                ` • [Pré: "${c.identificadorAnterior}"]`}
                             </span>
                           </div>
 
@@ -2326,7 +2236,6 @@ export function ParametrizacaoPage({
                 ></SqlCodeEditor>
               </div>
 
-              {/* Contêiner flexível para alinhar o botão Analisar à direita */}
               <div
                 id="container-botao-analisar"
                 style={{
@@ -2904,7 +2813,6 @@ export function ParametrizacaoPage({
               : "accordion-content-closed"
           }`}
         >
-          {/* AVISO DE SEGURANÇA: USUÁRIO SOMENTE LEITURA */}
           <div
             id="alerta-seguranca-banco"
             style={{
@@ -2938,7 +2846,6 @@ export function ParametrizacaoPage({
             </div>
           </div>
 
-          {/* BANCO DE DADOS */}
           <div style={{ marginBottom: "14px" }}>
             <label
               style={{
@@ -2973,7 +2880,6 @@ export function ParametrizacaoPage({
             </select>
           </div>
 
-          {/* CAMPOS DO FORMULÁRIO DE CONEXÃO */}
           <div
             style={{
               display: "grid",
@@ -3155,7 +3061,7 @@ export function ParametrizacaoPage({
           <span>Salvar</span>
         </button>
       </div>
-      {/* Modal Informativo Centralizado */}
+
       <ModalInformativo
         aberto={modalInfo.aberto}
         tipo={modalInfo.tipo}
