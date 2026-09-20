@@ -1,13 +1,15 @@
 namespace SMARsvp.Application.DTOs.Processamento;
 
+// DTO exclusivo para o arquivo temporário 'documentos_estrutura.json'
+// Contém apenas o mapeamento das páginas sem o array 'Campos'
 public class DocumentoEstruturaDto
 {
     public int Documento { get; set; }
     public int PaginaInicio { get; set; }
     public int PaginaFim { get; set; }
-    public List<CampoExtraidoDto> Campos { get; set; } = new();
 }
 
+// DTO para os campos extraídos
 public class CampoExtraidoDto
 {
     public string Nome { get; set; } = string.Empty;
@@ -16,10 +18,20 @@ public class CampoExtraidoDto
     public string ExtracaoMetodo { get; set; } = string.Empty;
 }
 
+// DTO para cada documento dentro de 'resultado_extracao.json'
+// Não possui o campo 'Documento'
+public class DocumentoExtracaoDto
+{
+    public int PaginaInicio { get; set; }
+    public int PaginaFim { get; set; }
+    public List<CampoExtraidoDto> Campos { get; set; } = new();
+}
+
+// Objeto raiz salvo em 'resultado_extracao.json'
 public class ResultadoProcessamentoDto
 {
     public decimal PercentualAmostragem { get; set; }
     public int TotalDocumentos { get; set; }
     public int DocumentosProcessados { get; set; }
-    public List<DocumentoEstruturaDto> Documentos { get; set; } = new();
+    public List<DocumentoExtracaoDto> Documentos { get; set; } = new();
 }

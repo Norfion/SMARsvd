@@ -4,26 +4,25 @@
   "DocumentosProcessados": 2,
   "Documentos": [
     {
-      "Documento": 1,
       "PaginaInicio": 1,
       "PaginaFim": 2,
       "Campos": [
         {
-          "Nome": "Bairro",
-          "ValorExtraido": "ELDORADO",
-          "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
-        },
-        {
-          "Nome": "Cidade",
-          "ValorExtraido": "SÃO PAULO",
-          "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
-        },
-        {
           "Nome": "CRC",
           "ValorExtraido": "650",
           "PaginaExtraido": 1,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "Nro Parcelamento",
+          "ValorExtraido": "27480056",
+          "PaginaExtraido": 2,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "Lote",
+          "ValorExtraido": "18",
+          "PaginaExtraido": 2,
           "ExtracaoMetodo": "Digital"
         },
         {
@@ -35,32 +34,31 @@
       ]
     },
     {
-      "Documento": 2,
       "PaginaInicio": 3,
       "PaginaFim": 4,
       "Campos": [
         {
-          "Nome": "Bairro",
-          "ValorExtraido": "ELDORADO",
-          "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
-        },
-        {
-          "Nome": "Cidade",
-          "ValorExtraido": "SÃO PAULO",
-          "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
-        },
-        {
           "Nome": "CRC",
-          "ValorExtraido": "DE LIMA",
-          "PaginaExtraido": 1,
+          "ValorExtraido": "414990",
+          "PaginaExtraido": 3,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "Nro Parcelamento",
+          "ValorExtraido": "27480059",
+          "PaginaExtraido": 4,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "Lote",
+          "ValorExtraido": "18",
+          "PaginaExtraido": 4,
           "ExtracaoMetodo": "Digital"
         },
         {
           "Nome": "Nome Prefeitura",
           "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
-          "PaginaExtraido": 1,
+          "PaginaExtraido": 3,
           "ExtracaoMetodo": "Digital"
         }
       ]

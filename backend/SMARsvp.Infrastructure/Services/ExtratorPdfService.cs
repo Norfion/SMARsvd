@@ -1,4 +1,7 @@
+using System;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using SMARsvp.Application.DTOs.Layout;
 using SMARsvp.Application.Interfaces;
 using UglyToad.PdfPig;
@@ -37,13 +40,30 @@ public class ExtratorPdfService : IExtratorPdfService
         double yTopPt = alturaPaginaPt - ((double)regiao.YMm * FatorMmParaPontos);
         double yBottomPt = yTopPt - ((double)regiao.AlturaMm * FatorMmParaPontos);
 
-        // Filtra as palavras com intersecção na caixa delimitadora
+        // Filtra as palavras cujo ponto central ou maior parte da altura pertença à caixa delimitadora.
+        // Isso impede que caracteres altos ou acentos de linhas adjacentes vazem para dentro da extração.
         var palavras = pagina.GetWords()
             .Where(w =>
-                w.BoundingBox.Right >= xMinPt &&
-                w.BoundingBox.Left <= xMaxPt &&
-                w.BoundingBox.Top >= yBottomPt &&
-                w.BoundingBox.Bottom <= yTopPt)
+            {
+                // 1. Verificação horizontal
+                bool horizontalValida = w.BoundingBox.Right >= xMinPt && w.BoundingBox.Left <= xMaxPt;
+                if (!horizontalValida) return false;
+
+                // 2. Verificação vertical com tolerância a vazamento de linha:
+                double overlapTop = Math.Min(w.BoundingBox.Top, yTopPt);
+                double overlapBottom = Math.Max(w.BoundingBox.Bottom, yBottomPt);
+                double overlapHeight = overlapTop - overlapBottom;
+
+                if (overlapHeight <= 0) return false;
+
+                // Centro vertical da palavra
+                double midY = (w.BoundingBox.Top + w.BoundingBox.Bottom) / 2.0;
+
+                // A palavra é aceita se o seu ponto central estiver dentro da demarcação
+                // OU se pelo menos 50% de sua altura física estiver contida no retângulo demarcado.
+                return (midY >= yBottomPt && midY <= yTopPt) ||
+                       (overlapHeight >= w.BoundingBox.Height * 0.5);
+            })
             .ToList();
 
         if (!palavras.Any())
@@ -64,17 +84,33 @@ public class ExtratorPdfService : IExtratorPdfService
             return Task.FromResult<string?>(null);
 
         // Tratamento do Identificador Anterior:
-        // Caso o usuário tenha informado um prefixo (ex: "RUA:" ou "BAIRRO:"),
-        // localizamos a ocorrência e extraímos apenas o conteúdo que vem depois dele.
+        // Caso o usuário tenha informado um prefixo (ex: "RUA:", "CRC", "CPF:"),
+        // localizamos a ocorrência e extraímos apenas o conteúdo subsequente.
         if (!string.IsNullOrWhiteSpace(regiao.IdentificadorAnterior))
         {
             string identificador = regiao.IdentificadorAnterior.Trim();
+
+            // 1. Busca exata (insensível a maiúsculas e minúsculas)
             int indiceIdentificador = textoExtraido.IndexOf(identificador, StringComparison.OrdinalIgnoreCase);
 
             if (indiceIdentificador >= 0)
             {
                 textoExtraido = textoExtraido.Substring(indiceIdentificador + identificador.Length).Trim();
             }
+            else
+            {
+                // 2. Busca resiliente com Regex caso haja variações de espaçamento (ex: "CRC :" vs "CRC:")
+                string padraoEscapado = Regex.Escape(identificador).Replace(@"\:", @"\s*\:\s*").Replace(@"\-", @"\s*\-\s*");
+                var match = Regex.Match(textoExtraido, padraoEscapado, RegexOptions.IgnoreCase);
+
+                if (match.Success)
+                {
+                    textoExtraido = textoExtraido.Substring(match.Index + match.Length).Trim();
+                }
+            }
+
+            // Remove pontuações residuais soltas que possam ter sobrado logo após o delimitador (ex: ":", "-")
+            textoExtraido = textoExtraido.TrimStart(':', '-', ' ');
         }
 
         return Task.FromResult<string?>(string.IsNullOrWhiteSpace(textoExtraido) ? null : textoExtraido);

@@ -23,7 +23,7 @@ export function ValidacaoPage({
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [processando, setProcessando] = useState(false);
 
-  /// Estados para validação integral vs amostragem
+  // Estados para validação integral vs amostragem
   const [validarIntegralmente, setValidarIntegralmente] =
     useState<boolean>(true);
   const [percentualAmostragem, setPercentualAmostragem] = useState<number>(100);
@@ -31,7 +31,6 @@ export function ValidacaoPage({
   // Referência direta para focar e selecionar o input de amostragem
   const inputAmostragemRef = useRef<HTMLInputElement | null>(null);
 
-  // Alterna o botão Liga/Desliga
   // Alterna o botão Liga/Desliga
   const alternarModoValidacao = () => {
     const novoModoIntegral = !validarIntegralmente;
@@ -180,7 +179,6 @@ export function ValidacaoPage({
       let guiasComErro = 0;
 
       if (Array.isArray(dadosApi.documentos)) {
-        // Removidos os tipos ": any" dos parâmetros doc e c
         dadosApi.documentos.forEach((doc: DocumentoApi) => {
           let docTemErro = false;
           (doc.campos || []).forEach((c: CampoApi) => {
@@ -230,8 +228,8 @@ export function ValidacaoPage({
   };
 
   return (
-    <div id="container-validacao-pdf">
-      {/* Remove os controles de aumentar/diminuir do campo number */}
+    <div id="container-validacao-pdf" style={{ position: "relative" }}>
+      {/* Remove os controles de spin do number e define a animação de rotação */}
       <style>
         {`
           input[type="number"]::-webkit-inner-spin-button,
@@ -243,8 +241,94 @@ export function ValidacaoPage({
             -moz-appearance: textfield;
             appearance: textfield;
           }
+          @keyframes animacaoGiroSpinnerValidacao {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(360deg);
+            }
+          }
         `}
       </style>
+
+      {/* BLOQUEIO DE TELA / POP-UP DE CARREGAMENTO DURANTE A AUDITORIA */}
+      {processando && (
+        <div
+          id="overlay-bloqueio-processamento"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(255, 255, 255, 0.82)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            cursor: "wait",
+            userSelect: "none",
+          }}
+        >
+          <div
+            id="card-status-processamento"
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #cfd8dc",
+              borderRadius: "8px",
+              padding: "24px 32px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "14px",
+              boxShadow: "0 6px 20px rgba(0, 0, 0, 0.12)",
+              maxWidth: "380px",
+              textAlign: "center",
+            }}
+          >
+            {/* Spinner com rotação suave em verde-petróleo */}
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                border: "4px solid #e0f2f1",
+                borderTop: "4px solid #00796b",
+                animation: "animacaoGiroSpinnerValidacao 0.85s linear infinite",
+              }}
+            ></div>
+
+            <div>
+              <strong
+                style={{
+                  display: "block",
+                  color: "#00796b",
+                  fontSize: "1rem",
+                  marginBottom: "6px",
+                  fontWeight: 700,
+                }}
+              >
+                Auditando documentos...
+              </strong>
+              <span
+                style={{
+                  fontSize: "0.8rem",
+                  color: "#546e7a",
+                  lineHeight: 1.4,
+                  display: "block",
+                }}
+              >
+                Extraindo dados do lote e aplicando as regras de validação. Por
+                favor, aguarde.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CARD DE IMPORTAÇÃO */}
       <section
         id="card-upload-parametrizacao"
@@ -301,6 +385,7 @@ export function ValidacaoPage({
                 id="select-layout-aplicado"
                 value={layoutSelecionadoId}
                 onChange={(e) => setLayoutSelecionadoId(e.target.value)}
+                disabled={processando}
                 style={{
                   width: "100%",
                   padding: "6px 10px",
@@ -308,6 +393,7 @@ export function ValidacaoPage({
                   border: "1px solid #cfd8dc",
                   height: "34px",
                   color: "#263238",
+                  backgroundColor: processando ? "#f5f5f5" : "#ffffff",
                 }}
               >
                 <option value="">(Selecione um layout)</option>
@@ -340,6 +426,7 @@ export function ValidacaoPage({
                 type="file"
                 accept="application/pdf"
                 onChange={lidarComArquivo}
+                disabled={processando}
                 style={{ display: "none" }}
               ></input>
 
@@ -354,7 +441,7 @@ export function ValidacaoPage({
                   border: arquivo ? "1px solid #81c784" : "1px solid #cfd8dc",
                   borderRadius: "4px",
                   padding: "0 10px",
-                  cursor: "pointer",
+                  cursor: processando ? "not-allowed" : "pointer",
                   height: "34px",
                   boxSizing: "border-box",
                 }}
@@ -422,7 +509,6 @@ export function ValidacaoPage({
           </div>
 
           {/* Linha 2: Configuração de Amostragem / Integral */}
-          {/* Linha 2: Configuração de Amostragem / Integral */}
           <div
             id="painel-opcoes-amostragem"
             style={{
@@ -449,7 +535,7 @@ export function ValidacaoPage({
                 flexShrink: 0,
               }}
             >
-              {/* Botão Liga / Desliga (Switch) com largura fixa para não empurrar os lados */}
+              {/* Botão Liga / Desliga (Switch) */}
               <div
                 style={{
                   display: "flex",
@@ -462,6 +548,7 @@ export function ValidacaoPage({
                   type="button"
                   id="btn-switch-modo-validacao"
                   onClick={alternarModoValidacao}
+                  disabled={processando}
                   style={{
                     position: "relative",
                     width: "44px",
@@ -471,7 +558,7 @@ export function ValidacaoPage({
                       ? "#00796b"
                       : "#78909c",
                     border: "none",
-                    cursor: "pointer",
+                    cursor: processando ? "not-allowed" : "pointer",
                     padding: "2px",
                     transition: "background-color 0.2s ease",
                     flexShrink: 0,
@@ -529,7 +616,7 @@ export function ValidacaoPage({
                     max="100"
                     value={percentualAmostragem}
                     onChange={lidarComMudancaPercentual}
-                    disabled={validarIntegralmente}
+                    disabled={validarIntegralmente || processando}
                     style={{
                       width: "100%",
                       padding: "4px 22px 4px 8px",
@@ -539,10 +626,14 @@ export function ValidacaoPage({
                       fontSize: "0.85rem",
                       fontWeight: 700,
                       color: validarIntegralmente ? "#78909c" : "#263238",
-                      backgroundColor: validarIntegralmente
-                        ? "#eceff1"
-                        : "#ffffff",
-                      cursor: validarIntegralmente ? "not-allowed" : "text",
+                      backgroundColor:
+                        validarIntegralmente || processando
+                          ? "#eceff1"
+                          : "#ffffff",
+                      cursor:
+                        validarIntegralmente || processando
+                          ? "not-allowed"
+                          : "text",
                       boxSizing: "border-box",
                       textAlign: "right",
                     }}
@@ -564,7 +655,7 @@ export function ValidacaoPage({
               </div>
             </div>
 
-            {/* Mensagens Informativas com altura e dimensões estabilizadas */}
+            {/* Mensagens Informativas */}
             <div
               style={{
                 flex: "1 1 360px",
@@ -661,3 +752,5 @@ export function ValidacaoPage({
     </div>
   );
 }
+
+export default ValidacaoPage;

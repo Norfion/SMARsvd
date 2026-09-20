@@ -62,14 +62,17 @@ public class ProcessamentoController : ControllerBase
                 Id = layout.Id,
                 Campos = layout.Campos.Select(c => new SMARsvp.Application.DTOs.Layout.RegiaoCampoDto
                 {
+                    Id = c.Id,
                     NomeCampo = c.NomeCampo,
                     EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
                     TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                    IdentificadorAnterior = c.IdentificadorAnterior, // Repasse da propriedade mapeada no banco
                     Pagina = c.Pagina,
                     XMm = c.XMm,
                     YMm = c.YMm,
                     LarguraMm = c.LarguraMm,
-                    AlturaMm = c.AlturaMm
+                    AlturaMm = c.AlturaMm,
+                    ConsultaSql = c.ConsultaSql
                 }).ToList()
             };
 

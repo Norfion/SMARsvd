@@ -89,20 +89,27 @@ public class ProcessadorCarnesService
 
         // 3. Aplicação da Amostragem
         int qtdAmostra = (int)Math.Ceiling(estrutura.Count * (amostragem / 100m));
-        var documentosSelecionados = amostragem == 0
+        var documentosSorteados = amostragem == 0
             ? new List<DocumentoEstruturaDto>()
-            : estrutura.OrderBy(x => Guid.NewGuid()).Take(qtdAmostra).ToList(); // Sorteio aleatório
+            : estrutura.OrderBy(x => Guid.NewGuid()).Take(qtdAmostra).ToList();
+
+        // Mapeia para a estrutura de extração (sem o campo "Documento")
+        var documentosExtracao = documentosSorteados.Select(doc => new DocumentoExtracaoDto
+        {
+            PaginaInicio = doc.PaginaInicio,
+            PaginaFim = doc.PaginaFim
+        }).ToList();
 
         var resultadoFinal = new ResultadoProcessamentoDto
         {
             PercentualAmostragem = amostragem,
             TotalDocumentos = estrutura.Count,
-            DocumentosProcessados = documentosSelecionados.Count,
-            Documentos = documentosSelecionados
+            DocumentosProcessados = documentosExtracao.Count,
+            Documentos = documentosExtracao
         };
 
         // 4. Extração da amostra selecionada
-        foreach (var doc in documentosSelecionados)
+        foreach (var doc in documentosExtracao)
         {
             foreach (var campo in layout.Campos)
             {
@@ -114,7 +121,7 @@ public class ProcessadorCarnesService
                     doc.Campos.Add(new CampoExtraidoDto
                     {
                         Nome = campo.NomeCampo,
-                        PaginaExtraido = campo.Pagina,
+                        PaginaExtraido = paginaReal,
                         ExtracaoMetodo = "Erro: Página configurada excede o tamanho do documento."
                     });
                     continue;
@@ -131,7 +138,7 @@ public class ProcessadorCarnesService
                         {
                             Nome = campo.NomeCampo,
                             ValorExtraido = valorExtraido.Trim(),
-                            PaginaExtraido = campo.Pagina,
+                            PaginaExtraido = paginaReal,
                             ExtracaoMetodo = "Digital"
                         });
                     }
@@ -143,7 +150,7 @@ public class ProcessadorCarnesService
                         {
                             Nome = campo.NomeCampo,
                             ValorExtraido = valorOcr,
-                            PaginaExtraido = campo.Pagina,
+                            PaginaExtraido = paginaReal,
                             ExtracaoMetodo = "OCR"
                         });
                     }
@@ -153,7 +160,7 @@ public class ProcessadorCarnesService
                     doc.Campos.Add(new CampoExtraidoDto
                     {
                         Nome = campo.NomeCampo,
-                        PaginaExtraido = campo.Pagina,
+                        PaginaExtraido = paginaReal,
                         ExtracaoMetodo = $"Erro inesperado: {ex.Message}"
                     });
                 }

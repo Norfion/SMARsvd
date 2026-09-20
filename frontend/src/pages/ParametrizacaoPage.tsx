@@ -2,7 +2,7 @@ import {
   ModalInformativo,
   type TipoModalInformativo,
 } from "../components/ModalInformativo";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { SqlCodeEditor } from "../components/SqlCodeEditor";
 import { processarArquivoPdfModelo } from "../utils/pdfModelReader";
 import type {
@@ -17,12 +17,14 @@ interface ParametrizacaoPageProps {
   layoutsSalvos: LayoutCliente[];
   onSalvarLayouts: (layouts: LayoutCliente[]) => void;
   onExcluirLayout?: (idOuNome: string) => void;
+  onHouveAlteracaoChange?: (houveAlteracao: boolean) => void;
 }
 
 export function ParametrizacaoPage({
   layoutsSalvos,
   onSalvarLayouts,
   onExcluirLayout,
+  onHouveAlteracaoChange,
 }: ParametrizacaoPageProps) {
   const CLIENTES_DISPONIVEIS = [
     "PM Sertãozinho - SP",
@@ -213,6 +215,13 @@ export function ParametrizacaoPage({
     criandoNovoLayout ||
     (Boolean(dadosOriginaisJson) &&
       obterSnapshotAtual() !== dadosOriginaisJson);
+
+  // Notifica o componente pai (App.tsx) se existem alterações pendentes
+  useEffect(() => {
+    if (onHouveAlteracaoChange) {
+      onHouveAlteracaoChange(houveAlteracao);
+    }
+  }, [houveAlteracao, onHouveAlteracaoChange]);
 
   // ==========================================
   // GESTÃO DE LAYOUT E IMPORTAÇÃO DE MODELO
@@ -3086,3 +3095,5 @@ export function ParametrizacaoPage({
     </div>
   );
 }
+
+export default ParametrizacaoPage;

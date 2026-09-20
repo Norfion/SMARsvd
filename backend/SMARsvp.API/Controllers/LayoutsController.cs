@@ -59,6 +59,7 @@ public class LayoutsController : ControllerBase
                 Pagina = c.Pagina,
                 EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
                 TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                IdentificadorAnterior = c.IdentificadorAnterior,
                 ConsultaSql = c.ConsultaSql
             }).ToList(),
             QueriesValidacao = l.QueriesValidacao.Select(q => new QueryValidacaoDto
@@ -126,7 +127,6 @@ public class LayoutsController : ControllerBase
             // 4. Limpeza isolada e direta das coleções antigas vinculadas ao layout
             var layoutId = entidadeLayout.Id;
 
-            // Remove regras das queries antigas
             var queriesAntigasIds = await _context.QueriesValidacao
                 .Where(q => q.LayoutClienteId == layoutId)
                 .Select(q => q.Id)
@@ -147,7 +147,6 @@ public class LayoutsController : ControllerBase
             var paginasAntigas = _context.PaginasModelo.Where(p => p.LayoutClienteId == layoutId);
             _context.PaginasModelo.RemoveRange(paginasAntigas);
 
-            // Persiste a remoção dos filhos no banco
             await _context.SaveChangesAsync();
         }
 
@@ -159,7 +158,7 @@ public class LayoutsController : ControllerBase
         entidadeLayout.AlturaPaginaMm = dto.AlturaPaginaMm;
         entidadeLayout.NomeArquivoModelo = dto.NomeArquivoModelo;
 
-        // 6. Atualização in-place da ConexaoBanco (evita DELETE + UPDATE concorrente)
+        // 6. Atualização da Conexão com o Banco
         if (dto.ConexaoBanco != null && !string.IsNullOrWhiteSpace(dto.ConexaoBanco.Servidor))
         {
             if (entidadeLayout.ConexaoBanco != null)
@@ -190,7 +189,7 @@ public class LayoutsController : ControllerBase
             entidadeLayout.ConexaoBanco = null;
         }
 
-        // 7. Insere os novos campos mapeados
+        // 7. Insere os novos campos mapeados (com IdentificadorAnterior incluído)
         if (dto.Campos != null && dto.Campos.Any())
         {
             var novosCampos = dto.Campos.Select(c => new RegiaoCampo
@@ -204,6 +203,7 @@ public class LayoutsController : ControllerBase
                 Pagina = c.Pagina,
                 EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
                 TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                IdentificadorAnterior = c.IdentificadorAnterior,
                 ConsultaSql = c.ConsultaSql,
                 LayoutClienteId = entidadeLayout.Id
             }).ToList();
@@ -252,7 +252,7 @@ public class LayoutsController : ControllerBase
             await _context.PaginasModelo.AddRangeAsync(novasPaginas);
         }
 
-        // 10. Persiste as alterações e novas coleções de forma limpa
+        // 10. Persiste no banco de dados
         await _context.SaveChangesAsync();
 
         return Ok(entidadeLayout.Id);

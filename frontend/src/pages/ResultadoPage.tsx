@@ -365,21 +365,16 @@ export function ResultadoPage({
           boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         }}
       >
-        <div
-          style={{ fontSize: "2.5rem", marginBottom: "12px", color: "#78909c" }}
-        >
-          📋
-        </div>
         <h2
           style={{ fontSize: "1.2rem", color: "#37474f", marginBottom: "8px" }}
         >
-          Nenhuma auditoria realizada no momento
+          Nenhuma validação realizada
         </h2>
         <p
           style={{ color: "#607d8b", fontSize: "0.9rem", marginBottom: "20px" }}
         >
-          Importe e valide um arquivo de carnê na página de Validação para
-          visualizar o relatório detalhado de inconsistências.
+          Importe e valide um arquivo na página de Validação para visualizar o
+          relatório detalhado de inconsistências.
         </p>
         <button
           type="button"

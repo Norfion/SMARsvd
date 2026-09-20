@@ -7,12 +7,13 @@ import { ResultadoPage } from "./pages/ResultadoPage";
 import { layoutService } from "./services/layoutService";
 import { logService } from "./services/logService";
 import { ErroConexaoPage } from "./pages/ErroConexaoPage";
+import { ModalInformativo } from "./components/ModalInformativo";
 import logoImg from "./assets/logo-smartb.png";
 
+type AbaNavegacao = "parametrizacao" | "validacao" | "resultado";
+
 export function App() {
-  const [abaAtiva, setAbaAtiva] = useState<
-    "parametrizacao" | "validacao" | "resultado"
-  >("validacao");
+  const [abaAtiva, setAbaAtiva] = useState<AbaNavegacao>("validacao");
 
   // Controla se o sistema está sem comunicação com o banco de dados
   const [erroConexaoBanco, setErroConexaoBanco] = useState<boolean>(false);
@@ -25,6 +26,18 @@ export function App() {
     useState<ResultadoValidacaoLote | null>(null);
 
   const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([]);
+
+  // Indica se a tela de parametrização possui dados alterados e não salvos
+  const [
+    temAlteracoesPendentesParametrizacao,
+    setTemAlteracoesPendentesParametrizacao,
+  ] = useState<boolean>(false);
+
+  // Modal para confirmar saída de tela com alterações não salvas
+  const [modalAvisoNavegacaoAberto, setModalAvisoNavegacaoAberto] =
+    useState<boolean>(false);
+  const [abaDestinoPendente, setAbaDestinoPendente] =
+    useState<AbaNavegacao | null>(null);
 
   // Escuta os eventos emitidos pelo interceptador do Axios
   useEffect(() => {
@@ -67,11 +80,9 @@ export function App() {
       })
       .catch((erro: unknown) => {
         console.error("Falha ao carregar layouts da API:", erro);
-        // Garante que se o banco falhar na largada, a tela de erro seja apresentada
         setErroConexaoBanco(true);
       })
       .finally(() => {
-        // Libera o spinner inicial
         setCarregando(false);
       });
   }, []);
@@ -106,10 +117,7 @@ export function App() {
 
   const lidarComExcluirLayout = async (idParaExcluir: string) => {
     try {
-      // Aciona o backend: rota DELETE /api/layouts/{id}
       await layoutService.excluir(idParaExcluir);
-
-      // Sincroniza a tela consultando o banco recém atualizado
       const listaAtualizada = await layoutService.listarTodos();
       setLayoutsSalvos(listaAtualizada);
     } catch (erro) {
@@ -122,6 +130,30 @@ export function App() {
   const lidarComConclusaoValidacao = (resultado: ResultadoValidacaoLote) => {
     setResultadoAuditoria(resultado);
     setAbaAtiva("resultado");
+  };
+
+  // Controla a troca de abas com interceptação de alterações não salvas
+  const tentarMudarAba = (novaAba: AbaNavegacao) => {
+    if (abaAtiva === novaAba) return;
+
+    // Se estiver na aba parametrização e houver alterações não salvas, bloqueia e avisa
+    if (abaAtiva === "parametrizacao" && temAlteracoesPendentesParametrizacao) {
+      setAbaDestinoPendente(novaAba);
+      setModalAvisoNavegacaoAberto(true);
+      return;
+    }
+
+    setAbaAtiva(novaAba);
+  };
+
+  // Caso o usuário confirme a perda das alterações para ir para outra aba
+  const confirmarNavegacaoSemSalvar = () => {
+    if (abaDestinoPendente) {
+      setTemAlteracoesPendentesParametrizacao(false);
+      setAbaAtiva(abaDestinoPendente);
+      setAbaDestinoPendente(null);
+    }
+    setModalAvisoNavegacaoAberto(false);
   };
 
   if (erroConexaoBanco) {
@@ -189,7 +221,6 @@ export function App() {
               textAlign: "center",
             }}
           >
-            {/* Círculo indicador / Spinner em verde-petróleo */}
             <div
               style={{
                 width: "40px",
@@ -302,7 +333,7 @@ export function App() {
           {/* Aba 1: Configurações */}
           <button
             type="button"
-            onClick={() => setAbaAtiva("parametrizacao")}
+            onClick={() => tentarMudarAba("parametrizacao")}
             style={{
               display: "flex",
               alignItems: "center",
@@ -341,7 +372,7 @@ export function App() {
           {/* Aba 2: Validação */}
           <button
             type="button"
-            onClick={() => setAbaAtiva("validacao")}
+            onClick={() => tentarMudarAba("validacao")}
             style={{
               display: "flex",
               alignItems: "center",
@@ -379,7 +410,7 @@ export function App() {
           {/* Aba 3: Resultado */}
           <button
             type="button"
-            onClick={() => setAbaAtiva("resultado")}
+            onClick={() => tentarMudarAba("resultado")}
             style={{
               display: "flex",
               alignItems: "center",
@@ -419,6 +450,7 @@ export function App() {
             layoutsSalvos={layoutsSalvos}
             onSalvarLayouts={lidarComSalvarLayouts}
             onExcluirLayout={lidarComExcluirLayout}
+            onHouveAlteracaoChange={setTemAlteracoesPendentesParametrizacao}
           ></ParametrizacaoPage>
         )}
 
@@ -436,6 +468,20 @@ export function App() {
           ></ResultadoPage>
         )}
       </main>
+
+      {/* MODAL DE CONFIRMAÇÃO PARA ALTERAÇÕES NÃO SALVAS */}
+      <ModalInformativo
+        aberto={modalAvisoNavegacaoAberto}
+        tipo="confirmacao"
+        titulo="Alterações Pendentes"
+        mensagem={`Existem alterações feitas no layout que não foram salvas. Essas alterações poderão ser perdidas.\n\nDeseja realmente continuar?`}
+        textoConfirmar="Continuar"
+        aoConfirmar={confirmarNavegacaoSemSalvar}
+        aoFechar={() => {
+          setModalAvisoNavegacaoAberto(false);
+          setAbaDestinoPendente(null);
+        }}
+      ></ModalInformativo>
     </div>
   );
 }

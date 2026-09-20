@@ -59,6 +59,7 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.LarguraMm).HasPrecision(10, 2);
             entity.Property(e => e.AlturaMm).HasPrecision(10, 2);
             entity.Property(e => e.TextoEsperadoIdentificador).HasMaxLength(250);
+            entity.Property(e => e.IdentificadorAnterior).HasMaxLength(150);
         });
 
         modelBuilder.Entity<ConexaoBancoLayout>(entity =>
@@ -104,7 +105,6 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.Mensagem).IsRequired();
             entity.Property(e => e.Origem).HasMaxLength(250);
 
-            // Índices para otimizar futuras pesquisas por data e tipo
             entity.HasIndex(e => e.DataHora);
             entity.HasIndex(e => e.Tipo);
         });
