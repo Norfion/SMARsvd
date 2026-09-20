@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using SMARsvp.Application.DTOs.Layout;
 using SMARsvp.Application.DTOs.Processamento;
@@ -32,6 +33,9 @@ public class ProcessadorCarnesService
         for (int pagina = 1; pagina <= totalPaginas; pagina++)
         {
             var textoExt = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, pagina, regiaoId);
+
+            Console.WriteLine($"[Página {pagina}] Identificador lido: '{textoExt}' | Esperado: '{regiaoId.TextoEsperadoIdentificador}'");
+
             bool ehInicio = textoExt?.Contains(regiaoId.TextoEsperadoIdentificador ?? "", StringComparison.OrdinalIgnoreCase) == true;
 
             if (ehInicio)
@@ -61,11 +65,18 @@ public class ProcessadorCarnesService
 
         Directory.CreateDirectory(pastaTemp);
 
+        var opcoesJson = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
         string caminhoEstruturaJson = Path.Combine(pastaTemp, "documentos_estrutura.json");
         await File.WriteAllTextAsync(
             caminhoEstruturaJson,
-            JsonSerializer.Serialize(estrutura, new JsonSerializerOptions { WriteIndented = true })
+            JsonSerializer.Serialize(estrutura, opcoesJson)
         );
+
         Console.WriteLine($"[ProcessadorCarnes] Arquivo gerado com sucesso em: {caminhoEstruturaJson}");
 
         // 3. Aplicação da Amostragem
@@ -82,10 +93,10 @@ public class ProcessadorCarnesService
             Documentos = documentosSelecionados
         };
 
-        // 4. Extração apenas da amostra selecionada
+        // 4. Extração da amostra selecionada (incluindo o identificador para análise visual)
         foreach (var doc in documentosSelecionados)
         {
-            foreach (var campo in layout.Campos.Where(c => !c.EhIdentificadorPrimeiraPagina))
+            foreach (var campo in layout.Campos)
             {
                 int paginaReal = doc.Inicio + (campo.Pagina - 1);
 
@@ -119,7 +130,7 @@ public class ProcessadorCarnesService
         string caminhoResultadoJson = Path.Combine(pastaTemp, "resultado_extracao.json");
         await File.WriteAllTextAsync(
             caminhoResultadoJson,
-            JsonSerializer.Serialize(resultadoFinal, new JsonSerializerOptions { WriteIndented = true })
+            JsonSerializer.Serialize(resultadoFinal, opcoesJson)
         );
         Console.WriteLine($"[ProcessadorCarnes] Arquivo gerado com sucesso em: {caminhoResultadoJson}");
 

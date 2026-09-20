@@ -36,7 +36,7 @@ public class ProcessamentoController : ControllerBase
         if (layout == null)
             return NotFound("Layout não encontrado no banco de dados.");
 
-        // Salvar PDF temporariamente para processamento incremental
+        // 1. Resolução segura da pasta database/temp
         string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
         if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
         {
@@ -44,31 +44,55 @@ public class ProcessamentoController : ControllerBase
         }
 
         Directory.CreateDirectory(pastaTemp);
-        string caminhoPdf = Path.Combine(pastaTemp, request.ArquivoPdf.FileName);
 
-        using (var stream = new FileStream(caminhoPdf, FileMode.Create))
-        {
-            await request.ArquivoPdf.CopyToAsync(stream);
-        }
+        // 2. Extrai a extensão original (ex: .pdf) e define o nome fixo "arquivo_importado"
+        string extensaoOriginal = Path.GetExtension(request.ArquivoPdf.FileName);
+        string caminhoPdf = Path.Combine(pastaTemp, $"arquivo_importado{extensaoOriginal}");
 
-        var layoutDto = new SMARsvp.Application.DTOs.Layout.LayoutClienteDto
+        try
         {
-            Id = layout.Id,
-            Campos = layout.Campos.Select(c => new SMARsvp.Application.DTOs.Layout.RegiaoCampoDto
+            // Salva o arquivo no disco com o nome padronizado
+            using (var stream = new FileStream(caminhoPdf, FileMode.Create))
             {
-                NomeCampo = c.NomeCampo,
-                EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
-                TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
-                Pagina = c.Pagina,
-                XMm = c.XMm,
-                YMm = c.YMm,
-                LarguraMm = c.LarguraMm,
-                AlturaMm = c.AlturaMm
-            }).ToList()
-        };
+                await request.ArquivoPdf.CopyToAsync(stream);
+            }
 
-        var resultado = await _processadorService.ProcessarLoteAsync(caminhoPdf, layoutDto, request.Amostragem);
+            var layoutDto = new SMARsvp.Application.DTOs.Layout.LayoutClienteDto
+            {
+                Id = layout.Id,
+                Campos = layout.Campos.Select(c => new SMARsvp.Application.DTOs.Layout.RegiaoCampoDto
+                {
+                    NomeCampo = c.NomeCampo,
+                    EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
+                    TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                    Pagina = c.Pagina,
+                    XMm = c.XMm,
+                    YMm = c.YMm,
+                    LarguraMm = c.LarguraMm,
+                    AlturaMm = c.AlturaMm
+                }).ToList()
+            };
 
-        return Ok(resultado);
+            // Processa o PDF, identifica a estrutura e gera os arquivos JSON
+            var resultado = await _processadorService.ProcessarLoteAsync(caminhoPdf, layoutDto, request.Amostragem);
+
+            return Ok(resultado);
+        }
+        finally
+        {
+            // 3. Limpeza: apaga o arquivo temporário após o término do processamento
+            if (System.IO.File.Exists(caminhoPdf))
+            {
+                try
+                {
+                    System.IO.File.Delete(caminhoPdf);
+                    Console.WriteLine($"[ProcessamentoController] Arquivo temporário removido: {caminhoPdf}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ProcessamentoController] Não foi possível remover o arquivo temporário: {ex.Message}");
+                }
+            }
+        }
     }
 }
