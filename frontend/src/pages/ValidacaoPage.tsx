@@ -144,10 +144,12 @@ export function ValidacaoPage({
     setProcessando(true);
 
     try {
-      // 1. Interfaces locais estritas para eliminar o uso de "any"
+      // 1. Interfaces locais estritas com todas as propriedades da API (sem "any")
       interface CampoApi {
         nome?: string;
         valor?: string;
+        valorExtraido?: string;
+        extracaoMetodo?: string;
         status?: string;
       }
 
@@ -155,6 +157,8 @@ export function ValidacaoPage({
         documento?: number;
         inicio?: number;
         fim?: number;
+        paginaInicio?: number;
+        paginaFim?: number;
         campos?: CampoApi[];
       }
 
@@ -176,17 +180,19 @@ export function ValidacaoPage({
       let guiasComErro = 0;
 
       if (Array.isArray(dadosApi.documentos)) {
-        dadosApi.documentos.forEach((doc) => {
+        // Removidos os tipos ": any" dos parâmetros doc e c
+        dadosApi.documentos.forEach((doc: DocumentoApi) => {
           let docTemErro = false;
-          (doc.campos || []).forEach((c) => {
-            if (c.status && c.status.startsWith("Erro")) {
+          (doc.campos || []).forEach((c: CampoApi) => {
+            const statusMetodo = c.extracaoMetodo || c.status;
+            if (statusMetodo && statusMetodo.startsWith("Erro")) {
               docTemErro = true;
               divergenciasEncontradas.push({
-                identificadorGuia: `Documento #${doc.documento ?? 1} (Pgs ${doc.inicio ?? 1}-${doc.fim ?? 1})`,
+                identificadorGuia: `Documento #${doc.documento} (Pgs ${doc.paginaInicio ?? doc.inicio}-${doc.paginaFim ?? doc.fim})`,
                 campo: c.nome || "Campo",
-                valorExtraidoPdf: c.valor || "—",
+                valorExtraidoPdf: c.valorExtraido ?? c.valor ?? "—",
                 valorEsperadoBanco: "—",
-                mensagem: c.status,
+                mensagem: statusMetodo,
               });
             }
           });
@@ -206,6 +212,7 @@ export function ValidacaoPage({
         guiasValidas: guiasValidas,
         guiasComInconsistencia: guiasComErro,
         inconsistencias: divergenciasEncontradas,
+        amostragem: percentualAmostragem ?? 100,
       };
 
       // 5. Redireciona para a aba "Resultado" com os dados preenchidos

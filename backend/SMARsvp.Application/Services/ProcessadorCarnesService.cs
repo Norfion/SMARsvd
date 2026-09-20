@@ -26,7 +26,7 @@ public class ProcessadorCarnesService
         int totalPaginas = await _extratorPdf.ObterTotalPaginasAsync(caminhoPdf);
         var estrutura = new List<DocumentoEstruturaDto>();
 
-        // 1. Identificação Incremental
+        // 1. Identificação Incremental dos Documentos
         int? inicioDocAtual = null;
         int contadorDocs = 1;
 
@@ -42,7 +42,12 @@ public class ProcessadorCarnesService
             {
                 if (inicioDocAtual.HasValue)
                 {
-                    estrutura.Add(new DocumentoEstruturaDto { Documento = contadorDocs++, Inicio = inicioDocAtual.Value, Fim = pagina - 1 });
+                    estrutura.Add(new DocumentoEstruturaDto
+                    {
+                        Documento = contadorDocs++,
+                        PaginaInicio = inicioDocAtual.Value,
+                        PaginaFim = pagina - 1
+                    });
                 }
                 inicioDocAtual = pagina;
             }
@@ -50,14 +55,17 @@ public class ProcessadorCarnesService
 
         if (inicioDocAtual.HasValue)
         {
-            estrutura.Add(new DocumentoEstruturaDto { Documento = contadorDocs, Inicio = inicioDocAtual.Value, Fim = totalPaginas });
+            estrutura.Add(new DocumentoEstruturaDto
+            {
+                Documento = contadorDocs,
+                PaginaInicio = inicioDocAtual.Value,
+                PaginaFim = totalPaginas
+            });
         }
 
         // 2. Salvar estrutura temporária
-        // Resolve o caminho subindo até a raiz onde fica a pasta database/ (igual ao controller e appsettings)
         string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
 
-        // Se a pasta não existir no caminho relativo acima, usa uma resolução segura a partir do diretório de trabalho atual
         if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
         {
             pastaTemp = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", "temp");
@@ -87,41 +95,67 @@ public class ProcessadorCarnesService
 
         var resultadoFinal = new ResultadoProcessamentoDto
         {
-            Amostragem = amostragem,
+            PercentualAmostragem = amostragem,
             TotalDocumentos = estrutura.Count,
             DocumentosProcessados = documentosSelecionados.Count,
             Documentos = documentosSelecionados
         };
 
-        // 4. Extração da amostra selecionada (incluindo o identificador para análise visual)
+        // 4. Extração da amostra selecionada
         foreach (var doc in documentosSelecionados)
         {
             foreach (var campo in layout.Campos)
             {
-                int paginaReal = doc.Inicio + (campo.Pagina - 1);
+                int paginaReal = doc.PaginaInicio + (campo.Pagina - 1);
 
-                if (paginaReal > doc.Fim)
+                // Se a página do campo ultrapassar os limites do carnê
+                if (paginaReal > doc.PaginaFim)
                 {
-                    doc.Campos.Add(new CampoExtraidoDto { Nome = campo.NomeCampo, Status = "Erro: Região excede limites do documento." });
+                    doc.Campos.Add(new CampoExtraidoDto
+                    {
+                        Nome = campo.NomeCampo,
+                        PaginaExtraido = campo.Pagina,
+                        ExtracaoMetodo = "Erro: Página configurada excede o tamanho do documento."
+                    });
                     continue;
                 }
 
                 try
                 {
-                    var valor = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, paginaReal, campo);
-                    if (!string.IsNullOrWhiteSpace(valor))
+                    // TENTATIVA 1: Leitura do PDF Digital
+                    var valorExtraido = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, paginaReal, campo);
+
+                    if (!string.IsNullOrWhiteSpace(valorExtraido))
                     {
-                        doc.Campos.Add(new CampoExtraidoDto { Nome = campo.NomeCampo, Valor = valor.Trim(), Status = "Digital" });
+                        doc.Campos.Add(new CampoExtraidoDto
+                        {
+                            Nome = campo.NomeCampo,
+                            ValorExtraido = valorExtraido.Trim(),
+                            PaginaExtraido = campo.Pagina,
+                            ExtracaoMetodo = "Digital"
+                        });
                     }
                     else
                     {
+                        // TENTATIVA 2: OCR
                         var valorOcr = await _ocrService.ExtrairTextoPorOcrAsync(caminhoPdf, paginaReal, campo.XMm, campo.YMm, campo.LarguraMm, campo.AlturaMm);
-                        doc.Campos.Add(new CampoExtraidoDto { Nome = campo.NomeCampo, Valor = valorOcr, Status = "Aviso: OCR pendente/acionado" });
+                        doc.Campos.Add(new CampoExtraidoDto
+                        {
+                            Nome = campo.NomeCampo,
+                            ValorExtraido = valorOcr,
+                            PaginaExtraido = campo.Pagina,
+                            ExtracaoMetodo = "OCR"
+                        });
                     }
                 }
                 catch (Exception ex)
                 {
-                    doc.Campos.Add(new CampoExtraidoDto { Nome = campo.NomeCampo, Status = $"Erro inesperado: {ex.Message}" });
+                    doc.Campos.Add(new CampoExtraidoDto
+                    {
+                        Nome = campo.NomeCampo,
+                        PaginaExtraido = campo.Pagina,
+                        ExtracaoMetodo = $"Erro inesperado: {ex.Message}"
+                    });
                 }
             }
         }

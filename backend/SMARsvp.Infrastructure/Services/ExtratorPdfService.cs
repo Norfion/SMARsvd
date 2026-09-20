@@ -38,18 +38,28 @@ public class ExtratorPdfService : IExtratorPdfService
         double yTopPt = alturaPaginaPt - ((double)regiao.YMm * FatorMmParaPontos);
         double yBottomPt = yTopPt - ((double)regiao.AlturaMm * FatorMmParaPontos);
 
-        // Filtra todas as palavras que possuem intersecção com o retângulo demarcado.
-        var palavrasNaRegiao = pagina.GetWords()
-                    .Where(w =>
-                        w.BoundingBox.Right >= xMinPt &&
-                        w.BoundingBox.Left <= xMaxPt &&
-                        w.BoundingBox.Top >= yBottomPt &&
-                        w.BoundingBox.Bottom <= yTopPt)
-                    .OrderByDescending(w => w.BoundingBox.Top)
-                    .ThenBy(w => w.BoundingBox.Left)
-                    .Select(w => w.Text);
+        // Filtra as palavras com intersecção na caixa delimitadora
+        var palavras = pagina.GetWords()
+            .Where(w =>
+                w.BoundingBox.Right >= xMinPt &&
+                w.BoundingBox.Left <= xMaxPt &&
+                w.BoundingBox.Top >= yBottomPt &&
+                w.BoundingBox.Bottom <= yTopPt)
+            .ToList();
 
-        string textoExtraido = string.Join(" ", palavrasNaRegiao).Trim();
+        if (!palavras.Any())
+            return Task.FromResult<string?>(null);
+
+        // Agrupa palavras que pertencem à mesma linha visual (tolerância vertical de ~3 pontos tipográficos)
+        // e ordena da esquerda para a direita (BoundingBox.Left)
+        const double toleranciaLinhaPt = 3.0;
+        var palavrasOrdenadas = palavras
+            .GroupBy(w => Math.Round(w.BoundingBox.Bottom / toleranciaLinhaPt))
+            .OrderByDescending(g => g.Key) // Linhas de cima para baixo
+            .SelectMany(linha => linha.OrderBy(w => w.BoundingBox.Left)) // Palavras da esquerda para a direita
+            .Select(w => w.Text);
+
+        string textoExtraido = string.Join(" ", palavrasOrdenadas).Trim();
 
         return Task.FromResult<string?>(string.IsNullOrWhiteSpace(textoExtraido) ? null : textoExtraido);
     }

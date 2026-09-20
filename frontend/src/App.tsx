@@ -5,13 +5,17 @@ import { ParametrizacaoPage } from "./pages/ParametrizacaoPage";
 import { ValidacaoPage } from "./pages/ValidacaoPage";
 import { ResultadoPage } from "./pages/ResultadoPage";
 import { layoutService } from "./services/layoutService";
-import { logService } from "./services/logService"; // <-- ADICIONE ESTA LINHA
+import { logService } from "./services/logService";
+import { ErroConexaoPage } from "./pages/ErroConexaoPage";
 import logoImg from "./assets/logo-smartb.png";
 
 export function App() {
   const [abaAtiva, setAbaAtiva] = useState<
     "parametrizacao" | "validacao" | "resultado"
   >("validacao");
+
+  // Controla se o sistema está sem comunicação com o banco de dados
+  const [erroConexaoBanco, setErroConexaoBanco] = useState<boolean>(false);
 
   // Estado para controlar o carregamento inicial dos dados do banco
   const [carregando, setCarregando] = useState<boolean>(true);
@@ -21,6 +25,20 @@ export function App() {
     useState<ResultadoValidacaoLote | null>(null);
 
   const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([]);
+
+  // Escuta os eventos emitidos pelo interceptador do Axios
+  useEffect(() => {
+    const lidarComStatusConexao = (event: Event) => {
+      const customEvent = event as CustomEvent<{ semConexao: boolean }>;
+      if (customEvent.detail) {
+        setErroConexaoBanco(customEvent.detail.semConexao);
+      }
+    };
+
+    window.addEventListener("eventoConexaoBanco", lidarComStatusConexao);
+    return () =>
+      window.removeEventListener("eventoConexaoBanco", lidarComStatusConexao);
+  }, []);
 
   useEffect(() => {
     const capturarErroGlobal = (event: ErrorEvent) => {
@@ -45,12 +63,15 @@ export function App() {
         if (dados && dados.length > 0) {
           setLayoutsSalvos(dados);
         }
+        setErroConexaoBanco(false);
       })
       .catch((erro: unknown) => {
         console.error("Falha ao carregar layouts da API:", erro);
+        // Garante que se o banco falhar na largada, a tela de erro seja apresentada
+        setErroConexaoBanco(true);
       })
       .finally(() => {
-        // Libera a tela após a resposta (com sucesso ou com erro)
+        // Libera o spinner inicial
         setCarregando(false);
       });
   }, []);
@@ -102,6 +123,10 @@ export function App() {
     setResultadoAuditoria(resultado);
     setAbaAtiva("resultado");
   };
+
+  if (erroConexaoBanco) {
+    return <ErroConexaoPage></ErroConexaoPage>;
+  }
 
   return (
     <div

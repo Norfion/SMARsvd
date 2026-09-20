@@ -12,8 +12,15 @@ export function ResultadoPage({
   resultadoAuditoria,
   onIrParaValidacao,
 }: ResultadoPageProps) {
-  // Estado para controlar a visibilidade do menu suspenso de exportação
   const [menuExportarAberto, setMenuExportarAberto] = useState(false);
+
+  // Considera 100 como padrão se não for informado
+  const percentual = resultadoAuditoria?.amostragem ?? 100;
+  const ehIntegral = percentual === 100;
+
+  const textoAmostragem = ehIntegral
+    ? "Validação Integral (100% do arquivo validado)"
+    : `Validação por Amostragem (${percentual}% do arquivo validado)`;
 
   // ==========================================
   // EXPORTAÇÃO PARA CSV
@@ -27,14 +34,10 @@ export function ResultadoPage({
     linhas.push(`RELATÓRIO DE AUDITORIA - SMARsvd`);
     linhas.push(`Arquivo Analisado;${resultadoAuditoria.nomeArquivo}`);
     linhas.push(`Layout Utilizado;${resultadoAuditoria.layoutUtilizado}`);
+    linhas.push(`Método de Validação;${textoAmostragem}`);
     linhas.push(
       `Total de Documentos;${resultadoAuditoria.totalGuiasAnalisadas}`,
     );
-    linhas.push(`Documentos Válidos;${resultadoAuditoria.guiasValidas}`);
-    linhas.push(
-      `Documentos com Inconsistências;${resultadoAuditoria.guiasComInconsistencia}`,
-    );
-    linhas.push(``); // Linha em branco para separação
 
     // Cabeçalho da Tabela
     linhas.push(
@@ -103,11 +106,11 @@ export function ResultadoPage({
         <Cell><Data ss:Type="String">${escaparXml(resultadoAuditoria.layoutUtilizado)}</Data></Cell>
       </Row>
       <Row>
-        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Total de Documentos:</Data></Cell>
-        <Cell><Data ss:Type="Number">${resultadoAuditoria.totalGuiasAnalisadas}</Data></Cell>
+        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Método de Validação:</Data></Cell>
+        <Cell><Data ss:Type="String">${escaparXml(textoAmostragem)}</Data></Cell>
       </Row>
       <Row>
-        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Documentos Válidos:</Data></Cell>
+        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Total de Documentos:</Data></Cell>
         <Cell><Data ss:Type="Number">${resultadoAuditoria.guiasValidas}</Data></Cell>
       </Row>
       <Row>
@@ -218,28 +221,29 @@ export function ResultadoPage({
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(55, 71, 79); // #37474f
-    doc.text(`Arquivo Analisado: ${resultadoAuditoria.nomeArquivo}`, 14, 26);
-    doc.text(`Layout Utilizado: ${resultadoAuditoria.layoutUtilizado}`, 14, 31);
+    doc.text(`Arquivo Analisado: ${resultadoAuditoria.nomeArquivo}`, 14, 25);
+    doc.text(`Layout Utilizado: ${resultadoAuditoria.layoutUtilizado}`, 14, 30);
+    doc.text(`Método: ${textoAmostragem}`, 14, 35);
 
-    // 3. Indicadores de Resumo (Cards)
+    // 3. Indicadores de Resumo (Cards) - posições Y deslocadas para acomodar a linha extra
     // Box: Total
     doc.setFillColor(224, 242, 241); // #e0f2f1
-    doc.roundedRect(14, 36, 56, 16, 2, 2, "F");
+    doc.roundedRect(14, 40, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 77, 64);
-    doc.text("TOTAL DE DOCUMENTOS", 17, 41);
+    doc.text("TOTAL DE DOCUMENTOS", 17, 45);
     doc.setFontSize(14);
-    doc.text(String(resultadoAuditoria.totalGuiasAnalisadas), 17, 49);
+    doc.text(String(resultadoAuditoria.totalGuiasAnalisadas), 17, 53);
 
     // Box: Válidos
     doc.setFillColor(232, 245, 233); // #e8f5e9
-    doc.roundedRect(77, 36, 56, 16, 2, 2, "F");
+    doc.roundedRect(77, 40, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setTextColor(27, 94, 32);
-    doc.text("DOCUMENTOS VÁLIDOS", 80, 41);
+    doc.text("DOCUMENTOS VÁLIDOS", 80, 45);
     doc.setFontSize(14);
-    doc.text(String(resultadoAuditoria.guiasValidas), 80, 49);
+    doc.text(String(resultadoAuditoria.guiasValidas), 80, 53);
 
     // Box: Com Inconsistência
     const temErro = resultadoAuditoria.guiasComInconsistencia > 0;
@@ -248,16 +252,16 @@ export function ResultadoPage({
       temErro ? 235 : 245,
       temErro ? 238 : 245,
     );
-    doc.roundedRect(140, 36, 56, 16, 2, 2, "F");
+    doc.roundedRect(140, 40, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setTextColor(
       temErro ? 183 : 117,
       temErro ? 28 : 117,
       temErro ? 28 : 117,
     );
-    doc.text("INCONSISTÊNCIAS", 143, 41);
+    doc.text("INCONSISTÊNCIAS", 143, 45);
     doc.setFontSize(14);
-    doc.text(String(resultadoAuditoria.guiasComInconsistencia), 143, 49);
+    doc.text(String(resultadoAuditoria.guiasComInconsistencia), 143, 53);
 
     // 4. Montagem das Linhas da Tabela
     const colunasTabela = [
@@ -281,7 +285,7 @@ export function ResultadoPage({
 
     // 5. Renderização da Tabela via autotable com Rodapé Dinâmico
     autoTable(doc, {
-      startY: 58,
+      startY: 61,
       head: [colunasTabela],
       body: dadosTabela,
       theme: "grid",
@@ -564,6 +568,32 @@ export function ResultadoPage({
             )}
           </div>
         </div>
+      </div>
+      {/* NOTA INFORMATIVA SOBRE O MÉTODO / AMOSTRAGEM */}
+      <div
+        id="nota-metodo-validacao"
+        style={{
+          backgroundColor: ehIntegral ? "#e0f2f1" : "#fff8e1",
+          border: ehIntegral ? "1px solid #b2dfdb" : "1px solid #ffe082",
+          borderRadius: "4px",
+          padding: "8px 12px",
+          marginBottom: "16px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "0.8rem",
+            color: ehIntegral ? "#004d40" : "#795548",
+            fontWeight: 600,
+          }}
+        >
+          {ehIntegral
+            ? "Validação Integral: 100% dos documentos do arquivo foram auditados."
+            : `Validação por Amostragem: Foram validados ${percentual}% dos documentos do arquivo.`}
+        </span>
       </div>
 
       {/* Indicadores Resumo */}

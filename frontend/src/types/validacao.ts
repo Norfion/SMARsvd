@@ -27,4 +27,5 @@ export interface ResultadoValidacaoLote {
   guiasValidas: number;
   guiasComInconsistencia: number;
   inconsistencias: InconsistenciaItem[];
+  amostragem?: number;
 }

@@ -1,6 +1,69 @@
 {
-  "Amostragem": 100,
-  "TotalDocumentos": 0,
-  "DocumentosProcessados": 0,
-  "Documentos": []
+  "PercentualAmostragem": 100,
+  "TotalDocumentos": 2,
+  "DocumentosProcessados": 2,
+  "Documentos": [
+    {
+      "Documento": 1,
+      "PaginaInicio": 1,
+      "PaginaFim": 2,
+      "Campos": [
+        {
+          "Nome": "Bairro",
+          "ValorExtraido": "ELDORADO",
+          "PaginaExtraido": 2,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "Cidade",
+          "ValorExtraido": "SÃO PAULO",
+          "PaginaExtraido": 2,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "CRC",
+          "ValorExtraido": "650",
+          "PaginaExtraido": 1,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "Nome Prefeitura",
+          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
+          "PaginaExtraido": 1,
+          "ExtracaoMetodo": "Digital"
+        }
+      ]
+    },
+    {
+      "Documento": 2,
+      "PaginaInicio": 3,
+      "PaginaFim": 4,
+      "Campos": [
+        {
+          "Nome": "Bairro",
+          "ValorExtraido": "ELDORADO",
+          "PaginaExtraido": 2,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "Cidade",
+          "ValorExtraido": "SÃO PAULO",
+          "PaginaExtraido": 2,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "CRC",
+          "ValorExtraido": "DE LIMA",
+          "PaginaExtraido": 1,
+          "ExtracaoMetodo": "Digital"
+        },
+        {
+          "Nome": "Nome Prefeitura",
+          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
+          "PaginaExtraido": 1,
+          "ExtracaoMetodo": "Digital"
+        }
+      ]
+    }
+  ]
 }
