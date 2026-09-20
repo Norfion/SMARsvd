@@ -56,6 +56,27 @@ export function ParametrizacaoPage({
   const [carregandoPdfModelo, setCarregandoPdfModelo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // NOVO: Controla se o usuário está criando um novo layout (Manual ou via Importação de PDF)
+  const [criandoNovoLayout, setCriandoNovoLayout] = useState(false);
+
+  // NOVO: Função para cancelar a criação do layout sem persistir dados
+  const cancelarCriacaoNovoLayout = () => {
+    setCriandoNovoLayout(false);
+    setLayoutSelecionadoId("");
+    setLayoutId(undefined);
+    setNomeModelo("");
+    setCampos([]);
+    setQueries([]);
+    setPaginasModelo([]);
+    setNomeArquivoModelo("");
+    setDbServidor("");
+    setDbUsuario("");
+    setDbSenha("");
+    setEtapaAberta(null); // Fecha todos os acordeões
+    cancelarEdicaoCampo();
+    cancelarEdicaoQuery();
+  };
+
   // Estado para controlar o Modal Informativo, de Confirmação e Senha
   const [modalInfo, setModalInfo] = useState<{
     aberto: boolean;
@@ -187,7 +208,8 @@ export function ParametrizacaoPage({
   const iniciarCriacaoManual = () => {
     const nomePadrao = "Novo Layout";
     setModalNovoLayoutAberto(false);
-    setLayoutId(undefined); // <-- Garante que é um novo layout
+    setLayoutId(undefined);
+    setCriandoNovoLayout(true);
     setLayoutSelecionadoId(nomePadrao);
     setCliente("PM Sertãozinho - SP");
     setNomeModelo(nomePadrao);
@@ -231,6 +253,7 @@ export function ParametrizacaoPage({
       const nomeIdentificador = arquivo.name.replace(/\.[^/.]+$/, "");
 
       setLayoutId(undefined); // <-- Garante que é um novo layout importado
+      setCriandoNovoLayout(true); // <-- Ativa modo de criação
       setLayoutSelecionadoId(nomeIdentificador);
       setCliente("PM Sertãozinho - SP");
       setNomeModelo(nomeIdentificador);
@@ -253,7 +276,7 @@ export function ParametrizacaoPage({
       exibirMensagem(
         "sucesso",
         "Modelo Carregado",
-        `PDF "${dados.nomeArquivo}" carregado com sucesso!\n• Páginas: ${dados.quantidadePaginas}\n• Dimensões: ${dados.larguraMm} x ${dados.alturaMm} mm (${dados.formatoPapel})`,
+        `PDF "${dados.nomeArquivo}" carregado com sucesso!\n\n• Páginas: ${dados.quantidadePaginas}\n• Dimensões: ${dados.larguraMm} x ${dados.alturaMm} mm (${dados.formatoPapel})`,
       );
     } catch (err: unknown) {
       const mensagemErro =
@@ -335,6 +358,7 @@ export function ParametrizacaoPage({
   };
 
   const carregarLayout = (nomeLayout: string) => {
+    setCriandoNovoLayout(false); // <-- Sai do modo de criação se selecionar layout da lista
     if (!nomeLayout) {
       setLayoutId(undefined);
       setLayoutSelecionadoId("");
@@ -441,6 +465,7 @@ export function ParametrizacaoPage({
     }
 
     setLayoutSelecionadoId(layoutFinal.nomeModelo);
+    setCriandoNovoLayout(false); // <-- Desativa o modo de criação após salvar com sucesso
     exibirMensagem(
       "sucesso",
       "Layout Salvo",
@@ -872,125 +897,152 @@ export function ParametrizacaoPage({
           </div>
         </div>
 
-        {/* Botão Remover Layout */}
-        <button
-          type="button"
-          onClick={removerLayoutAtual}
-          disabled={!layoutSelecionadoId}
-          title={
-            !layoutSelecionadoId
-              ? "Selecione um layout para remover"
-              : `Excluir o layout "${layoutSelecionadoId}"`
-          }
-          style={{
-            backgroundColor: !layoutSelecionadoId ? "#f5f5f5" : "#ffebee",
-            color: !layoutSelecionadoId ? "#9e9e9e" : "#c62828",
-            border: !layoutSelecionadoId
-              ? "1px solid #e0e0e0"
-              : "1px solid #ffcdd2",
-            padding: "6px 14px",
-            borderRadius: "4px",
-            fontWeight: 700,
-            cursor: !layoutSelecionadoId ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            height: "32px",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-            marginRight: "8px",
-          }}
-        >
-          <span>Remover</span>
-        </button>
-
-        {/* Menu "+ Novo Layout" */}
-        <div
-          style={{ position: "relative" }}
-          onMouseEnter={() => setModalNovoLayoutAberto(true)}
-          onMouseLeave={() => setModalNovoLayoutAberto(false)}
-        >
+        {/* Alterna entre o Botão Cancelar (ao criar novo) e o Botão Remover (layout existente) */}
+        {criandoNovoLayout ? (
           <button
             type="button"
-            disabled={carregandoPdfModelo}
+            onClick={cancelarCriacaoNovoLayout}
+            title="Descartar alterações"
             style={{
-              backgroundColor: "#009688",
-              color: "#ffffff",
-              border: "none",
-              padding: "6px 16px",
+              backgroundColor: "#ffebee",
+              color: "#c62828",
+              border: "1px solid #ffcdd2",
+              padding: "6px 14px",
               borderRadius: "4px",
               fontWeight: 700,
-              cursor: carregandoPdfModelo ? "wait" : "pointer",
+              cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "8px",
+              gap: "6px",
               height: "32px",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              marginRight: "8px",
             }}
           >
-            <span>{carregandoPdfModelo ? "Processando..." : "Novo"}</span>
-            <span style={{ fontSize: "0.65rem" }}>▼</span>
+            <span>Cancelar</span>
           </button>
+        ) : (
+          <button
+            type="button"
+            onClick={removerLayoutAtual}
+            disabled={!layoutSelecionadoId}
+            title={
+              !layoutSelecionadoId
+                ? "Selecione um layout para remover"
+                : `Excluir o layout "${layoutSelecionadoId}"`
+            }
+            style={{
+              backgroundColor: !layoutSelecionadoId ? "#f5f5f5" : "#ffebee",
+              color: !layoutSelecionadoId ? "#9e9e9e" : "#c62828",
+              border: !layoutSelecionadoId
+                ? "1px solid #e0e0e0"
+                : "1px solid #ffcdd2",
+              padding: "6px 14px",
+              borderRadius: "4px",
+              fontWeight: 700,
+              cursor: !layoutSelecionadoId ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              height: "32px",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              marginRight: "8px",
+            }}
+          >
+            <span>Remover</span>
+          </button>
+        )}
 
-          {modalNovoLayoutAberto && (
-            <div
+        {/* Menu "+ Novo Layout" (Oculto durante o modo de criação) */}
+        {!criandoNovoLayout && (
+          <div
+            style={{ position: "relative" }}
+            onMouseEnter={() => setModalNovoLayoutAberto(true)}
+            onMouseLeave={() => setModalNovoLayoutAberto(false)}
+          >
+            <button
+              type="button"
+              disabled={carregandoPdfModelo}
               style={{
-                position: "absolute",
-                top: "100%",
-                right: 0,
-                backgroundColor: "#ffffff",
-                border: "1px solid #b0bec5",
+                backgroundColor: "#009688",
+                color: "#ffffff",
+                border: "none",
+                padding: "6px 16px",
                 borderRadius: "4px",
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                zIndex: 50,
-                width: "220px",
-                overflow: "hidden",
+                fontWeight: 700,
+                cursor: carregandoPdfModelo ? "wait" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                height: "32px",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
               }}
             >
-              <button
-                type="button"
-                onClick={iniciarCriacaoManual}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 14px",
-                  background: "none",
-                  border: "none",
-                  borderBottom: "1px solid #eceff1",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  color: "#37474f",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                Criar Manualmente
-              </button>
+              <span>{carregandoPdfModelo ? "Processando..." : "Novo"}</span>
+              <span style={{ fontSize: "0.65rem" }}>▼</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={dispararUploadModelo}
+            {modalNovoLayoutAberto && (
+              <div
                 style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "10px 14px",
-                  background: "none",
-                  border: "none",
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  color: "#37474f",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #b0bec5",
+                  borderRadius: "4px",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  zIndex: 50,
+                  width: "220px",
+                  overflow: "hidden",
                 }}
               >
-                Importar Modelo (PDF)
-              </button>
-            </div>
-          )}
-        </div>
+                <button
+                  type="button"
+                  onClick={iniciarCriacaoManual}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "10px 14px",
+                    background: "none",
+                    border: "none",
+                    borderBottom: "1px solid #eceff1",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    color: "#37474f",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span>Criar Manualmente</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={dispararUploadModelo}
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "10px 14px",
+                    background: "none",
+                    border: "none",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    color: "#37474f",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span>Importar Modelo (PDF)</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ========================================== */}
@@ -2988,7 +3040,7 @@ export function ParametrizacaoPage({
               ? "Selecione ou crie um layout antes de salvar"
               : emModoEdicao
                 ? "Finalize as edições pendentes antes de salvar tudo"
-                : "Salvar todas as seções simultaneamente"
+                : "Salvar todas as alterações"
           }
           style={{
             backgroundColor:

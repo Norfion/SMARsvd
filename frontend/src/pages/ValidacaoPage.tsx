@@ -90,11 +90,6 @@ export function ValidacaoPage({ layoutsDisponiveis }: ValidacaoPageProps) {
 
     setArquivo(arquivo);
     setResultados([]);
-    exibirMensagem(
-      "sucesso",
-      "Arquivo Carregado",
-      `Arquivo "${arquivo.name}" carregado com sucesso.`,
-    );
   };
   const executarValidacao = () => {
     if (!layoutSelecionadoId) {
