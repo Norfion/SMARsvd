@@ -329,16 +329,17 @@ export function ParametrizacaoPage({
   const SENHA_EXCLUSAO = "teste123";
 
   const executarExclusaoFisicaLayout = () => {
-    // 1. Aciona a exclusão persistente no banco de dados através da rota DELETE da API
-    if (onExcluirLayout) {
-      onExcluirLayout(layoutId || layoutSelecionadoId);
+    // 1. Aciona estritamente o evento de exclusão enviando o Guid do banco
+    if (onExcluirLayout && layoutId) {
+      onExcluirLayout(layoutId);
+    } else if (!layoutId) {
+      exibirMensagem(
+        "erro",
+        "Erro na exclusão",
+        "Não foi possível localizar o ID deste layout para excluí-lo no banco.",
+      );
+      return;
     }
-
-    // 2. Atualiza o estado em memória localmente
-    const novaLista = layoutsSalvos.filter(
-      (l) => l.nomeModelo !== layoutSelecionadoId,
-    );
-    onSalvarLayouts(novaLista);
 
     exibirMensagem(
       "sucesso",
@@ -346,7 +347,7 @@ export function ParametrizacaoPage({
       `O layout "${layoutSelecionadoId}" foi removido com sucesso!`,
     );
 
-    // 3. Limpa o formulário e os campos da tela
+    // 2. Limpa o formulário e os campos da tela
     setLayoutSelecionadoId("");
     setLayoutId(undefined);
     setCampos([]);
@@ -1184,7 +1185,7 @@ export function ParametrizacaoPage({
 
         <div
           className={`accordion-content-wrapper ${
-            etapaAberta === "layout" && !semLayoutSelecionado && !emModoEdicao
+            etapaAberta === "layout" && !semLayoutSelecionado
               ? "accordion-content-open"
               : "accordion-content-closed"
           }`}
@@ -1427,7 +1428,10 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
-          opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1,
+          opacity:
+            semLayoutSelecionado || (emModoEdicao && etapaAberta !== "campos")
+              ? 0.65
+              : 1,
         }}
       >
         <div
@@ -1476,7 +1480,7 @@ export function ParametrizacaoPage({
 
         <div
           className={`accordion-content-wrapper ${
-            etapaAberta === "campos" && !semLayoutSelecionado && !emModoEdicao
+            etapaAberta === "campos" && !semLayoutSelecionado
               ? "accordion-content-open"
               : "accordion-content-closed"
           }`}
@@ -2178,7 +2182,11 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
-          opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1,
+          opacity:
+            semLayoutSelecionado ||
+            (emModoEdicao && etapaAberta !== "validacoes")
+              ? 0.65
+              : 1,
         }}
       >
         <div
@@ -2229,9 +2237,7 @@ export function ParametrizacaoPage({
 
         <div
           className={`accordion-content-wrapper ${
-            etapaAberta === "validacoes" &&
-            !semLayoutSelecionado &&
-            !emModoEdicao
+            etapaAberta === "validacoes" && !semLayoutSelecionado
               ? "accordion-content-open"
               : "accordion-content-closed"
           }`}
@@ -2833,7 +2839,10 @@ export function ParametrizacaoPage({
           border: "1px solid #cfd8dc",
           borderRadius: "4px",
           overflow: "hidden",
-          opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1,
+          opacity:
+            semLayoutSelecionado || (emModoEdicao && etapaAberta !== "conexao")
+              ? 0.65
+              : 1,
         }}
       >
         <div
@@ -2890,7 +2899,7 @@ export function ParametrizacaoPage({
 
         <div
           className={`accordion-content-wrapper ${
-            etapaAberta === "conexao" && !semLayoutSelecionado && !emModoEdicao
+            etapaAberta === "conexao" && !semLayoutSelecionado
               ? "accordion-content-open"
               : "accordion-content-closed"
           }`}

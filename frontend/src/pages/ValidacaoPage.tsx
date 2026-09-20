@@ -1,48 +1,16 @@
+import { processamentoService } from "../services/processamentoService";
 import {
   ModalInformativo,
   type TipoModalInformativo,
 } from "../components/ModalInformativo";
 import { useState } from "react";
 import type { LayoutCliente } from "../types/layout";
-import type {
-  ResultadoValidacaoCarne,
-  ResultadoValidacaoLote,
-} from "../types/validacao";
+import type { ResultadoValidacaoLote } from "../types/validacao";
 
 interface ValidacaoPageProps {
   layoutsDisponiveis: LayoutCliente[];
   onConcluirValidacao: (resultado: ResultadoValidacaoLote) => void;
 }
-
-const MOCK_RESULTADOS: ResultadoValidacaoCarne[] = [
-  {
-    numeroDocumento: "27480056",
-    contribuinte: "JOSÉ RONICLAUDIO DE LIMA",
-    pagina: 1,
-    status: "Valido",
-    erros: [],
-  },
-  {
-    numeroDocumento: "27480059",
-    contribuinte: "JOSÉ RONICLAUDIO DE LIMA",
-    pagina: 2,
-    status: "Com Erro",
-    erros: [
-      {
-        campo: "Valor Total",
-        valorExtraido: "R$ 119,38",
-        valorEsperado: "R$ 125,00",
-        mensagem: "Valor diverge do saldo devedor apurado no SQL Server.",
-      },
-      {
-        campo: "Vencimento",
-        valorExtraido: "15/09/2026",
-        valorEsperado: "10/09/2026",
-        mensagem: "Data de vencimento incompatível com o calendário fiscal.",
-      },
-    ],
-  },
-];
 
 export function ValidacaoPage({
   layoutsDisponiveis,
@@ -125,7 +93,7 @@ export function ValidacaoPage({
     setArquivo(arquivoSelecionado);
   };
 
-  const executarValidacao = () => {
+  const executarValidacao = async () => {
     if (!layoutSelecionadoId) {
       exibirMensagem(
         "aviso",
@@ -143,40 +111,42 @@ export function ValidacaoPage({
       return;
     }
 
+    // Identifica o ID real (GUID) do layout selecionado no select
+    const layoutEncontrado = layoutsDisponiveis.find(
+      (l) => l.nomeModelo === layoutSelecionadoId,
+    );
+
+    if (!layoutEncontrado?.id) {
+      exibirMensagem(
+        "erro",
+        "Layout Não Identificado",
+        "Não foi possível obter o identificador do layout. Certifique-se de salvá-lo no banco primeiro.",
+      );
+      return;
+    }
+
     setProcessando(true);
 
-    setTimeout(() => {
-      setProcessando(false);
-
-      // Agrupa todas as inconsistências individuais para o relatório do lote
-      const inconsistenciasDetalhadas = MOCK_RESULTADOS.flatMap((item) =>
-        item.erros.map((erro) => ({
-          identificadorGuia: `Página ${item.pagina}`,
-          campo: erro.campo,
-          valorExtraidoPdf: erro.valorExtraido,
-          valorEsperadoBanco: erro.valorEsperado,
-          mensagem: erro.mensagem,
-        })),
+    try {
+      // Envia o arquivo, o layout e o percentual de amostragem já controlado na tela
+      const resultado = await processamentoService.validarLote(
+        arquivo,
+        layoutEncontrado.id,
+        percentualAmostragem,
       );
 
-      const totalGuias = MOCK_RESULTADOS.length;
-      const guiasComErro = MOCK_RESULTADOS.filter(
-        (r) => r.status === "Com Erro",
-      ).length;
-      const guiasValidas = totalGuias - guiasComErro;
-
-      const resultadoConsolidado: ResultadoValidacaoLote = {
-        nomeArquivo: arquivo.name,
-        layoutUtilizado: layoutSelecionadoId,
-        totalGuiasAnalisadas: totalGuias,
-        guiasValidas: guiasValidas,
-        guiasComInconsistencia: guiasComErro,
-        inconsistencias: inconsistenciasDetalhadas,
-      };
-
-      // Notifica o App para registrar os dados e alternar para a aba "Resultado"
-      onConcluirValidacao(resultadoConsolidado);
-    }, 1200);
+      // Transfere o resultado real para a tela de Resultado
+      onConcluirValidacao(resultado);
+    } catch (erro: unknown) {
+      console.error("Erro ao validar o lote de documentos:", erro);
+      exibirMensagem(
+        "erro",
+        "Falha na Auditoria",
+        "Ocorreu um erro durante o processamento do arquivo. Verifique se o backend está em execução.",
+      );
+    } finally {
+      setProcessando(false);
+    }
   };
 
   return (

@@ -99,20 +99,15 @@ public class LayoutsController : ControllerBase
 
         LayoutCliente? entidadeLayout = null;
 
-        // 1. Tenta localizar pelo GUID enviado pelo frontend
+        // 1. Localiza pelo GUID se enviado
         if (dto.Id.HasValue && dto.Id.Value != Guid.Empty)
         {
             entidadeLayout = await _context.Layouts
                 .Include(l => l.ConexaoBanco)
-                .Include(l => l.Campos)
-                .Include(l => l.QueriesValidacao)
-                    .ThenInclude(q => q.Regras)
-                .Include(l => l.PaginasModelo)
-                .AsSplitQuery()
                 .FirstOrDefaultAsync(l => l.Id == dto.Id.Value);
         }
 
-        // 2. Se não encontrou por ID, verifica pelo NomeModelo + Cliente
+        // 2. Se não encontrou por ID, tenta por NomeModelo + Cliente
         if (entidadeLayout == null && !string.IsNullOrWhiteSpace(dto.NomeModelo) && !string.IsNullOrWhiteSpace(dto.Cliente))
         {
             var nomeBusca = dto.NomeModelo.Trim().ToLower();
@@ -120,11 +115,6 @@ public class LayoutsController : ControllerBase
 
             entidadeLayout = await _context.Layouts
                 .Include(l => l.ConexaoBanco)
-                .Include(l => l.Campos)
-                .Include(l => l.QueriesValidacao)
-                    .ThenInclude(q => q.Regras)
-                .Include(l => l.PaginasModelo)
-                .AsSplitQuery()
                 .FirstOrDefaultAsync(l => l.NomeModelo.ToLower() == nomeBusca && l.Cliente.ToLower() == clienteBusca);
         }
 
@@ -139,24 +129,35 @@ public class LayoutsController : ControllerBase
         }
         else
         {
-            var queriesAntigasIds = entidadeLayout.QueriesValidacao.Select(q => q.Id).ToList();
+            // 4. Limpeza isolada e direta das coleções antigas vinculadas ao layout
+            var layoutId = entidadeLayout.Id;
+
+            // Remove regras das queries antigas
+            var queriesAntigasIds = await _context.QueriesValidacao
+                .Where(q => q.LayoutClienteId == layoutId)
+                .Select(q => q.Id)
+                .ToListAsync();
+
             if (queriesAntigasIds.Any())
             {
                 var regrasAntigas = _context.RegrasValidacao.Where(r => queriesAntigasIds.Contains(r.QueryValidacaoId));
                 _context.RegrasValidacao.RemoveRange(regrasAntigas);
             }
 
-            _context.RegioesCampos.RemoveRange(entidadeLayout.Campos);
-            _context.QueriesValidacao.RemoveRange(entidadeLayout.QueriesValidacao);
-            _context.PaginasModelo.RemoveRange(entidadeLayout.PaginasModelo);
+            var camposAntigos = _context.RegioesCampos.Where(c => c.LayoutClienteId == layoutId);
+            _context.RegioesCampos.RemoveRange(camposAntigos);
 
-            // IMPORTANTE: Esvazia as coleções rastreadas em memória para desvincular os proxies do EF Core
-            entidadeLayout.Campos.Clear();
-            entidadeLayout.QueriesValidacao.Clear();
-            entidadeLayout.PaginasModelo.Clear();
+            var queriesAntigas = _context.QueriesValidacao.Where(q => q.LayoutClienteId == layoutId);
+            _context.QueriesValidacao.RemoveRange(queriesAntigas);
+
+            var paginasAntigas = _context.PaginasModelo.Where(p => p.LayoutClienteId == layoutId);
+            _context.PaginasModelo.RemoveRange(paginasAntigas);
+
+            // Persiste a remoção dos filhos no banco
+            await _context.SaveChangesAsync();
         }
 
-        // 4. Atualiza os dados principais do Layout
+        // 5. Atualiza os dados principais do Layout
         entidadeLayout.Cliente = dto.Cliente;
         entidadeLayout.NomeModelo = dto.NomeModelo;
         entidadeLayout.Versao = dto.Versao;
@@ -167,15 +168,15 @@ public class LayoutsController : ControllerBase
         entidadeLayout.QuantidadePaginasPadrao = dto.QuantidadePaginasPadrao;
         entidadeLayout.NomeArquivoModelo = dto.NomeArquivoModelo;
 
-        // 5. Atualização in-place da ConexaoBanco
+        // 6. Atualização in-place da ConexaoBanco (evita DELETE + UPDATE concorrente)
         if (dto.ConexaoBanco != null && !string.IsNullOrWhiteSpace(dto.ConexaoBanco.Servidor))
         {
             if (entidadeLayout.ConexaoBanco != null)
             {
                 entidadeLayout.ConexaoBanco.Provedor = dto.ConexaoBanco.Provedor ?? "SQL Server";
-                entidadeLayout.ConexaoBanco.Servidor = dto.ConexaoBanco.Servidor;
+                entidadeLayout.ConexaoBanco.Servidor = dto.ConexaoBanco.Servidor.Trim();
                 entidadeLayout.ConexaoBanco.Porta = dto.ConexaoBanco.Porta;
-                entidadeLayout.ConexaoBanco.Usuario = dto.ConexaoBanco.Usuario;
+                entidadeLayout.ConexaoBanco.Usuario = dto.ConexaoBanco.Usuario.Trim();
                 entidadeLayout.ConexaoBanco.Senha = dto.ConexaoBanco.Senha;
             }
             else
@@ -185,9 +186,9 @@ public class LayoutsController : ControllerBase
                     Id = Guid.NewGuid(),
                     LayoutClienteId = entidadeLayout.Id,
                     Provedor = dto.ConexaoBanco.Provedor ?? "SQL Server",
-                    Servidor = dto.ConexaoBanco.Servidor,
+                    Servidor = dto.ConexaoBanco.Servidor.Trim(),
                     Porta = dto.ConexaoBanco.Porta,
-                    Usuario = dto.ConexaoBanco.Usuario,
+                    Usuario = dto.ConexaoBanco.Usuario.Trim(),
                     Senha = dto.ConexaoBanco.Senha
                 };
             }
@@ -198,35 +199,34 @@ public class LayoutsController : ControllerBase
             entidadeLayout.ConexaoBanco = null;
         }
 
-        // 6. Adiciona novos campos à coleção monitorada sem sobrescrevê-la
-        if (dto.Campos != null)
+        // 7. Insere os novos campos mapeados
+        if (dto.Campos != null && dto.Campos.Any())
         {
-            foreach (var c in dto.Campos)
+            var novosCampos = dto.Campos.Select(c => new RegiaoCampo
             {
-                entidadeLayout.Campos.Add(new RegiaoCampo
-                {
-                    Id = Guid.NewGuid(),
-                    NomeCampo = c.NomeCampo,
-                    XMm = c.XMm,
-                    YMm = c.YMm,
-                    LarguraMm = c.LarguraMm,
-                    AlturaMm = c.AlturaMm,
-                    Pagina = c.Pagina,
-                    EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
-                    TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
-                    ConsultaSql = c.ConsultaSql,
-                    LayoutClienteId = entidadeLayout.Id
-                });
-            }
+                Id = Guid.NewGuid(),
+                NomeCampo = c.NomeCampo,
+                XMm = c.XMm,
+                YMm = c.YMm,
+                LarguraMm = c.LarguraMm,
+                AlturaMm = c.AlturaMm,
+                Pagina = c.Pagina,
+                EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
+                TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                ConsultaSql = c.ConsultaSql,
+                LayoutClienteId = entidadeLayout.Id
+            }).ToList();
+
+            await _context.RegioesCampos.AddRangeAsync(novosCampos);
         }
 
-        // 7. Adiciona novas queries à coleção monitorada
-        if (dto.QueriesValidacao != null)
+        // 8. Insere as novas queries e regras
+        if (dto.QueriesValidacao != null && dto.QueriesValidacao.Any())
         {
             foreach (var q in dto.QueriesValidacao)
             {
                 var novaQueryId = Guid.NewGuid();
-                entidadeLayout.QueriesValidacao.Add(new QueryValidacao
+                var novaQuery = new QueryValidacao
                 {
                     Id = novaQueryId,
                     Nome = q.Nome,
@@ -240,27 +240,28 @@ public class LayoutsController : ControllerBase
                         CampoCarne = r.CampoCarne,
                         QueryValidacaoId = novaQueryId
                     }).ToList() ?? new List<RegraValidacao>()
-                });
+                };
+
+                await _context.QueriesValidacao.AddAsync(novaQuery);
             }
         }
 
-        // 8. Adiciona páginas à coleção monitorada
+        // 9. Insere as imagens das páginas
         if (dto.PaginasModeloBase64 != null && dto.PaginasModeloBase64.Any())
         {
             int numeroPagina = 1;
-            foreach (var img in dto.PaginasModeloBase64)
+            var novasPaginas = dto.PaginasModeloBase64.Select(img => new PaginaModeloImagem
             {
-                entidadeLayout.PaginasModelo.Add(new PaginaModeloImagem
-                {
-                    Id = Guid.NewGuid(),
-                    NumeroPagina = numeroPagina++,
-                    ImagemBase64 = img,
-                    LayoutClienteId = entidadeLayout.Id
-                });
-            }
+                Id = Guid.NewGuid(),
+                NumeroPagina = numeroPagina++,
+                ImagemBase64 = img,
+                LayoutClienteId = entidadeLayout.Id
+            }).ToList();
+
+            await _context.PaginasModelo.AddRangeAsync(novasPaginas);
         }
 
-        // 9. Persiste tudo em uma única transação atômica limpa
+        // 10. Persiste as alterações e novas coleções de forma limpa
         await _context.SaveChangesAsync();
 
         return Ok(entidadeLayout.Id);

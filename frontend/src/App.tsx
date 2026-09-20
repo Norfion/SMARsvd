@@ -16,20 +16,7 @@ export function App() {
   const [resultadoAuditoria, setResultadoAuditoria] =
     useState<ResultadoValidacaoLote | null>(null);
 
-  const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([
-    {
-      cliente: "PM Sertãozinho - SP",
-      nomeModelo: "Carnê Geral 2026 - Padrão",
-      versao: 1,
-      orientacao: "Paisagem",
-      formatoPapel: "Personalizado",
-      larguraPaginaMm: 70,
-      alturaPaginaMm: 30,
-      quantidadePaginasPadrao: 1,
-      campos: [],
-      queriesValidacao: [],
-    },
-  ]);
+  const [layoutsSalvos, setLayoutsSalvos] = useState<LayoutCliente[]>([]);
 
   // Carrega os layouts salvos no banco de dados ao iniciar a aplicação
   useEffect(() => {
@@ -70,6 +57,20 @@ export function App() {
       alert(
         "Atenção: Os dados foram alterados na tela, mas ocorreu um erro ao gravar no banco de dados. Verifique se o backend está ativo.",
       );
+    }
+  };
+
+  const lidarComExcluirLayout = async (idParaExcluir: string) => {
+    try {
+      // Aciona o backend: rota DELETE /api/layouts/{id}
+      await layoutService.excluir(idParaExcluir);
+
+      // Sincroniza a tela consultando o banco recém atualizado
+      const listaAtualizada = await layoutService.listarTodos();
+      setLayoutsSalvos(listaAtualizada);
+    } catch (erro) {
+      console.error("Erro ao excluir o layout:", erro);
+      alert("Falha ao comunicar com o banco de dados para exclusão.");
     }
   };
 
@@ -280,6 +281,7 @@ export function App() {
           <ParametrizacaoPage
             layoutsSalvos={layoutsSalvos}
             onSalvarLayouts={lidarComSalvarLayouts}
+            onExcluirLayout={lidarComExcluirLayout}
           ></ParametrizacaoPage>
         )}
 
