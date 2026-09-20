@@ -1,10 +1,9 @@
 namespace SMARsvp.Application.DTOs.Processamento;
 
 // DTO exclusivo para o arquivo temporário 'documentos_estrutura.json'
-// Contém apenas o mapeamento das páginas sem o array 'Campos'
+// Contém apenas as delimitações de páginas do lote
 public class DocumentoEstruturaDto
 {
-    public int Documento { get; set; }
     public int PaginaInicio { get; set; }
     public int PaginaFim { get; set; }
 }
@@ -19,7 +18,6 @@ public class CampoExtraidoDto
 }
 
 // DTO para cada documento dentro de 'resultado_extracao.json'
-// Não possui o campo 'Documento'
 public class DocumentoExtracaoDto
 {
     public int PaginaInicio { get; set; }

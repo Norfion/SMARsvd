@@ -89,7 +89,6 @@ public class ProcessamentoController : ControllerBase
                 try
                 {
                     System.IO.File.Delete(caminhoPdf);
-                    Console.WriteLine($"[ProcessamentoController] Arquivo temporário removido: {caminhoPdf}");
                 }
                 catch (Exception ex)
                 {

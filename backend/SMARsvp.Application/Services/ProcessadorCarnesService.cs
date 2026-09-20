@@ -28,13 +28,10 @@ public class ProcessadorCarnesService
 
         // 1. Identificação Incremental dos Documentos
         int? inicioDocAtual = null;
-        int contadorDocs = 1;
 
         for (int pagina = 1; pagina <= totalPaginas; pagina++)
         {
             var textoExt = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, pagina, regiaoId);
-
-            Console.WriteLine($"[Página {pagina}] Identificador lido: '{textoExt}' | Esperado: '{regiaoId.TextoEsperadoIdentificador}'");
 
             bool ehInicio = textoExt?.Contains(regiaoId.TextoEsperadoIdentificador ?? "", StringComparison.OrdinalIgnoreCase) == true;
 
@@ -44,7 +41,6 @@ public class ProcessadorCarnesService
                 {
                     estrutura.Add(new DocumentoEstruturaDto
                     {
-                        Documento = contadorDocs++,
                         PaginaInicio = inicioDocAtual.Value,
                         PaginaFim = pagina - 1
                     });
@@ -57,7 +53,6 @@ public class ProcessadorCarnesService
         {
             estrutura.Add(new DocumentoEstruturaDto
             {
-                Documento = contadorDocs,
                 PaginaInicio = inicioDocAtual.Value,
                 PaginaFim = totalPaginas
             });
@@ -84,8 +79,6 @@ public class ProcessadorCarnesService
             caminhoEstruturaJson,
             JsonSerializer.Serialize(estrutura, opcoesJson)
         );
-
-        Console.WriteLine($"[ProcessadorCarnes] Arquivo gerado com sucesso em: {caminhoEstruturaJson}");
 
         // 3. Aplicação da Amostragem
         int qtdAmostra = (int)Math.Ceiling(estrutura.Count * (amostragem / 100m));
@@ -173,7 +166,6 @@ public class ProcessadorCarnesService
             caminhoResultadoJson,
             JsonSerializer.Serialize(resultadoFinal, opcoesJson)
         );
-        Console.WriteLine($"[ProcessadorCarnes] Arquivo gerado com sucesso em: {caminhoResultadoJson}");
 
         return resultadoFinal;
     }
