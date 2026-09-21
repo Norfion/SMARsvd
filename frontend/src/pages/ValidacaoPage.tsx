@@ -311,7 +311,7 @@ export function ValidacaoPage({
                   fontWeight: 700,
                 }}
               >
-                Auditando documentos...
+                Auditando Documentos...
               </strong>
               <span
                 style={{
@@ -321,8 +321,8 @@ export function ValidacaoPage({
                   display: "block",
                 }}
               >
-                Extraindo dados do lote e aplicando as regras de validação. Por
-                favor, aguarde.
+                Extraindo dados do arquivo e aplicando as regras de validação.
+                Por favor, aguarde.
               </span>
             </div>
           </div>

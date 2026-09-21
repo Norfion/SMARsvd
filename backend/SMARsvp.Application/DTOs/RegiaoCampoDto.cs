@@ -13,4 +13,7 @@ public class RegiaoCampoDto
     public string? TextoEsperadoIdentificador { get; set; }
     public string? IdentificadorAnterior { get; set; }
     public string? ConsultaSql { get; set; }
+
+    // Nova propriedade para orientar a limpeza de OCR
+    public string? TipoDado { get; set; } = "Texto";
 }

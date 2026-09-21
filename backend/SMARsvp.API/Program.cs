@@ -19,7 +19,7 @@ builder.Services.AddScoped<IExtratorPdfService, ExtratorPdfService>();
 builder.Services.AddScoped<IOcrService, OcrService>();
 builder.Services.AddScoped<ProcessadorCarnesService>();
 builder.Services.AddScoped<ILogService, LogService>();
-
+builder.Services.AddSingleton<IOcrService, OcrService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

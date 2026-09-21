@@ -1,5 +1,8 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using SMARsvp.Application.DTOs.Layout;
 using SMARsvp.Application.DTOs.Processamento;
 using SMARsvp.Application.Interfaces;
@@ -28,12 +31,30 @@ public class ProcessadorCarnesService
 
         // 1. Identificação Incremental dos Documentos
         int? inicioDocAtual = null;
+        string textoEsperadoNormalizado = NormalizarTextoParaComparacao(regiaoId.TextoEsperadoIdentificador ?? string.Empty);
 
         for (int pagina = 1; pagina <= totalPaginas; pagina++)
         {
             var textoExt = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, pagina, regiaoId);
+            string metodoUtilizado = "Digital";
 
-            bool ehInicio = textoExt?.Contains(regiaoId.TextoEsperadoIdentificador ?? "", StringComparison.OrdinalIgnoreCase) == true;
+            if (string.IsNullOrWhiteSpace(textoExt))
+            {
+                textoExt = await _ocrService.ExtrairTextoPorOcrAsync(
+                    caminhoPdf,
+                    pagina,
+                    regiaoId.XMm,
+                    regiaoId.YMm,
+                    regiaoId.LarguraMm,
+                    regiaoId.AlturaMm);
+                metodoUtilizado = "OCR";
+            }
+
+            string textoLidoNormalizado = NormalizarTextoParaComparacao(textoExt ?? string.Empty);
+            bool ehInicio = !string.IsNullOrWhiteSpace(textoEsperadoNormalizado) &&
+                           textoLidoNormalizado.Contains(textoEsperadoNormalizado, StringComparison.OrdinalIgnoreCase);
+
+            Console.WriteLine($"[Página {pagina}] Identificador ({metodoUtilizado}): '{textoExt}' | Esperado: '{regiaoId.TextoEsperadoIdentificador}' | Início detectado: {ehInicio}");
 
             if (ehInicio)
             {
@@ -86,7 +107,6 @@ public class ProcessadorCarnesService
             ? new List<DocumentoEstruturaDto>()
             : estrutura.OrderBy(x => Guid.NewGuid()).Take(qtdAmostra).ToList();
 
-        // Mapeia para a estrutura de extração (sem o campo "Documento")
         var documentosExtracao = documentosSorteados.Select(doc => new DocumentoExtracaoDto
         {
             PaginaInicio = doc.PaginaInicio,
@@ -108,7 +128,6 @@ public class ProcessadorCarnesService
             {
                 int paginaReal = doc.PaginaInicio + (campo.Pagina - 1);
 
-                // Se a página do campo ultrapassar os limites do carnê
                 if (paginaReal > doc.PaginaFim)
                 {
                     doc.Campos.Add(new CampoExtraidoDto
@@ -127,10 +146,13 @@ public class ProcessadorCarnesService
 
                     if (!string.IsNullOrWhiteSpace(valorExtraido))
                     {
+                        // Agora passamos o Nome do Campo e TipoDado para nortear a limpeza
+                        valorExtraido = AplicarIdentificadorAnterior(valorExtraido, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
+
                         doc.Campos.Add(new CampoExtraidoDto
                         {
                             Nome = campo.NomeCampo,
-                            ValorExtraido = valorExtraido.Trim(),
+                            ValorExtraido = valorExtraido,
                             PaginaExtraido = paginaReal,
                             ExtracaoMetodo = "Digital"
                         });
@@ -138,7 +160,16 @@ public class ProcessadorCarnesService
                     else
                     {
                         // TENTATIVA 2: OCR
-                        var valorOcr = await _ocrService.ExtrairTextoPorOcrAsync(caminhoPdf, paginaReal, campo.XMm, campo.YMm, campo.LarguraMm, campo.AlturaMm);
+                        var valorOcr = await _ocrService.ExtrairTextoPorOcrAsync(
+                            caminhoPdf,
+                            paginaReal,
+                            campo.XMm,
+                            campo.YMm,
+                            campo.LarguraMm,
+                            campo.AlturaMm);
+
+                        valorOcr = AplicarIdentificadorAnterior(valorOcr, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
+
                         doc.Campos.Add(new CampoExtraidoDto
                         {
                             Nome = campo.NomeCampo,
@@ -168,5 +199,84 @@ public class ProcessadorCarnesService
         );
 
         return resultadoFinal;
+    }
+
+    private static string NormalizarTextoParaComparacao(string texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
+
+        string limpo = Regex.Replace(texto, @"\s+", " ").Trim();
+        var normalizado = limpo.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder();
+
+        foreach (var c in normalizado)
+        {
+            var categoria = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (categoria != UnicodeCategory.NonSpacingMark)
+            {
+                sb.Append(c);
+            }
+        }
+
+        return sb.ToString().Normalize(NormalizationForm.FormC).Trim();
+    }
+
+    private static string AplicarIdentificadorAnterior(string texto, string? identificadorAnterior, string nomeCampo, string? tipoDado)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return string.Empty;
+
+        // 1. Recorte pelo Identificador Anterior (se configurado)
+        if (!string.IsNullOrWhiteSpace(identificadorAnterior))
+        {
+            string identificador = identificadorAnterior.Trim();
+            int indice = texto.IndexOf(identificador, StringComparison.OrdinalIgnoreCase);
+
+            if (indice >= 0)
+            {
+                texto = texto.Substring(indice + identificador.Length).Trim();
+            }
+            else
+            {
+                // Busca resiliente com Regex
+                string padraoEscapado = Regex.Escape(identificador)
+                    .Replace(@"\:", @"\s*\:\s*")
+                    .Replace(@"\-", @"\s*\-\s*");
+
+                var match = Regex.Match(texto, padraoEscapado, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    texto = texto.Substring(match.Index + match.Length).Trim();
+                }
+            }
+        }
+
+        // Limpa pontuações residuais soltas no início (ex: ":", "-", ".")
+        texto = texto.TrimStart(':', '-', ' ', '.', ',', '|').Trim();
+
+        // 2. Limpeza Inteligente baseada no Tipo do Campo
+        // Inferimos se o campo é numérico através do TipoDado explícito (se existir no BD) 
+        // ou heurística pelo Nome do Campo (assegurando retrocompatibilidade).
+        bool ehCampoNumerico = (!string.IsNullOrWhiteSpace(tipoDado) && tipoDado.Equals("Numerico", StringComparison.OrdinalIgnoreCase)) ||
+                               Regex.IsMatch(nomeCampo, @"(?i)(CRC|Lote|Nro|Número|Parcela|Valor|Data|CEP|CPF|CNPJ)");
+
+        if (ehCampoNumerico && !string.IsNullOrWhiteSpace(texto))
+        {
+            // O OCR frequentemente insere ruídos curtos alfabéticos antes dos números (Ex: "ec 650", "s 18")
+            // Localizamos onde começa o primeiro número válido.
+            var matchNumero = Regex.Match(texto, @"\d");
+
+            // Se encontrou o número nas primeiras posições (ruído curto <= 6 caracteres), descartamos o prefixo.
+            if (matchNumero.Success && matchNumero.Index > 0 && matchNumero.Index <= 6)
+            {
+                texto = texto.Substring(matchNumero.Index).Trim();
+            }
+
+            // Remove sujeiras isoladas no final (ex: "650 o", "18 l")
+            // Mantém apenas números e delimitadores comuns em formatações numéricas e de documentos
+            texto = Regex.Replace(texto, @"^[^\d]+|[^\d\.\,\-\/]+$", "").Trim();
+        }
+
+        return texto;
     }
 }

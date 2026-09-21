@@ -113,9 +113,6 @@ export function App() {
       }
     } catch (erro: unknown) {
       console.error("Erro ao persistir o layout no banco de dados:", erro);
-      alert(
-        "Atenção: Os dados foram alterados na tela, mas ocorreu um erro ao gravar no banco de dados. Verifique se o backend está ativo.",
-      );
     }
   };
 
@@ -126,7 +123,6 @@ export function App() {
       setLayoutsSalvos(listaAtualizada);
     } catch (erro) {
       console.error("Erro ao excluir o layout:", erro);
-      alert("Falha ao comunicar com o banco de dados para exclusão.");
     }
   };
 
@@ -249,15 +245,6 @@ export function App() {
               >
                 Carregando...
               </strong>
-              <span
-                style={{
-                  fontSize: "0.8rem",
-                  color: "#546e7a",
-                  lineHeight: 1.4,
-                }}
-              >
-                Sincronizando com o banco de dados.
-              </span>
             </div>
           </div>
         </div>

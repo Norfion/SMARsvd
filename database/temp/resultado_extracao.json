@@ -11,25 +11,25 @@
           "Nome": "Nro Parcelamento",
           "ValorExtraido": "27480059",
           "PaginaExtraido": 4,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "CRC",
           "ValorExtraido": "414990",
           "PaginaExtraido": 3,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "Lote",
           "ValorExtraido": "18",
           "PaginaExtraido": 4,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "Nome Prefeitura",
           "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
           "PaginaExtraido": 3,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         }
       ]
     },
@@ -41,25 +41,25 @@
           "Nome": "Nro Parcelamento",
           "ValorExtraido": "27480056",
           "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "CRC",
           "ValorExtraido": "650",
           "PaginaExtraido": 1,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "Lote",
           "ValorExtraido": "18",
           "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "Nome Prefeitura",
           "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
           "PaginaExtraido": 1,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         }
       ]
     }
