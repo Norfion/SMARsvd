@@ -95,7 +95,7 @@ public class ProcessadorCarnesService
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
-        string caminhoEstruturaJson = Path.Combine(pastaTemp, "documentos_estrutura.json");
+        string caminhoEstruturaJson = Path.Combine(pastaTemp, "arquivo_estrutura.json");
         await File.WriteAllTextAsync(
             caminhoEstruturaJson,
             JsonSerializer.Serialize(estrutura, opcoesJson)
@@ -192,7 +192,7 @@ public class ProcessadorCarnesService
         }
 
         // 5. Salvar resultado final
-        string caminhoResultadoJson = Path.Combine(pastaTemp, "resultado_extracao.json");
+        string caminhoResultadoJson = Path.Combine(pastaTemp, "dados_extraidos.json");
         await File.WriteAllTextAsync(
             caminhoResultadoJson,
             JsonSerializer.Serialize(resultadoFinal, opcoesJson)
