@@ -126,7 +126,7 @@ export function ParametrizacaoPage({
   // ==========================================
   // ESTADOS: ETAPA 1 - LAYOUT
   // ==========================================
-  const [cliente, setCliente] = useState<string>("Outro");
+  const [cliente, setCliente] = useState<string>("PM Sertãozinho - SP");
   const [nomeModelo, setNomeModelo] = useState<string>("");
   const [larguraMm, setLarguraMm] = useState<number>(70);
   const [alturaMm, setAlturaMm] = useState<number>(30);
@@ -232,7 +232,7 @@ export function ParametrizacaoPage({
     setLayoutId(undefined);
     setCriandoNovoLayout(true);
     setLayoutSelecionadoId(nomePadrao);
-    setCliente("Outro");
+    setCliente("PM Sertãozinho - SP");
     setNomeModelo(nomePadrao);
     setLarguraMm(70);
     setAlturaMm(30);
@@ -273,7 +273,7 @@ export function ParametrizacaoPage({
       setLayoutId(undefined);
       setCriandoNovoLayout(true);
       setLayoutSelecionadoId(nomeIdentificador);
-      setCliente("Outro");
+      setCliente("PM Sertãozinho - SP");
       setNomeModelo(nomeIdentificador);
       setLarguraMm(dados.larguraMm);
       setAlturaMm(dados.alturaMm);
@@ -692,23 +692,27 @@ export function ParametrizacaoPage({
     const comandosBloqueados =
       /\b(UPDATE|DELETE|INSERT|EXEC|EXECUTE|DROP|ALTER|CREATE|TRUNCATE|MERGE)\b/i;
     if (comandosBloqueados.test(texto)) {
-      exibirMensagem("aviso", "Bloqueio", "Apenas (SELECT) permitido.");
+      exibirMensagem(
+        "aviso",
+        "Bloqueio de Segurança",
+        "São permitidas apenas consultas somente leitura (SELECT).",
+      );
       return;
     }
 
-    // Suporte robusto a ${Nome com espaços} ou $NomeSimples
+    // Suporte flexível para ${Nome com espaços} ou $NomeSimples
     const regexParam = /\$\{([^}]+)\}|\$([a-zA-Z0-9_]+)/g;
     const params: string[] = [];
-    let matchParam;
-    while ((matchParam = regexParam.exec(texto)) !== null) {
-      const capturado = matchParam[1] || matchParam[2];
+    let match;
+    while ((match = regexParam.exec(texto)) !== null) {
+      const capturado = match[1] || match[2];
       if (capturado && capturado.trim()) {
         params.push(capturado.trim());
       }
     }
     const paramsUnicos = [...new Set(params)];
 
-    // Validação dos parâmetros encontrados contra os campos demarcados do layout
+    // Validação dos parâmetros contra a lista de campos do layout (comparação sem diferenciar maiúsculas/minúsculas)
     const parametrosInvalidos = paramsUnicos.filter(
       (param) =>
         !campos.some(
@@ -720,7 +724,7 @@ export function ParametrizacaoPage({
     if (parametrosInvalidos.length > 0) {
       exibirMensagem(
         "aviso",
-        "Parâmetros não encontrados",
+        "Parâmetros inválidos",
         `Os seguintes parâmetros não existem nos campos do layout: ${parametrosInvalidos.join(
           ", ",
         )}`,
@@ -730,11 +734,8 @@ export function ParametrizacaoPage({
 
     const regexRetorno = /\bAS\s+([a-zA-Z0-9_]+)/gi;
     const rets: string[] = [];
-    let matchRetorno;
-    while ((matchRetorno = regexRetorno.exec(texto)) !== null) {
-      if (matchRetorno[1] && matchRetorno[1].trim()) {
-        rets.push(matchRetorno[1].trim());
-      }
+    while ((match = regexRetorno.exec(texto)) !== null) {
+      rets.push(match[1]);
     }
     const retsUnicos = [...new Set(rets)];
 
@@ -742,7 +743,7 @@ export function ParametrizacaoPage({
       exibirMensagem(
         "aviso",
         "Campo inválido",
-        "Use 'AS NomeVariavel' para cada campo retornado no SELECT.",
+        "Não foi possível identificar os campos de retorno. Utilize 'AS NomeVariavel' na query para especificar as colunas.",
       );
       return;
     }
@@ -750,40 +751,8 @@ export function ParametrizacaoPage({
     setParametrosEncontrados(paramsUnicos);
     setCamposRetornados(retsUnicos);
     setSqlAnalisado(true);
-
     if (retsUnicos.length > 0) setRegraCampoRetornado(retsUnicos[0]);
     if (campos.length > 0) setRegraCampoCarne(campos[0].nomeCampo);
-
-    // Identificar regras órfãs e sincronizar caso o SQL mude
-    const regrasInvalidas = regrasAtuais.filter(
-      (r) =>
-        !retsUnicos.some(
-          (cRet) =>
-            cRet.toLowerCase() === r.campoRetornado.trim().toLowerCase(),
-        ),
-    );
-
-    if (regrasInvalidas.length > 0) {
-      exibirConfirmacao(
-        "SQL Inconsistente",
-        `O novo SQL não retorna os campos: ${regrasInvalidas
-          .map((r) => r.campoRetornado)
-          .join(
-            ", ",
-          )}. As regras associadas serão removidas.\n\nDeseja continuar?`,
-        () => {
-          setRegrasAtuais(
-            regrasAtuais.filter((r) =>
-              retsUnicos.some(
-                (cRet) =>
-                  cRet.toLowerCase() === r.campoRetornado.trim().toLowerCase(),
-              ),
-            ),
-          );
-        },
-        "Continuar",
-      );
-    }
   };
 
   const adicionarRegraValidacao = () => {
@@ -795,22 +764,6 @@ export function ParametrizacaoPage({
       );
       return;
     }
-
-    const duplicada = regrasAtuais.some(
-      (r) =>
-        r.campoRetornado === regraCampoRetornado &&
-        r.operador === regraOperador &&
-        r.campoCarne === regraCampoCarne,
-    );
-    if (duplicada) {
-      exibirMensagem(
-        "aviso",
-        "Regra Duplicada",
-        "Esta regra exata já foi vinculada a esta query.",
-      );
-      return;
-    }
-
     const novaRegra: RegraValidacao = {
       id: crypto.randomUUID(),
       campoRetornado: regraCampoRetornado,
@@ -2106,15 +2059,15 @@ export function ParametrizacaoPage({
                               style={{
                                 border: "1px solid #cfd8dc",
                                 background: "#ffffff",
-                                color: "#37474f",
+                                color: "#00796b",
                                 padding: "3px 6px",
                                 borderRadius: "3px",
                                 cursor: "pointer",
                                 fontSize: "0.7rem",
-                                fontWeight: 600,
+                                fontWeight: 700,
                               }}
                             >
-                              Editar
+                              ✎
                             </button>
                             <button
                               onClick={() =>
@@ -2122,17 +2075,17 @@ export function ParametrizacaoPage({
                               }
                               title="Remover"
                               style={{
-                                backgroundColor: "#ffebee",
                                 border: "1px solid #ffcdd2",
+                                background: "#ffebee",
                                 color: "#c62828",
                                 padding: "3px 6px",
                                 borderRadius: "3px",
                                 cursor: "pointer",
                                 fontSize: "0.7rem",
-                                fontWeight: 600,
+                                fontWeight: 700,
                               }}
                             >
-                              Remover
+                              ✕
                             </button>
                           </div>
                         </li>
@@ -2373,7 +2326,7 @@ export function ParametrizacaoPage({
                               border: "1px solid #b2dfdb",
                             }}
                           >
-                            {p}
+                            {p.includes(" ") ? `\${${p}}` : `$${p}`}
                           </span>
                         ))
                       ) : (
@@ -2441,7 +2394,7 @@ export function ParametrizacaoPage({
                           color: "#455a64",
                         }}
                       >
-                        Campo SQL
+                        Campo Retornado (Banco)
                       </label>
                       <select
                         value={regraCampoRetornado}
@@ -2484,6 +2437,7 @@ export function ParametrizacaoPage({
                         }}
                       >
                         <option value="=">=</option>
+                        <option value="<>">&lt;&gt;</option>
                       </select>
                     </div>
 
@@ -2495,7 +2449,7 @@ export function ParametrizacaoPage({
                           color: "#455a64",
                         }}
                       >
-                        Campo Arquivo
+                        Campo no Documento
                       </label>
                       <select
                         value={regraCampoCarne}
@@ -2529,7 +2483,7 @@ export function ParametrizacaoPage({
                         height: "28px",
                       }}
                     >
-                      Vincular <strong>+</strong>
+                      + Vincular
                     </button>
                   </div>
 
@@ -2560,7 +2514,7 @@ export function ParametrizacaoPage({
                         >
                           Operador
                         </th>
-                        <th style={{ padding: "6px 8px" }}>Campo Arquivo</th>
+                        <th style={{ padding: "6px 8px" }}>Campo Documento</th>
                         <th
                           style={{
                             padding: "6px 8px",
@@ -2681,7 +2635,7 @@ export function ParametrizacaoPage({
                         cursor: "pointer",
                       }}
                     >
-                      Associar
+                      Salvar Validação
                     </button>
                   </div>
                 </div>

@@ -60,19 +60,24 @@ export function SqlCodeEditor({
     }
   };
 
-  // Filtra os campos cadastrados no layout que combinam com o que foi digitado após o $
+  // Filtra os campos cadastrados no layout que combinam com o que foi digitado
   const camposFiltrados = camposDisponiveis.filter((c) =>
-    c.toLowerCase().startsWith(termoBusca.toLowerCase()),
+    c.toLowerCase().includes(termoBusca.toLowerCase()),
   );
 
-  // Analisa se o cursor está logo após um cifrão ($) para disparar a lista
+  // Analisa se o cursor está logo após um cifrão ($) ou abertura de chave (${)
   const verificarAutocomplete = (texto: string, posCursor: number) => {
     const textoAntesCursor = texto.slice(0, posCursor);
-    const match = textoAntesCursor.match(/\$([a-zA-Z0-9_]*)$/);
+    // Suporta tanto "$termo" quanto "${termo"
+    const match = textoAntesCursor.match(
+      /(?:\$\{([^\n\r}]*?)|\$([a-zA-Z0-9_]*))$/,
+    );
 
     if (match) {
-      setPosicaoInicioVar(posCursor - match[1].length);
-      setTermoBusca(match[1]);
+      const termo = match[1] !== undefined ? match[1] : match[2];
+      const matchCompleto = match[0];
+      setPosicaoInicioVar(posCursor - matchCompleto.length);
+      setTermoBusca(termo);
       setExibirAutocomplete(true);
       setIndiceFocoSugestao(0);
     } else {
@@ -93,16 +98,26 @@ export function SqlCodeEditor({
 
     const textoAtual = value;
     const antesVar = textoAtual.slice(0, posicaoInicioVar);
-    const depoisCursor = textoAtual.slice(textareaRef.current.selectionStart);
+    let depoisCursor = textoAtual.slice(textareaRef.current.selectionStart);
 
-    const novoValor = `${antesVar}${nomeCampo} ${depoisCursor}`;
+    // Se o usuário abriu com "${", remove eventual "}" duplicado imediatamente à frente do cursor
+    if (depoisCursor.startsWith("}")) {
+      depoisCursor = depoisCursor.slice(1);
+    }
+
+    // Se o nome do campo possuir espaços ou caracteres especiais, encapsula com ${...}
+    const tokenInsercao = nomeCampo.includes(" ")
+      ? `\${${nomeCampo}} `
+      : `$${nomeCampo} `;
+
+    const novoValor = `${antesVar}${tokenInsercao}${depoisCursor}`;
     onChange(novoValor);
     setExibirAutocomplete(false);
 
     // Reposiciona o cursor após a inserção do campo
     setTimeout(() => {
       if (textareaRef.current) {
-        const novaPos = antesVar.length + nomeCampo.length + 1;
+        const novaPos = antesVar.length + tokenInsercao.length;
         textareaRef.current.focus();
         textareaRef.current.setSelectionRange(novaPos, novaPos);
       }
@@ -128,11 +143,11 @@ export function SqlCodeEditor({
     }
   };
 
-  // Renderiza a query com destaque de sintaxe
+  // Renderiza a query com destaque de sintaxe suportando ${Campo com Espaco} e $Campo
   const renderizarTextoColorido = (texto: string) => {
     if (!texto) return " ";
     const regex =
-      /(\$[a-zA-Z0-9_]+|\b(?:SELECT|FROM|WHERE|AS|AND|OR|JOIN|INNER|LEFT|RIGHT|ON|ORDER|BY|GROUP|HAVING|COUNT|SUM|AVG|MIN|MAX|TOP|DISTINCT|LIKE|IN|IS|NULL|NOT|BETWEEN)\b|'.*?'|\d+)/gi;
+      /(\$\{[^}\r\n]+\}|\$[a-zA-Z0-9_]+|\b(?:SELECT|FROM|WHERE|AS|AND|OR|JOIN|INNER|LEFT|RIGHT|ON|ORDER|BY|GROUP|HAVING|COUNT|SUM|AVG|MIN|MAX|TOP|DISTINCT|LIKE|IN|IS|NULL|NOT|BETWEEN)\b|'.*?'|\d+)/gi;
 
     const partes = texto.split(regex);
 
@@ -234,7 +249,7 @@ export function SqlCodeEditor({
           <span
             style={{ fontSize: "0.8rem", fontWeight: 700, color: "#475569" }}
           >
-            Script SQL {expandido}
+            Script SQL
           </span>
           <button
             type="button"
@@ -300,7 +315,7 @@ export function SqlCodeEditor({
             onKeyDown={aoPressionarTecla}
             onScroll={aoRolar}
             spellCheck={false}
-            placeholder={`Utilize $campo para referenciar campos mapeados no documento. \nExemplo: \n\nSELECT Nome AS NomeQuery FROM Contribuintes C WHERE C.CRC = $CRCCampo`}
+            placeholder={`Utilize $campo ou \${Nome Campo} para referenciar campos mapeados no documento.\nExemplo:\n\nSELECT Nome AS NomeQuery FROM Contribuintes C WHERE C.CRC = $CRCCampo AND C.Nro = \${Nro Parcelamento}`}
             style={{
               position: "absolute",
               top: 0,
@@ -338,7 +353,7 @@ export function SqlCodeEditor({
                 border: "1px solid #c4b5fd",
                 borderRadius: "6px",
                 boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                minWidth: "220px",
+                minWidth: "240px",
                 maxHeight: "180px",
                 overflowY: "auto",
               }}
@@ -353,7 +368,7 @@ export function SqlCodeEditor({
                   borderBottom: "1px solid #ede9fe",
                 }}
               >
-                Campos do Layout (Pressione Tab para autocompletar)
+                Campos do Layout (Tab ou Enter para inserir)
               </div>
               <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                 {camposFiltrados.map((campo, idx) => (
@@ -376,7 +391,9 @@ export function SqlCodeEditor({
                       justifyContent: "space-between",
                     }}
                   >
-                    <span>${campo}</span>
+                    <span>
+                      {campo.includes(" ") ? `\${${campo}}` : `$${campo}`}
+                    </span>
                     <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>
                       Campo
                     </span>
