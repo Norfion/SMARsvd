@@ -177,12 +177,19 @@ export function ValidacaoPage({
       // 3. Extrai e compila as inconsistências encontradas na extração dos carnês
       const divergenciasEncontradas: InconsistenciaItem[] = [];
       let guiasComErro = 0;
+      let utilizouOcr = false;
 
       if (Array.isArray(dadosApi.documentos)) {
         dadosApi.documentos.forEach((doc: DocumentoApi) => {
           let docTemErro = false;
           (doc.campos || []).forEach((c: CampoApi) => {
             const statusMetodo = c.extracaoMetodo || c.status;
+
+            // Detecta se a extração utilizou OCR em qualquer um dos campos
+            if (c.extracaoMetodo === "OCR") {
+              utilizouOcr = true;
+            }
+
             if (statusMetodo && statusMetodo.startsWith("Erro")) {
               docTemErro = true;
               divergenciasEncontradas.push({
@@ -211,6 +218,7 @@ export function ValidacaoPage({
         guiasComInconsistencia: guiasComErro,
         inconsistencias: divergenciasEncontradas,
         amostragem: percentualAmostragem ?? 100,
+        usouOcr: utilizouOcr,
       };
 
       // 5. Redireciona para a aba "Resultado" com os dados preenchidos

@@ -4,39 +4,15 @@
   "DocumentosProcessados": 2,
   "Documentos": [
     {
-      "PaginaInicio": 3,
-      "PaginaFim": 4,
-      "Campos": [
-        {
-          "Nome": "Nro Parcelamento",
-          "ValorExtraido": "27480059",
-          "PaginaExtraido": 4,
-          "ExtracaoMetodo": "OCR"
-        },
-        {
-          "Nome": "CRC",
-          "ValorExtraido": "414990",
-          "PaginaExtraido": 3,
-          "ExtracaoMetodo": "OCR"
-        },
-        {
-          "Nome": "Lote",
-          "ValorExtraido": "18",
-          "PaginaExtraido": 4,
-          "ExtracaoMetodo": "OCR"
-        },
-        {
-          "Nome": "Nome Prefeitura",
-          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
-          "PaginaExtraido": 3,
-          "ExtracaoMetodo": "OCR"
-        }
-      ]
-    },
-    {
       "PaginaInicio": 1,
       "PaginaFim": 2,
       "Campos": [
+        {
+          "Nome": "Nome Prefeitura",
+          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
+          "PaginaExtraido": 1,
+          "ExtracaoMetodo": "OCR"
+        },
         {
           "Nome": "Nro Parcelamento",
           "ValorExtraido": "27480056",
@@ -54,11 +30,35 @@
           "ValorExtraido": "18",
           "PaginaExtraido": 2,
           "ExtracaoMetodo": "OCR"
-        },
+        }
+      ]
+    },
+    {
+      "PaginaInicio": 3,
+      "PaginaFim": 4,
+      "Campos": [
         {
           "Nome": "Nome Prefeitura",
           "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
-          "PaginaExtraido": 1,
+          "PaginaExtraido": 3,
+          "ExtracaoMetodo": "OCR"
+        },
+        {
+          "Nome": "Nro Parcelamento",
+          "ValorExtraido": "27480059",
+          "PaginaExtraido": 4,
+          "ExtracaoMetodo": "OCR"
+        },
+        {
+          "Nome": "CRC",
+          "ValorExtraido": "414990",
+          "PaginaExtraido": 3,
+          "ExtracaoMetodo": "OCR"
+        },
+        {
+          "Nome": "Lote",
+          "ValorExtraido": "18",
+          "PaginaExtraido": 4,
           "ExtracaoMetodo": "OCR"
         }
       ]

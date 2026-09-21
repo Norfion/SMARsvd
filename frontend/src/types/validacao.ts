@@ -12,6 +12,7 @@ export interface ResultadoValidacaoCarne {
   status: "Valido" | "Com Erro";
   erros: ErroCarne[];
 }
+
 export interface InconsistenciaItem {
   identificadorGuia: string;
   campo: string;
@@ -28,4 +29,5 @@ export interface ResultadoValidacaoLote {
   guiasComInconsistencia: number;
   inconsistencias: InconsistenciaItem[];
   amostragem?: number;
+  usouOcr?: boolean;
 }

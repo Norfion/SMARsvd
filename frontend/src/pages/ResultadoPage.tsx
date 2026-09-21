@@ -17,10 +17,15 @@ export function ResultadoPage({
   // Considera 100 como padrão se não for informado
   const percentual = resultadoAuditoria?.amostragem ?? 100;
   const ehIntegral = percentual === 100;
+  const usouOcr = resultadoAuditoria?.usouOcr ?? false;
 
-  const textoAmostragem = ehIntegral
+  const textoAmostragemBase = ehIntegral
     ? "Validação Integral (100% do arquivo validado)"
     : `Validação por Amostragem (${percentual}% do arquivo validado)`;
+
+  const textoAmostragem = usouOcr
+    ? `${textoAmostragemBase} [Extração via OCR/IA]`
+    : textoAmostragemBase;
 
   // ==========================================
   // EXPORTAÇÃO PARA CSV
@@ -35,6 +40,11 @@ export function ResultadoPage({
     linhas.push(`Arquivo Analisado;${resultadoAuditoria.nomeArquivo}`);
     linhas.push(`Layout Utilizado;${resultadoAuditoria.layoutUtilizado}`);
     linhas.push(`Método de Validação;${textoAmostragem}`);
+    if (usouOcr) {
+      linhas.push(
+        `Nota Informativa;Foi utilizada extração de dados via inteligência artificial (OCR). Ela pode cometer erros e pode não ter sido 100% extraída corretamente.`,
+      );
+    }
     linhas.push(
       `Total de Documentos;${resultadoAuditoria.totalGuiasAnalisadas}`,
     );
@@ -77,6 +87,7 @@ export function ResultadoPage({
     URL.revokeObjectURL(url);
     setMenuExportarAberto(false);
   };
+
   // ==========================================
   // EXPORTAÇÃO PARA EXCEL (.xls / SpreadsheetML)
   // ==========================================
@@ -108,7 +119,17 @@ export function ResultadoPage({
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Método de Validação:</Data></Cell>
         <Cell><Data ss:Type="String">${escaparXml(textoAmostragem)}</Data></Cell>
-      </Row>
+      </Row>`;
+
+    if (usouOcr) {
+      linhasXml += `
+      <Row>
+        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Nota OCR/IA:</Data></Cell>
+        <Cell><Data ss:Type="String">Foi utilizada extração de dados via inteligência artificial (OCR). Ela pode cometer erros e pode não ter sido 100% extraída corretamente.</Data></Cell>
+      </Row>`;
+    }
+
+    linhasXml += `
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Total de Documentos:</Data></Cell>
         <Cell><Data ss:Type="Number">${resultadoAuditoria.guiasValidas}</Data></Cell>
@@ -225,25 +246,41 @@ export function ResultadoPage({
     doc.text(`Layout Utilizado: ${resultadoAuditoria.layoutUtilizado}`, 14, 30);
     doc.text(`Método: ${textoAmostragem}`, 14, 35);
 
-    // 3. Indicadores de Resumo (Cards) - posições Y deslocadas para acomodar a linha extra
+    let posicaoYCards = 40;
+    if (usouOcr) {
+      doc.setFontSize(7.5);
+      doc.setTextColor(198, 40, 40); // tom de aviso
+      doc.text(
+        "Nota: Foi usada extração de dados via IA. A IA pode cometer erros.",
+        14,
+        39,
+      );
+      posicaoYCards = 43;
+    }
+
+    // 3. Indicadores de Resumo (Cards)
     // Box: Total
     doc.setFillColor(224, 242, 241); // #e0f2f1
-    doc.roundedRect(14, 40, 56, 16, 2, 2, "F");
+    doc.roundedRect(14, posicaoYCards, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 77, 64);
-    doc.text("TOTAL DE DOCUMENTOS", 17, 45);
+    doc.text("TOTAL DE DOCUMENTOS", 17, posicaoYCards + 5);
     doc.setFontSize(14);
-    doc.text(String(resultadoAuditoria.totalGuiasAnalisadas), 17, 53);
+    doc.text(
+      String(resultadoAuditoria.totalGuiasAnalisadas),
+      17,
+      posicaoYCards + 13,
+    );
 
     // Box: Válidos
     doc.setFillColor(232, 245, 233); // #e8f5e9
-    doc.roundedRect(77, 40, 56, 16, 2, 2, "F");
+    doc.roundedRect(77, posicaoYCards, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setTextColor(27, 94, 32);
-    doc.text("DOCUMENTOS VÁLIDOS", 80, 45);
+    doc.text("DOCUMENTOS VÁLIDOS", 80, posicaoYCards + 5);
     doc.setFontSize(14);
-    doc.text(String(resultadoAuditoria.guiasValidas), 80, 53);
+    doc.text(String(resultadoAuditoria.guiasValidas), 80, posicaoYCards + 13);
 
     // Box: Com Inconsistência
     const temErro = resultadoAuditoria.guiasComInconsistencia > 0;
@@ -252,16 +289,20 @@ export function ResultadoPage({
       temErro ? 235 : 245,
       temErro ? 238 : 245,
     );
-    doc.roundedRect(140, 40, 56, 16, 2, 2, "F");
+    doc.roundedRect(140, posicaoYCards, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setTextColor(
       temErro ? 183 : 117,
       temErro ? 28 : 117,
       temErro ? 28 : 117,
     );
-    doc.text("INCONSISTÊNCIAS", 143, 45);
+    doc.text("INCONSISTÊNCIAS", 143, posicaoYCards + 5);
     doc.setFontSize(14);
-    doc.text(String(resultadoAuditoria.guiasComInconsistencia), 143, 53);
+    doc.text(
+      String(resultadoAuditoria.guiasComInconsistencia),
+      143,
+      posicaoYCards + 13,
+    );
 
     // 4. Montagem das Linhas da Tabela
     const colunasTabela = [
@@ -285,7 +326,7 @@ export function ResultadoPage({
 
     // 5. Renderização da Tabela via autotable com Rodapé Dinâmico
     autoTable(doc, {
-      startY: 61,
+      startY: posicaoYCards + 21,
       head: [colunasTabela],
       body: dadosTabela,
       theme: "grid",
@@ -311,7 +352,6 @@ export function ResultadoPage({
         overflow: "linebreak",
       },
       didDrawPage: (data) => {
-        // Formata a data e hora atual no padrão DD/MM/AAAA - HH:mm
         const agora = new Date();
         const dia = String(agora.getDate()).padStart(2, "0");
         const mes = String(agora.getMonth() + 1).padStart(2, "0");
@@ -323,18 +363,18 @@ export function ResultadoPage({
         const alturaPagina = doc.internal.pageSize.getHeight();
         const larguraPagina = doc.internal.pageSize.getWidth();
 
-        // Linha sutil divisória no rodapé
+        // Linha divisória no rodapé
         doc.setDrawColor(207, 216, 220); // #cfd8dc
         doc.setLineWidth(0.2);
         doc.line(14, alturaPagina - 12, larguraPagina - 14, alturaPagina - 12);
 
-        // Texto do rodapé com a data e horário de geração
+        // Texto do rodapé com data/horário
         doc.setFontSize(7.5);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(120, 144, 156); // #78909c
         doc.text(`Gerado em: ${dataHoraFormatada}`, 14, alturaPagina - 7);
 
-        // Paginação à direita (Ex: Página 1 de 1)
+        // Paginação à direita
         doc.text(
           `Página ${data.pageNumber}`,
           larguraPagina - 14,
@@ -454,7 +494,6 @@ export function ResultadoPage({
           className="area-botoes-resultado"
           style={{ display: "flex", alignItems: "center", gap: "10px" }}
         >
-          {/* Menu Dropdown Exportar com hover idêntico ao Novo Layout */}
           <div
             style={{ position: "relative" }}
             onMouseEnter={() => setMenuExportarAberto(true)}
@@ -564,31 +603,67 @@ export function ResultadoPage({
           </div>
         </div>
       </div>
-      {/* NOTA INFORMATIVA SOBRE O MÉTODO / AMOSTRAGEM */}
+
+      {/* NOTA INFORMATIVA SOBRE O MÉTODO / AMOSTRAGEM E AVISO DE OCR/IA */}
       <div
         id="nota-metodo-validacao"
         style={{
           backgroundColor: ehIntegral ? "#e0f2f1" : "#fff8e1",
           border: ehIntegral ? "1px solid #b2dfdb" : "1px solid #ffe082",
           borderRadius: "4px",
-          padding: "8px 12px",
+          padding: "10px 14px",
           marginBottom: "16px",
           display: "flex",
-          alignItems: "center",
-          gap: "8px",
+          flexDirection: "column",
+          gap: "6px",
         }}
       >
         <span
           style={{
-            fontSize: "0.8rem",
-            color: ehIntegral ? "#004d40" : "#795548",
-            fontWeight: 600,
+            fontSize: "0.75rem",
+            color: ehIntegral ? "#004d40" : "#6d4c41",
+            lineHeight: 1.35,
           }}
         >
-          {ehIntegral
-            ? "Validação Integral: 100% dos documentos do arquivo foram auditados."
-            : `Validação por Amostragem: Foram validados ${percentual}% dos documentos do arquivo.`}
+          <strong>Observações:</strong>
         </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span
+            style={{
+              fontSize: "0.75rem",
+              color: ehIntegral ? "#004d40" : "#6d4c41",
+              lineHeight: 1.35,
+            }}
+          >
+            {ehIntegral
+              ? "- Validação Integral: 100% dos documentos do arquivo foram auditados."
+              : `- Validação por Amostragem: Foram validados ${percentual}% dos documentos do arquivo.`}
+          </span>
+        </div>
+
+        {/* Nota informativa de IA / OCR */}
+        {usouOcr && (
+          <div
+            id="nota-aviso-ocr-ia"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "0.75rem",
+                color: ehIntegral ? "#004d40" : "#6d4c41",
+                lineHeight: 1.35,
+              }}
+            >
+              - Foi utilizada extração de dados via inteligência artificial
+              (OCR). A IA pode cometer erros e, por isso, os dados podem não ter
+              sido 100% extraídos corretamente.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Indicadores Resumo */}
