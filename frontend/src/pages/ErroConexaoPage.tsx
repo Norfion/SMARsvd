@@ -64,8 +64,8 @@ export function ErroConexaoPage() {
             margin: "0 0 24px 0",
           }}
         >
-          O sistema perdeu a comunicação com os serviços de banco de dados ou o
-          servidor está temporariamente inacessível.
+          O sistema perdeu a comunicação com o seu serviço de banco de dados ou
+          o servidor está temporariamente inacessível.
         </p>
 
         {/* Bloco de orientações ao usuário */}

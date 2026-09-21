@@ -17,7 +17,7 @@ public class CampoExtraidoDto
     public string ExtracaoMetodo { get; set; } = string.Empty;
 }
 
-// DTO para cada documento dentro de 'resultado_extracao.json'
+// DTO para cada documento dentro de 'dados_extraidos.json'
 public class DocumentoExtracaoDto
 {
     public int PaginaInicio { get; set; }
@@ -25,11 +25,13 @@ public class DocumentoExtracaoDto
     public List<CampoExtraidoDto> Campos { get; set; } = new();
 }
 
-// Objeto raiz salvo em 'resultado_extracao.json'
+// Objeto raiz salvo em 'dados_extraidos.json'
 public class ResultadoProcessamentoDto
 {
     public decimal PercentualAmostragem { get; set; }
     public int TotalDocumentos { get; set; }
     public int DocumentosProcessados { get; set; }
+    public bool UsouOcr { get; set; }
     public List<DocumentoExtracaoDto> Documentos { get; set; } = new();
+
 }

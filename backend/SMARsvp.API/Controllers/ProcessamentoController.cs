@@ -138,7 +138,7 @@ public class ProcessamentoController : ControllerBase
         }
     }
 
-    // Etapa 2 - Banco Simulado
+    // Etapa 2 - Montagem e Execução das Consultas
     [HttpPost("buscar-banco")]
     public async Task<IActionResult> ConstruirQueriesEBuscar([FromBody] EtapaProcessamentoRequest request)
     {
@@ -147,7 +147,7 @@ public class ProcessamentoController : ControllerBase
             return NotFound("Layout não encontrado.");
 
         string pastaTemp = ObterPastaTemp();
-        string caminhoExtracao = Path.Combine(pastaTemp, "resultado_extracao.json");
+        string caminhoExtracao = Path.Combine(pastaTemp, "dados_extraidos.json");
 
         if (!System.IO.File.Exists(caminhoExtracao))
             return BadRequest("Arquivo de extração não encontrado. Execute a etapa de extração primeiro.");
@@ -169,7 +169,7 @@ public class ProcessamentoController : ControllerBase
         }
     }
 
-    // Etapa 3 - Validação Final
+    // Etapa 3 - Validação e Comparação Final
     [HttpPost("validar-regras")]
     public async Task<IActionResult> ValidarRegrasLote([FromBody] EtapaProcessamentoRequest request)
     {
@@ -178,7 +178,7 @@ public class ProcessamentoController : ControllerBase
             return NotFound("Layout não encontrado.");
 
         string pastaTemp = ObterPastaTemp();
-        string caminhoExtracao = Path.Combine(pastaTemp, "resultado_extracao.json");
+        string caminhoExtracao = Path.Combine(pastaTemp, "dados_extraidos.json");
 
         if (!System.IO.File.Exists(caminhoExtracao))
             return BadRequest("Arquivo de extração não encontrado. Execute a etapa de extração primeiro.");

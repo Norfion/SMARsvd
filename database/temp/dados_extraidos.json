@@ -2,34 +2,35 @@
   "PercentualAmostragem": 100,
   "TotalDocumentos": 2,
   "DocumentosProcessados": 2,
+  "UsouOcr": true,
   "Documentos": [
     {
       "PaginaInicio": 3,
       "PaginaFim": 4,
       "Campos": [
         {
-          "Nome": "Nome Prefeitura",
-          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
-          "PaginaExtraido": 3,
-          "ExtracaoMetodo": "Digital"
+          "Nome": "Lote",
+          "ValorExtraido": "18",
+          "PaginaExtraido": 4,
+          "ExtracaoMetodo": "OCR"
         },
         {
-          "Nome": "Nro Parcelamento",
+          "Nome": "NroParcelamento",
           "ValorExtraido": "27480059",
           "PaginaExtraido": 4,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "CRC",
           "ValorExtraido": "414990",
           "PaginaExtraido": 3,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
-          "Nome": "Lote",
-          "ValorExtraido": "18",
-          "PaginaExtraido": 4,
-          "ExtracaoMetodo": "Digital"
+          "Nome": "Nome Prefeitura",
+          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
+          "PaginaExtraido": 3,
+          "ExtracaoMetodo": "OCR"
         }
       ]
     },
@@ -38,28 +39,28 @@
       "PaginaFim": 2,
       "Campos": [
         {
-          "Nome": "Nome Prefeitura",
-          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
-          "PaginaExtraido": 1,
-          "ExtracaoMetodo": "Digital"
+          "Nome": "Lote",
+          "ValorExtraido": "18",
+          "PaginaExtraido": 2,
+          "ExtracaoMetodo": "OCR"
         },
         {
-          "Nome": "Nro Parcelamento",
+          "Nome": "NroParcelamento",
           "ValorExtraido": "27480056",
           "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "CRC",
           "ValorExtraido": "650",
           "PaginaExtraido": 1,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
-          "Nome": "Lote",
-          "ValorExtraido": "18",
-          "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
+          "Nome": "Nome Prefeitura",
+          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
+          "PaginaExtraido": 1,
+          "ExtracaoMetodo": "OCR"
         }
       ]
     }

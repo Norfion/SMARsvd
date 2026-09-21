@@ -13,20 +13,16 @@ public class ProcessadorCarnesService
 {
     private readonly IExtratorPdfService _extratorPdf;
     private readonly IOcrService _ocrService;
-    private readonly IAuditoriaValidacaoService _auditoriaService;
 
-    // Construtor alterado para receber o novo motor de validação dinâmica
     public ProcessadorCarnesService(
         IExtratorPdfService extratorPdf,
-        IOcrService ocrService,
-        IAuditoriaValidacaoService auditoriaService)
+        IOcrService ocrService)
     {
         _extratorPdf = extratorPdf;
         _ocrService = ocrService;
-        _auditoriaService = auditoriaService;
     }
 
-    public async Task<ResultadoAuditoriaDto> ProcessarLoteAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem)
+    public async Task<ResultadoProcessamentoDto> ProcessarLoteAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem)
     {
         var regiaoId = layout.Campos.FirstOrDefault(c => c.EhIdentificadorPrimeiraPagina);
         if (regiaoId == null)
@@ -114,14 +110,6 @@ public class ProcessadorCarnesService
             PaginaFim = doc.PaginaFim
         }).ToList();
 
-        var resultadoFinal = new ResultadoProcessamentoDto
-        {
-            PercentualAmostragem = amostragem,
-            TotalDocumentos = estrutura.Count,
-            DocumentosProcessados = documentosExtracao.Count,
-            Documentos = documentosExtracao
-        };
-
         bool utilizouOcr = false;
 
         // 4. Extração da amostra selecionada
@@ -191,20 +179,39 @@ public class ProcessadorCarnesService
             }
         }
 
-        // 5. Salvar resultado extração temporário
-        string caminhoDadosExtraidos = Path.Combine(pastaTemp, "resultado_extracao.json");
-        await File.WriteAllTextAsync(caminhoDadosExtraidos, JsonSerializer.Serialize(resultadoFinal, opcoesJson));
+        var resultadoFinal = new ResultadoProcessamentoDto
+        {
+            PercentualAmostragem = amostragem,
+            TotalDocumentos = estrutura.Count,
+            DocumentosProcessados = documentosExtracao.Count,
+            UsouOcr = utilizouOcr,
+            Documentos = documentosExtracao
+        };
 
-        // 6. Novo Motor de Auditoria e Validação Dinâmica
-        var resultadoAuditoria = await _auditoriaService.ProcessarAuditoriaSimuladaAsync(
-            resultadoFinal,
-            layout,
-            Path.GetFileName(caminhoPdf),
-            utilizouOcr,
-            pastaTemp
+        // 5. Salvar resultado final em dados_extraidos.json
+        string caminhoResultadoJson = Path.Combine(pastaTemp, "dados_extraidos.json");
+        await File.WriteAllTextAsync(
+            caminhoResultadoJson,
+            JsonSerializer.Serialize(resultadoFinal, opcoesJson)
         );
 
-        return resultadoAuditoria;
+        Console.WriteLine($"[ProcessadorCarnes] Arquivo de resultado gerado: {caminhoResultadoJson}");
+
+        // 6. Limpeza do arquivo temporário documentos_estrutura.json
+        if (File.Exists(caminhoEstruturaJson))
+        {
+            try
+            {
+                File.Delete(caminhoEstruturaJson);
+                Console.WriteLine($"[ProcessadorCarnes] Arquivo temporário removido com sucesso: {caminhoEstruturaJson}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ProcessadorCarnes] Aviso: Não foi possível apagar {caminhoEstruturaJson}: {ex.Message}");
+            }
+        }
+
+        return resultadoFinal;
     }
 
     private static string NormalizarTextoParaComparacao(string texto)
