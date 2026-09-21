@@ -5,9 +5,7 @@ namespace SMARsvp.Infrastructure.Data;
 
 public class SMARsvpDbContext : DbContext
 {
-    public SMARsvpDbContext(DbContextOptions<SMARsvpDbContext> options) : base(options)
-    {
-    }
+    public SMARsvpDbContext(DbContextOptions<SMARsvpDbContext> options) : base(options) { }
 
     public DbSet<LayoutCliente> Layouts { get; set; } = null!;
     public DbSet<RegiaoCampo> RegioesCampos { get; set; } = null!;
@@ -72,16 +70,16 @@ public class SMARsvpDbContext : DbContext
         });
 
         modelBuilder.Entity<QueryValidacao>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Nome).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Sql).IsRequired();
+                {
+                    entity.HasKey(e => e.Id);
+                    entity.Property(e => e.Nome).IsRequired().HasMaxLength(100);
+                    entity.Property(e => e.Sql).IsRequired();
 
-            entity.HasMany(e => e.Regras)
-                  .WithOne(e => e.QueryValidacao)
-                  .HasForeignKey(e => e.QueryValidacaoId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
+                    entity.HasMany(e => e.Regras)
+                          .WithOne(e => e.QueryValidacao)
+                          .HasForeignKey(e => e.QueryValidacaoId)
+                          .OnDelete(DeleteBehavior.Cascade);
+                });
 
         modelBuilder.Entity<RegraValidacao>(entity =>
         {
@@ -89,6 +87,8 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.CampoRetornado).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Operador).IsRequired().HasMaxLength(10);
             entity.Property(e => e.CampoCarne).IsRequired().HasMaxLength(100);
+
+            entity.HasIndex("QueryValidacaoId", "CampoRetornado", "Operador", "CampoCarne").IsUnique();
         });
 
         modelBuilder.Entity<PaginaModeloImagem>(entity =>

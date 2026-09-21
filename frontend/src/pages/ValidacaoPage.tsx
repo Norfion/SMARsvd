@@ -21,7 +21,17 @@ export function ValidacaoPage({
 }: ValidacaoPageProps) {
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [arquivo, setArquivo] = useState<File | null>(null);
-  const [processando, setProcessando] = useState(false);
+  const [processando, setProcessando] = useState<boolean>(false);
+
+  // Controle da etapa atual de processamento (0 = inativo, 1 = extração, 2 = banco, 3 = validação)
+  const [etapaAtual, setEtapaAtual] = useState<number>(0);
+
+  // Textos descritivos para cada etapa de execução
+  const descricoesEtapas: Record<number, string> = {
+    1: "Extraindo dados do arquivo...",
+    2: "Buscando informações no banco de dados...",
+    3: "Aplicando regras para validação...",
+  };
 
   // Estados para validação integral vs amostragem
   const [validarIntegralmente, setValidarIntegralmente] =
@@ -37,11 +47,10 @@ export function ValidacaoPage({
     setValidarIntegralmente(novoModoIntegral);
 
     if (novoModoIntegral) {
-      setPercentualAmostragem(100); // Trava em 100% quando integral
+      setPercentualAmostragem(100);
     } else {
-      setPercentualAmostragem(30); // Sugestão inicial de amostragem (ex: 30%)
+      setPercentualAmostragem(30);
 
-      // Aguarda a renderização do React habilitar o campo para aplicar foco e seleção
       setTimeout(() => {
         if (inputAmostragemRef.current) {
           inputAmostragemRef.current.focus();
@@ -143,95 +152,96 @@ export function ValidacaoPage({
     setProcessando(true);
 
     try {
-      // 1. Interfaces locais estritas com todas as propriedades da API (sem "any")
-      interface CampoApi {
-        nome?: string;
-        valor?: string;
-        valorExtraido?: string;
-        extracaoMetodo?: string;
-        status?: string;
-      }
-
-      interface DocumentoApi {
-        documento?: number;
-        inicio?: number;
-        fim?: number;
-        paginaInicio?: number;
-        paginaFim?: number;
-        campos?: CampoApi[];
-      }
-
-      interface RespostaProcessamentoApi {
-        totalDocumentos?: number;
-        documentosProcessados?: number;
-        documentos?: DocumentoApi[];
-      }
-
-      // 2. Chama a API tipando a resposta com segurança
-      const dadosApi = (await processamentoService.validarLote(
+      // ETAPA 1/3: Extrair dados do arquivo PDF
+      setEtapaAtual(1);
+      const respostaExtracao = await processamentoService.extrair(
         arquivo,
         layoutEncontrado.id,
         percentualAmostragem ?? 100,
-      )) as unknown as RespostaProcessamentoApi;
+      );
 
-      // 3. Extrai e compila as inconsistências encontradas na extração dos carnês
-      const divergenciasEncontradas: InconsistenciaItem[] = [];
-      let guiasComErro = 0;
-      let utilizouOcr = false;
+      // ETAPA 2/3: Buscar dados no banco de dados
+      setEtapaAtual(2);
+      await processamentoService.buscarBanco(layoutEncontrado.id);
 
-      if (Array.isArray(dadosApi.documentos)) {
-        dadosApi.documentos.forEach((doc: DocumentoApi) => {
-          let docTemErro = false;
-          (doc.campos || []).forEach((c: CampoApi) => {
-            const statusMetodo = c.extracaoMetodo || c.status;
+      // ETAPA 3/3: Aplicar regras de validação
+      setEtapaAtual(3);
+      const utilizouOcr = Boolean(respostaExtracao?.extracao?.usouOcr);
+      const dadosApi = await processamentoService.validarRegras(
+        layoutEncontrado.id,
+        arquivo.name,
+        utilizouOcr,
+      );
 
-            // Detecta se a extração utilizou OCR em qualquer um dos campos
-            if (c.extracaoMetodo === "OCR") {
-              utilizouOcr = true;
-            }
+      // Normaliza a lista de inconsistências recebida do backend suportando os novos nomes
+      const listaRecebida =
+        dadosApi.Inconsistencias ?? dadosApi.inconsistencias ?? [];
+      const divergenciasNormalizadas: InconsistenciaItem[] = listaRecebida.map(
+        (item) => ({
+          paginaExtraido: item.PaginaExtraido ?? item.paginaExtraido,
+          campo: item.Campo ?? item.campo ?? "—",
+          valorExtraidoPdf:
+            item.ValorExtraidoPdf ?? item.valorExtraidoPdf ?? "—",
+          valorEsperadoBanco:
+            item.ValorEsperadoBanco ?? item.valorEsperadoBanco ?? "—",
+          mensagemAuditoria:
+            item.MensagemAuditoria ??
+            item.mensagemAuditoria ??
+            item.Mensagem ??
+            item.mensagem ??
+            "Divergência detectada",
+        }),
+      );
 
-            if (statusMetodo && statusMetodo.startsWith("Erro")) {
-              docTemErro = true;
-              divergenciasEncontradas.push({
-                identificadorGuia: `Documento #${doc.documento} (Pgs ${doc.paginaInicio ?? doc.inicio}-${doc.paginaFim ?? doc.fim})`,
-                campo: c.nome || "Campo",
-                valorExtraidoPdf: c.valorExtraido ?? c.valor ?? "—",
-                valorEsperadoBanco: "—",
-                mensagem: statusMetodo,
-              });
-            }
-          });
-          if (docTemErro) guiasComErro++;
-        });
-      }
-
+      // Captura com segurança os totalizadores da auditoria (suporte aos novos nomes e aos legados)
       const totalDocs =
-        dadosApi.documentosProcessados ?? dadosApi.totalDocumentos ?? 0;
-      const guiasValidas = Math.max(0, totalDocs - guiasComErro);
+        dadosApi.TotalDocumentosAnalisados ??
+        dadosApi.totalDocumentosAnalisados ??
+        0;
 
-      // 4. Monta o objeto completo e compatível com ResultadoPage
+      const documentosInconsistentes =
+        dadosApi.DocumentosComInconsistencia ??
+        dadosApi.documentosComInconsistencia ??
+        divergenciasNormalizadas.length;
+
+      const documentosValidos =
+        dadosApi.DocumentosValidos ??
+        dadosApi.documentosValidos ??
+        Math.max(0, totalDocs - documentosInconsistentes);
+
+      // Monta o objeto completo compatível com a tela de resultado
       const resultadoConsolidado: ResultadoValidacaoLote = {
-        nomeArquivo: arquivo.name,
-        layoutUtilizado: layoutEncontrado.nomeModelo,
-        totalGuiasAnalisadas: totalDocs,
-        guiasValidas: guiasValidas,
-        guiasComInconsistencia: guiasComErro,
-        inconsistencias: divergenciasEncontradas,
-        amostragem: percentualAmostragem ?? 100,
-        usouOcr: utilizouOcr,
+        nomeArquivo:
+          dadosApi.NomeArquivo ?? dadosApi.nomeArquivo ?? arquivo.name,
+        layoutUtilizado:
+          dadosApi.LayoutUtilizado ??
+          dadosApi.layoutUtilizado ??
+          layoutEncontrado.nomeModelo,
+        totalDocumentosAnalisados: totalDocs,
+        documentosValidos: documentosValidos,
+        documentosComInconsistencia: documentosInconsistentes,
+        inconsistencias: divergenciasNormalizadas,
+        validacoes: dadosApi.Validacoes ?? dadosApi.validacoes ?? [],
+        amostragem:
+          dadosApi.Amostragem ??
+          dadosApi.amostragem ??
+          percentualAmostragem ??
+          100,
+        usouOcr: dadosApi.UsouOcr ?? dadosApi.usouOcr ?? utilizouOcr,
       };
 
-      // 5. Redireciona para a aba "Resultado" com os dados preenchidos
+      // Notifica e redireciona para a aba "Resultado"
       onConcluirValidacao(resultadoConsolidado);
     } catch (erro: unknown) {
       console.error("Erro ao validar o lote de documentos:", erro);
       exibirMensagem(
         "erro",
         "Falha na Validação",
-        "Ocorreu um erro ao processar o arquivo. Verifique se o backend está em execução.",
+        "Ocorreu um erro ao processar as etapas no backend. Verifique se o servidor está ativo.",
       );
     } finally {
       setProcessando(false);
+      setEtapaAtual(0);
     }
   };
 
@@ -260,7 +270,7 @@ export function ValidacaoPage({
         `}
       </style>
 
-      {/* BLOQUEIO DE TELA / POP-UP DE CARREGAMENTO DURANTE A AUDITORIA */}
+      {/* BLOQUEIO DE TELA / INDICADOR DA ETAPA EM EXECUÇÃO */}
       {processando && (
         <div
           id="overlay-bloqueio-processamento"
@@ -291,13 +301,13 @@ export function ValidacaoPage({
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "14px",
+              gap: "16px",
               boxShadow: "0 6px 20px rgba(0, 0, 0, 0.12)",
-              maxWidth: "380px",
-              textAlign: "center",
+              minWidth: "320px",
+              maxWidth: "400px",
             }}
           >
-            {/* Spinner com rotação suave em verde-petróleo */}
+            {/* Spinner animado */}
             <div
               style={{
                 width: "40px",
@@ -309,29 +319,41 @@ export function ValidacaoPage({
               }}
             ></div>
 
-            <div>
+            <div style={{ width: "100%", textAlign: "center" }}>
               <strong
                 style={{
                   display: "block",
                   color: "#00796b",
                   fontSize: "1rem",
-                  marginBottom: "6px",
+                  marginBottom: "10px",
                   fontWeight: 700,
                 }}
               >
-                Auditando Documentos...
+                Validando Documentos
               </strong>
-              <span
+
+              {/* Indicador individual da etapa em andamento */}
+              <div
+                id="etapa-corrente-processamento"
                 style={{
-                  fontSize: "0.8rem",
-                  color: "#546e7a",
-                  lineHeight: 1.4,
-                  display: "block",
+                  backgroundColor: "#f8fafc",
+                  padding: "10px 14px",
+                  borderRadius: "6px",
+                  border: "1px solid #e2e8f0",
+                  color: "#263238",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
                 }}
               >
-                Extraindo dados do arquivo e aplicando as regras de validação.
-                Por favor, aguarde.
-              </span>
+                {etapaAtual > 0 ? (
+                  <span>
+                    ({etapaAtual}/3){" "}
+                    {descricoesEtapas[etapaAtual] ?? "Processando"}
+                  </span>
+                ) : (
+                  <span>Iniciando processo...</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

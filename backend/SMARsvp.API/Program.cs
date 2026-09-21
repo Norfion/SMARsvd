@@ -16,13 +16,19 @@ builder.Services.AddDbContext<SMARsvpDbContext>(options =>
 
 // 3. Registrar os Serviços no Container de Injeção de Dependência (DI)
 builder.Services.AddScoped<IExtratorPdfService, ExtratorPdfService>();
-builder.Services.AddScoped<IOcrService, OcrService>();
 builder.Services.AddScoped<ProcessadorCarnesService>();
 builder.Services.AddScoped<ILogService, LogService>();
+builder.Services.AddScoped<IAuditoriaValidacaoService, AuditoriaValidacaoService>();
+
+// Mantém o OCR como Singleton para não recarregar o modelo do Tesseract em toda requisição
 builder.Services.AddSingleton<IOcrService, OcrService>();
+
 builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirFrontend", policy =>

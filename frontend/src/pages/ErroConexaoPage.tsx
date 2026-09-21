@@ -42,7 +42,7 @@ export function ErroConexaoPage() {
             border: "1px solid #ffcdd2",
           }}
         >
-          <span>✕</span>
+          <span>⨉</span>
         </div>
 
         <h1

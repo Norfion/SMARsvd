@@ -1,0 +1,18 @@
+[
+  {
+    "PaginaInicio": 1,
+    "PaginaFim": 2,
+    "DadosRetornados": {
+      "CRC": "650",
+      "NroParcelamento": "27480056"
+    }
+  },
+  {
+    "PaginaInicio": 3,
+    "PaginaFim": 4,
+    "DadosRetornados": {
+      "CRC": "414990",
+      "NroParcelamento": "27480057"
+    }
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "PaginaInicio": 3,
+    "PaginaFim": 4,
+    "Queries": [
+      {
+        "NomeQuery": "CRC",
+        "SqlOriginal": "SELECT C.CRC AS CRC,\n       C.NroParcelamento AS NroParcelamento\n  FROM Contribuintes C\n WHERE C.CRC = $CRC",
+        "SqlRenderizado": "SELECT C.CRC AS CRC,\n       C.NroParcelamento AS NroParcelamento\n  FROM Contribuintes C\n WHERE C.CRC = 414990",
+        "Parametros": {
+          "$CRC": "414990"
+        }
+      }
+    ]
+  },
+  {
+    "PaginaInicio": 1,
+    "PaginaFim": 2,
+    "Queries": [
+      {
+        "NomeQuery": "CRC",
+        "SqlOriginal": "SELECT C.CRC AS CRC,\n       C.NroParcelamento AS NroParcelamento\n  FROM Contribuintes C\n WHERE C.CRC = $CRC",
+        "SqlRenderizado": "SELECT C.CRC AS CRC,\n       C.NroParcelamento AS NroParcelamento\n  FROM Contribuintes C\n WHERE C.CRC = 650",
+        "Parametros": {
+          "$CRC": "650"
+        }
+      }
+    ]
+  }
+]

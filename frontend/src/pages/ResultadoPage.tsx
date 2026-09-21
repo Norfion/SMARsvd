@@ -1,23 +1,137 @@
-import { useState } from "react";
-import type { ResultadoValidacaoLote } from "../types/validacao";
+import { useState, useMemo } from "react";
+import type {
+  ResultadoValidacaoLote,
+  InconsistenciaItem,
+  ValidacaoDetalhadaItem,
+} from "../types/validacao";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { AgGridReact } from "ag-grid-react";
+import {
+  AllCommunityModule,
+  ModuleRegistry,
+  type ColDef,
+  type ICellRendererParams,
+} from "ag-grid-community";
+
+// Registra todos os recursos comunitários do AG Grid (filtros, ordenação, paginação)
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface ResultadoPageProps {
   resultadoAuditoria: ResultadoValidacaoLote | null;
   onIrParaValidacao: () => void;
 }
 
+interface ItemTabelaExibicao {
+  pagina: string;
+  campo: string;
+  valorEsperado: string;
+  valorExtraido: string;
+  status: "OK" | "DIVERGÊNCIA";
+  mensagem: string;
+}
+
+// Dicionário de tradução para os controles do AG Grid em Português (pt-BR)
+const AG_GRID_LOCALE_BR = {
+  // Filtros de texto
+  filterOoo: "Filtrar...",
+  equals: "Igual a",
+  notEqual: "Diferente de",
+  blank: "Em branco",
+  notBlank: "Não em branco",
+  empty: "Escolha um",
+  contains: "Contém",
+  notContains: "Não contém",
+  startsWith: "Começa com",
+  endsWith: "Termina com",
+
+  // Filtros de número
+  lessThan: "Menor que",
+  lessThanOrEqual: "Menor ou igual a",
+  greaterThan: "Maior que",
+  greaterThanOrEqual: "Maior ou igual a",
+  inRange: "No intervalo",
+
+  // Condições lógicas do filtro
+  andCondition: "E",
+  orCondition: "OU",
+  applyFilter: "Aplicar",
+  resetFilter: "Limpar",
+  clearFilter: "Limpar",
+  cancelFilter: "Cancelar",
+
+  // Paginação
+  page: "Página",
+  more: "mais",
+  to: "a",
+  of: "de",
+  next: "Próxima",
+  last: "Última",
+  first: "Primeira",
+  previous: "Anterior",
+  pageSizeSelectorLabel: "Itens por página:",
+
+  // Menus e ordenação
+  sortAscending: "Ordem crescente",
+  sortDescending: "Ordem decrescente",
+  columns: "Colunas",
+  filters: "Filtros",
+
+  // Mensagens neutras
+  noRowsToShow: "Nenhum registro para exibir",
+  loadingOoo: "Carregando...",
+};
+
 export function ResultadoPage({
   resultadoAuditoria,
   onIrParaValidacao,
 }: ResultadoPageProps) {
   const [menuExportarAberto, setMenuExportarAberto] = useState(false);
+  // Botão liga/desliga: ligado por padrão (exibe apenas divergências)
+  const [apenasDivergencias, setApenasDivergencias] = useState<boolean>(true);
 
-  // Considera 100 como padrão se não for informado
-  const percentual = resultadoAuditoria?.amostragem ?? 100;
+  // Normalizadores defensivos para aceitar PascalCase e camelCase
+  const nomeArquivo =
+    resultadoAuditoria?.NomeArquivo ??
+    resultadoAuditoria?.nomeArquivo ??
+    "arquivo.pdf";
+  const layoutUtilizado =
+    resultadoAuditoria?.LayoutUtilizado ??
+    resultadoAuditoria?.layoutUtilizado ??
+    "Padrão";
+
+  const totalDocumentos =
+    resultadoAuditoria?.TotalDocumentosAnalisados ??
+    resultadoAuditoria?.totalDocumentosAnalisados ??
+    resultadoAuditoria?.TotalGuiasAnalisadas ??
+    resultadoAuditoria?.totalGuiasAnalisadas ??
+    0;
+  const documentosValidos =
+    resultadoAuditoria?.DocumentosValidos ??
+    resultadoAuditoria?.documentosValidos ??
+    resultadoAuditoria?.GuiasValidas ??
+    resultadoAuditoria?.guiasValidas ??
+    0;
+  const documentosInconsistentes =
+    resultadoAuditoria?.DocumentosComInconsistencia ??
+    resultadoAuditoria?.documentosComInconsistencia ??
+    resultadoAuditoria?.GuiasComInconsistencia ??
+    resultadoAuditoria?.guiasComInconsistencia ??
+    0;
+
+  const percentual =
+    resultadoAuditoria?.Amostragem ?? resultadoAuditoria?.amostragem ?? 100;
   const ehIntegral = percentual === 100;
-  const usouOcr = resultadoAuditoria?.usouOcr ?? false;
+  const usouOcr =
+    resultadoAuditoria?.UsouOcr ?? resultadoAuditoria?.usouOcr ?? false;
+
+  const listaInconsistencias: InconsistenciaItem[] =
+    resultadoAuditoria?.Inconsistencias ??
+    resultadoAuditoria?.inconsistencias ??
+    [];
+
+  const listaValidacoesCompletas: ValidacaoDetalhadaItem[] =
+    resultadoAuditoria?.Validacoes ?? resultadoAuditoria?.validacoes ?? [];
 
   const textoAmostragemBase = ehIntegral
     ? "Validação Integral (100% do arquivo validado)"
@@ -27,6 +141,205 @@ export function ResultadoPage({
     ? `${textoAmostragemBase} [Extração via OCR/IA]`
     : textoAmostragemBase;
 
+  // Unifica e normaliza os itens da tabela para exibição e exportação
+  const itensExibicao = useMemo<ItemTabelaExibicao[]>(() => {
+    // Se estiver ligado "Exibir apenas divergências"
+    if (apenasDivergencias) {
+      return listaInconsistencias.map((item, idx) => {
+        const numPagina = item.PaginaExtraido ?? item.paginaExtraido;
+        const ident = item.IdentificadorGuia ?? item.identificadorGuia;
+        const localizacao =
+          numPagina !== undefined && numPagina !== null && numPagina > 0
+            ? `Página ${numPagina}`
+            : ident
+              ? ident
+              : `Item #${idx + 1}`;
+
+        return {
+          pagina: localizacao,
+          campo: item.Campo ?? item.campo ?? "—",
+          valorEsperado:
+            item.ValorEsperadoBanco ?? item.valorEsperadoBanco ?? "—",
+          valorExtraido: item.ValorExtraidoPdf ?? item.valorExtraidoPdf ?? "—",
+          status: "DIVERGÊNCIA",
+          mensagem:
+            item.MensagemAuditoria ??
+            item.mensagemAuditoria ??
+            item.Mensagem ??
+            item.mensagem ??
+            "Divergência detectada",
+        };
+      });
+    }
+
+    // Se estiver desligado, mostra todas as validações (corretas e divergentes)
+    if (listaValidacoesCompletas.length > 0) {
+      return listaValidacoesCompletas.map((val, idx) => {
+        const numPagina = val.PaginaExtraido ?? val.paginaExtraido;
+        const ident = val.IdentificadorGuia ?? val.identificadorGuia;
+        const localizacao =
+          numPagina !== undefined && numPagina !== null && numPagina > 0
+            ? `Página ${numPagina}`
+            : ident
+              ? ident
+              : `Item #${idx + 1}`;
+
+        const statusRaw = (val.Status ?? val.status ?? "OK").toUpperCase();
+        const ehOk =
+          statusRaw === "OK" ||
+          statusRaw === "VALIDO" ||
+          statusRaw === "VÁLIDO";
+
+        return {
+          pagina: localizacao,
+          campo:
+            val.CampoLayout ??
+            val.campoLayout ??
+            val.CampoBanco ??
+            val.campoBanco ??
+            "—",
+          valorEsperado: val.ValorBanco ?? val.valorBanco ?? "—",
+          valorExtraido: val.ValorExtraido ?? val.valorExtraido ?? "—",
+          status: ehOk ? "OK" : "DIVERGÊNCIA",
+          mensagem:
+            val.MensagemAuditoria ??
+            val.mensagemAuditoria ??
+            val.Mensagem ??
+            val.mensagem ??
+            (ehOk ? "Regra atendida com sucesso" : "Divergência detectada"),
+        };
+      });
+    }
+
+    // Fallback: se não houver array de validações completas na resposta, exibe as inconsistências
+    return listaInconsistencias.map((item, idx) => {
+      const numPagina = item.PaginaExtraido ?? item.paginaExtraido;
+      const ident = item.IdentificadorGuia ?? item.identificadorGuia;
+      const localizacao =
+        numPagina !== undefined && numPagina !== null && numPagina > 0
+          ? `Página ${numPagina}`
+          : ident
+            ? ident
+            : `Item #${idx + 1}`;
+
+      return {
+        pagina: localizacao,
+        campo: item.Campo ?? item.campo ?? "—",
+        valorEsperado:
+          item.ValorEsperadoBanco ?? item.valorEsperadoBanco ?? "—",
+        valorExtraido: item.ValorExtraidoPdf ?? item.valorExtraidoPdf ?? "—",
+        status: "DIVERGÊNCIA",
+        mensagem:
+          item.MensagemAuditoria ??
+          item.mensagemAuditoria ??
+          item.Mensagem ??
+          item.mensagem ??
+          "Divergência detectada",
+      };
+    });
+  }, [apenasDivergencias, listaInconsistencias, listaValidacoesCompletas]);
+
+  // Definição das colunas dinâmicas para o AG Grid
+  const definicoesColunas = useMemo<ColDef<ItemTabelaExibicao>[]>(() => {
+    return [
+      {
+        headerName: "Página",
+        field: "pagina",
+        width: 130,
+        sortable: true,
+        filter: true,
+        cellStyle: { fontWeight: "700", display: "flex", alignItems: "center" },
+      },
+      {
+        headerName: "Campo",
+        field: "campo",
+        width: 170,
+        sortable: true,
+        filter: true,
+        cellStyle: {
+          color: "#00796b",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+        },
+      },
+      {
+        headerName: "Valor Esperado (Banco)",
+        field: "valorEsperado",
+        width: 200,
+        sortable: true,
+        filter: true,
+        cellStyle: {
+          color: "#2e7d32",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+        },
+      },
+      {
+        headerName: "Valor Extraído (Arquivo)",
+        field: "valorExtraido",
+        width: 200,
+        sortable: true,
+        filter: true,
+        cellStyle: (params) => ({
+          color: params.data?.status === "OK" ? "#263238" : "#c62828",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+        }),
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 140,
+        sortable: true,
+        filter: true,
+        cellRenderer: (params: ICellRendererParams<ItemTabelaExibicao>) => {
+          const ehOk = params.value === "OK";
+          return (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "2px 8px",
+                  borderRadius: "12px",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  backgroundColor: ehOk ? "#e8f5e9" : "#ffebee",
+                  color: ehOk ? "#2e7d32" : "#c62828",
+                  border: ehOk ? "1px solid #c8e6c9" : "1px solid #ffcdd2",
+                  lineHeight: "1.2",
+                }}
+              >
+                {ehOk ? "OK" : "DIVERGÊNCIA"}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Mensagem de Auditoria",
+        field: "mensagem",
+        flex: 1,
+        minWidth: 260,
+        sortable: true,
+        filter: true,
+        cellStyle: (params) => ({
+          color: params.data?.status === "OK" ? "#546e7a" : "#b71c1c",
+          display: "flex",
+          alignItems: "center",
+        }),
+      },
+    ];
+  }, []);
+
   // ==========================================
   // EXPORTAÇÃO PARA CSV
   // ==========================================
@@ -35,52 +348,52 @@ export function ResultadoPage({
 
     const linhas: string[] = [];
 
-    // Metadados do Arquivo e Resumo
-    linhas.push(`RELATÓRIO DE AUDITORIA - SMARsvd`);
-    linhas.push(`Arquivo Analisado;${resultadoAuditoria.nomeArquivo}`);
-    linhas.push(`Layout Utilizado;${resultadoAuditoria.layoutUtilizado}`);
+    linhas.push(`RELATÓRIO DE AUDITORIA - SMARrsvp`);
+    linhas.push(`Arquivo Analisado;${nomeArquivo}`);
+    linhas.push(`Layout Utilizado;${layoutUtilizado}`);
     linhas.push(`Método de Validação;${textoAmostragem}`);
+    linhas.push(
+      `Modo de Exibição;${apenasDivergencias ? "Apenas Divergências" : "Todas as Validações"}`,
+    );
     if (usouOcr) {
       linhas.push(
         `Nota Informativa;Foi utilizada extração de dados via inteligência artificial (OCR). Ela pode cometer erros e pode não ter sido 100% extraída corretamente.`,
       );
     }
+    linhas.push(`Total de Documentos;${totalDocumentos}`);
+    linhas.push(`Documentos Válidos;${documentosValidos}`);
+    linhas.push(`Inconsistências Detectadas;${documentosInconsistentes}`);
+
     linhas.push(
-      `Total de Documentos;${resultadoAuditoria.totalGuiasAnalisadas}`,
+      `Página;Campo;Valor Esperado (Banco);Valor Extraído (Arquivo);Status;Mensagem de Auditoria`,
     );
 
-    // Cabeçalho da Tabela
-    linhas.push(
-      `Localização;Campo;Valor Encontrado (Arquivo);Valor Esperado (Base de Dados);Mensagem`,
-    );
-
-    // Itens de inconsistência
-    if ((resultadoAuditoria.inconsistencias?.length ?? 0) === 0) {
-      linhas.push(`Nenhuma divergência detectada;;;;`);
+    if (itensExibicao.length === 0) {
+      linhas.push(`Nenhum registro a exibir;;;;;`);
     } else {
-      (resultadoAuditoria.inconsistencias ?? []).forEach((item) => {
+      itensExibicao.forEach((item) => {
         const sanitizar = (txt: string) =>
           `"${(txt || "").replace(/"/g, '""')}"`;
 
         linhas.push(
           [
-            sanitizar(item.identificadorGuia),
+            sanitizar(item.pagina),
             sanitizar(item.campo),
-            sanitizar(item.valorExtraidoPdf),
-            sanitizar(item.valorEsperadoBanco),
+            sanitizar(item.valorEsperado),
+            sanitizar(item.valorExtraido),
+            sanitizar(item.status),
             sanitizar(item.mensagem),
           ].join(";"),
         );
       });
     }
 
-    // \uFEFF adiciona o Byte Order Mark (BOM) UTF-8 para que o Excel abra com acentos corretos
     const conteudoCsv = "\uFEFF" + linhas.join("\r\n");
     const blob = new Blob([conteudoCsv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Resultado_Auditoria_${resultadoAuditoria.nomeArquivo.replace(/\.[^/.]+$/, "")}.csv`;
+    link.download = `Resultado_Auditoria_${nomeArquivo.replace(/\.[^/.]+$/, "")}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -94,7 +407,6 @@ export function ResultadoPage({
   const exportarParaExcel = () => {
     if (!resultadoAuditoria) return;
 
-    // Escapa caracteres especiais para evitar erros de sintaxe XML
     const escaparXml = (texto: string | number) => {
       return String(texto ?? "")
         .replace(/&/g, "&amp;")
@@ -106,19 +418,23 @@ export function ResultadoPage({
 
     let linhasXml = `
       <Row>
-        <Cell ss:StyleID="Titulo"><Data ss:Type="String">RELATÓRIO DE AUDITORIA - SMARsvd</Data></Cell>
+        <Cell ss:StyleID="Titulo"><Data ss:Type="String">RELATÓRIO DE AUDITORIA - SMARrsvp</Data></Cell>
       </Row>
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Arquivo Analisado:</Data></Cell>
-        <Cell><Data ss:Type="String">${escaparXml(resultadoAuditoria.nomeArquivo)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escaparXml(nomeArquivo)}</Data></Cell>
       </Row>
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Layout Utilizado:</Data></Cell>
-        <Cell><Data ss:Type="String">${escaparXml(resultadoAuditoria.layoutUtilizado)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escaparXml(layoutUtilizado)}</Data></Cell>
       </Row>
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Método de Validação:</Data></Cell>
         <Cell><Data ss:Type="String">${escaparXml(textoAmostragem)}</Data></Cell>
+      </Row>
+      <Row>
+        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Modo de Exibição:</Data></Cell>
+        <Cell><Data ss:Type="String">${apenasDivergencias ? "Apenas Divergências" : "Todas as Validações"}</Data></Cell>
       </Row>`;
 
     if (usouOcr) {
@@ -132,36 +448,42 @@ export function ResultadoPage({
     linhasXml += `
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Total de Documentos:</Data></Cell>
-        <Cell><Data ss:Type="Number">${resultadoAuditoria.guiasValidas}</Data></Cell>
+        <Cell><Data ss:Type="Number">${totalDocumentos}</Data></Cell>
       </Row>
       <Row>
-        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Documentos com Divergências:</Data></Cell>
-        <Cell><Data ss:Type="Number">${resultadoAuditoria.guiasComInconsistencia}</Data></Cell>
+        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Documentos Válidos:</Data></Cell>
+        <Cell><Data ss:Type="Number">${documentosValidos}</Data></Cell>
+      </Row>
+      <Row>
+        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Inconsistências Detectadas:</Data></Cell>
+        <Cell><Data ss:Type="Number">${documentosInconsistentes}</Data></Cell>
       </Row>
       <Row></Row>
       <Row ss:StyleID="Cabecalho">
-        <Cell><Data ss:Type="String">Localização</Data></Cell>
+        <Cell><Data ss:Type="String">Página</Data></Cell>
         <Cell><Data ss:Type="String">Campo</Data></Cell>
-        <Cell><Data ss:Type="String">Valor Encontrado (Arquivo)</Data></Cell>
-        <Cell><Data ss:Type="String">Valor Esperado (Base de Dados)</Data></Cell>
-        <Cell><Data ss:Type="String">Mensagem</Data></Cell>
+        <Cell><Data ss:Type="String">Valor Esperado (Banco)</Data></Cell>
+        <Cell><Data ss:Type="String">Valor Extraído (Arquivo)</Data></Cell>
+        <Cell><Data ss:Type="String">Status</Data></Cell>
+        <Cell><Data ss:Type="String">Mensagem de Auditoria</Data></Cell>
       </Row>
     `;
 
-    if ((resultadoAuditoria.inconsistencias?.length ?? 0) === 0) {
+    if (itensExibicao.length === 0) {
       linhasXml += `
         <Row>
-          <Cell><Data ss:Type="String">Nenhuma inconsistência encontrada.</Data></Cell>
+          <Cell><Data ss:Type="String">Nenhum registro a exibir.</Data></Cell>
         </Row>
       `;
     } else {
-      resultadoAuditoria.inconsistencias.forEach((item) => {
+      itensExibicao.forEach((item) => {
         linhasXml += `
           <Row>
-            <Cell><Data ss:Type="String">${escaparXml(item.identificadorGuia)}</Data></Cell>
+            <Cell><Data ss:Type="String">${escaparXml(item.pagina)}</Data></Cell>
             <Cell><Data ss:Type="String">${escaparXml(item.campo)}</Data></Cell>
-            <Cell><Data ss:Type="String">${escaparXml(item.valorExtraidoPdf)}</Data></Cell>
-            <Cell><Data ss:Type="String">${escaparXml(item.valorEsperadoBanco)}</Data></Cell>
+            <Cell><Data ss:Type="String">${escaparXml(item.valorEsperado)}</Data></Cell>
+            <Cell><Data ss:Type="String">${escaparXml(item.valorExtraido)}</Data></Cell>
+            <Cell><Data ss:Type="String">${escaparXml(item.status)}</Data></Cell>
             <Cell><Data ss:Type="String">${escaparXml(item.mensagem)}</Data></Cell>
           </Row>
         `;
@@ -191,11 +513,12 @@ export function ResultadoPage({
         </Styles>
         <Worksheet ss:Name="Auditoria">
           <Table>
-            <Column ss:Width="160"/>
             <Column ss:Width="120"/>
-            <Column ss:Width="140"/>
+            <Column ss:Width="130"/>
             <Column ss:Width="150"/>
-            <Column ss:Width="300"/>
+            <Column ss:Width="150"/>
+            <Column ss:Width="100"/>
+            <Column ss:Width="280"/>
             ${linhasXml}
           </Table>
         </Worksheet>
@@ -207,7 +530,7 @@ export function ResultadoPage({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Resultado_Auditoria_${resultadoAuditoria.nomeArquivo.replace(/\.[^/.]+$/, "")}.xls`;
+    link.download = `Resultado_Auditoria_${nomeArquivo.replace(/\.[^/.]+$/, "")}.xls`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -216,40 +539,41 @@ export function ResultadoPage({
   };
 
   // ==========================================
-  // EXPORTAÇÃO PARA PDF (Download Direto via jsPDF)
+  // EXPORTAÇÃO PARA PDF
   // ==========================================
   const exportarParaPdf = () => {
     if (!resultadoAuditoria) return;
 
     setMenuExportarAberto(false);
 
-    // Cria o documento em orientação retrato (portrait), formato A4
     const doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
       format: "a4",
     });
 
-    // 1. Cabeçalho e Título Principal
-    doc.setFillColor(0, 121, 107); // Cor verde corporativa (#00796b)
+    doc.setFillColor(0, 121, 107);
     doc.rect(14, 12, 182, 8, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(255, 255, 255);
-    doc.text("SMARsvd — RELATÓRIO DE AUDITORIA DE DOCUMENTOS", 16, 17.5);
+    doc.text("SMARrsvp — RELATÓRIO DE AUDITORIA DE DOCUMENTOS", 16, 17.5);
 
-    // 2. Metadados do Arquivo
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(55, 71, 79); // #37474f
-    doc.text(`Arquivo Analisado: ${resultadoAuditoria.nomeArquivo}`, 14, 25);
-    doc.text(`Layout Utilizado: ${resultadoAuditoria.layoutUtilizado}`, 14, 30);
-    doc.text(`Método: ${textoAmostragem}`, 14, 35);
+    doc.setTextColor(55, 71, 79);
+    doc.text(`Arquivo Analisado: ${nomeArquivo}`, 14, 25);
+    doc.text(`Layout Utilizado: ${layoutUtilizado}`, 14, 30);
+    doc.text(
+      `Método: ${textoAmostragem} | Modo: ${apenasDivergencias ? "Apenas Divergências" : "Todas as Validações"}`,
+      14,
+      35,
+    );
 
     let posicaoYCards = 40;
     if (usouOcr) {
       doc.setFontSize(7.5);
-      doc.setTextColor(198, 40, 40); // tom de aviso
+      doc.setTextColor(198, 40, 40);
       doc.text(
         "Nota: Foi usada extração de dados via IA. A IA pode cometer erros.",
         14,
@@ -258,32 +582,24 @@ export function ResultadoPage({
       posicaoYCards = 43;
     }
 
-    // 3. Indicadores de Resumo (Cards)
-    // Box: Total
-    doc.setFillColor(224, 242, 241); // #e0f2f1
+    doc.setFillColor(224, 242, 241);
     doc.roundedRect(14, posicaoYCards, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 77, 64);
     doc.text("TOTAL DE DOCUMENTOS", 17, posicaoYCards + 5);
     doc.setFontSize(14);
-    doc.text(
-      String(resultadoAuditoria.totalGuiasAnalisadas),
-      17,
-      posicaoYCards + 13,
-    );
+    doc.text(String(totalDocumentos), 17, posicaoYCards + 13);
 
-    // Box: Válidos
-    doc.setFillColor(232, 245, 233); // #e8f5e9
+    doc.setFillColor(232, 245, 233);
     doc.roundedRect(77, posicaoYCards, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setTextColor(27, 94, 32);
     doc.text("DOCUMENTOS VÁLIDOS", 80, posicaoYCards + 5);
     doc.setFontSize(14);
-    doc.text(String(resultadoAuditoria.guiasValidas), 80, posicaoYCards + 13);
+    doc.text(String(documentosValidos), 80, posicaoYCards + 13);
 
-    // Box: Com Inconsistência
-    const temErro = resultadoAuditoria.guiasComInconsistencia > 0;
+    const temErro = documentosInconsistentes > 0;
     doc.setFillColor(
       temErro ? 255 : 245,
       temErro ? 235 : 245,
@@ -296,42 +612,38 @@ export function ResultadoPage({
       temErro ? 28 : 117,
       temErro ? 28 : 117,
     );
-    doc.text("INCONSISTÊNCIAS", 143, posicaoYCards + 5);
+    doc.text("INCONSISTÊNCIAS DETECTADAS", 143, posicaoYCards + 5);
     doc.setFontSize(14);
-    doc.text(
-      String(resultadoAuditoria.guiasComInconsistencia),
-      143,
-      posicaoYCards + 13,
-    );
+    doc.text(String(documentosInconsistentes), 143, posicaoYCards + 13);
 
-    // 4. Montagem das Linhas da Tabela
     const colunasTabela = [
-      "Localização",
+      "Página",
       "Campo",
-      "Valor Encontrado",
       "Valor Esperado",
-      "Mensagem",
+      "Valor Extraído",
+      "Status",
+      "Mensagem de Auditoria",
     ];
 
     const dadosTabela =
-      (resultadoAuditoria.inconsistencias?.length ?? 0) === 0
-        ? [["—", "—", "—", "—", "Nenhuma inconsistência detectada."]]
-        : (resultadoAuditoria.inconsistencias ?? []).map((item, idx) => [
-            item.identificadorGuia || `Item #${idx + 1}`,
+      itensExibicao.length === 0
+        ? [["—", "—", "—", "—", "—", "Nenhum registro para exibir."]]
+        : itensExibicao.map((item) => [
+            item.pagina,
             item.campo,
-            item.valorExtraidoPdf || "—",
-            item.valorEsperadoBanco || "—",
+            item.valorEsperado,
+            item.valorExtraido,
+            item.status,
             item.mensagem,
           ]);
 
-    // 5. Renderização da Tabela via autotable com Rodapé Dinâmico
     autoTable(doc, {
       startY: posicaoYCards + 21,
       head: [colunasTabela],
       body: dadosTabela,
       theme: "grid",
       headStyles: {
-        fillColor: [0, 150, 136], // #009688
+        fillColor: [0, 150, 136],
         textColor: [255, 255, 255],
         fontSize: 8,
         fontStyle: "bold",
@@ -341,11 +653,12 @@ export function ResultadoPage({
         textColor: [55, 71, 79],
       },
       columnStyles: {
-        0: { cellWidth: 32, fontStyle: "bold" },
+        0: { cellWidth: 26, fontStyle: "bold" },
         1: { cellWidth: 28, textColor: [0, 121, 107] },
-        2: { cellWidth: 28, textColor: [198, 40, 40] },
-        3: { cellWidth: 28, textColor: [46, 125, 50] },
-        4: { cellWidth: "auto" },
+        2: { cellWidth: 28, textColor: [46, 125, 50] },
+        3: { cellWidth: 28, textColor: [198, 40, 40] },
+        4: { cellWidth: 22, fontStyle: "bold" },
+        5: { cellWidth: "auto" },
       },
       styles: {
         cellPadding: 2.5,
@@ -363,18 +676,15 @@ export function ResultadoPage({
         const alturaPagina = doc.internal.pageSize.getHeight();
         const larguraPagina = doc.internal.pageSize.getWidth();
 
-        // Linha divisória no rodapé
-        doc.setDrawColor(207, 216, 220); // #cfd8dc
+        doc.setDrawColor(207, 216, 220);
         doc.setLineWidth(0.2);
         doc.line(14, alturaPagina - 12, larguraPagina - 14, alturaPagina - 12);
 
-        // Texto do rodapé com data/horário
         doc.setFontSize(7.5);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(120, 144, 156); // #78909c
+        doc.setTextColor(120, 144, 156);
         doc.text(`Gerado em: ${dataHoraFormatada}`, 14, alturaPagina - 7);
 
-        // Paginação à direita
         doc.text(
           `Página ${data.pageNumber}`,
           larguraPagina - 14,
@@ -384,12 +694,11 @@ export function ResultadoPage({
       },
     });
 
-    // 6. Dispara o download direto do arquivo .pdf
-    const nomeBase = resultadoAuditoria.nomeArquivo.replace(/\.[^/.]+$/, "");
+    const nomeBase = nomeArquivo.replace(/\.[^/.]+$/, "");
     doc.save(`Resultado_Auditoria_${nomeBase}.pdf`);
   };
 
-  // Estado neutro: nenhum carnê validado ainda
+  // Estado neutro: nenhum documento validado ainda
   if (!resultadoAuditoria) {
     return (
       <div
@@ -468,7 +777,7 @@ export function ResultadoPage({
         `}
       </style>
 
-      {/* CABEÇALHO DO RESULTADO */}
+      {/* CABEÇALHO DO RESULTADO COM TOGGLE E BOTÕES */}
       <div
         style={{
           display: "flex",
@@ -477,6 +786,8 @@ export function ResultadoPage({
           marginBottom: "16px",
           borderBottom: "1px solid #eceff1",
           paddingBottom: "12px",
+          flexWrap: "wrap",
+          gap: "12px",
         }}
       >
         <div>
@@ -484,16 +795,87 @@ export function ResultadoPage({
             Resultado da Auditoria
           </h2>
           <span style={{ fontSize: "0.8rem", color: "#607d8b" }}>
-            Arquivo: <strong>{resultadoAuditoria.nomeArquivo}</strong> • Layout:{" "}
-            <strong>{resultadoAuditoria.layoutUtilizado}</strong>
+            Arquivo: <strong>{nomeArquivo}</strong> • Layout:{" "}
+            <strong>{layoutUtilizado}</strong>
           </span>
         </div>
 
-        {/* ÁREA DE AÇÕES COM O BOTÃO NOVO / EXPORTAR */}
+        {/* ÁREA DE AÇÕES: BOTÃO LIGA/DESLIGA + EXPORTAR */}
         <div
           className="area-botoes-resultado"
-          style={{ display: "flex", alignItems: "center", gap: "10px" }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
         >
+          {/* BOTÃO LIGA / DESLIGA: "Exibir apenas divergências" */}
+          <div
+            id="controle-filtro-divergencias"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backgroundColor: "#f8fafc",
+              padding: "4px 10px",
+              borderRadius: "4px",
+              border: "1px solid #cfd8dc",
+            }}
+          >
+            <button
+              type="button"
+              id="btn-switch-apenas-divergencias"
+              onClick={() => setApenasDivergencias((anterior) => !anterior)}
+              style={{
+                position: "relative",
+                width: "38px",
+                height: "20px",
+                borderRadius: "10px",
+                backgroundColor: apenasDivergencias ? "#00796b" : "#90a4ae",
+                border: "none",
+                cursor: "pointer",
+                padding: "2px",
+                transition: "background-color 0.2s ease",
+                display: "inline-flex",
+                alignItems: "center",
+              }}
+              title={
+                apenasDivergencias
+                  ? "Clique para exibir todas as validações"
+                  : "Clique para exibir apenas as divergências"
+              }
+            >
+              <span
+                style={{
+                  display: "block",
+                  width: "16px",
+                  height: "16px",
+                  borderRadius: "50%",
+                  backgroundColor: "#ffffff",
+                  transform: apenasDivergencias
+                    ? "translateX(18px)"
+                    : "translateX(0px)",
+                  transition: "transform 0.2s ease",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                }}
+              ></span>
+            </button>
+            <label
+              htmlFor="btn-switch-apenas-divergencias"
+              style={{
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: apenasDivergencias ? "#00796b" : "#455a64",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+            >
+              Exibir apenas divergências
+            </label>
+          </div>
+
+          {/* MENU EXPORTAR */}
           <div
             style={{ position: "relative" }}
             onMouseEnter={() => setMenuExportarAberto(true)}
@@ -641,7 +1023,6 @@ export function ResultadoPage({
           </span>
         </div>
 
-        {/* Nota informativa de IA / OCR */}
         {usouOcr && (
           <div
             id="nota-aviso-ocr-ia"
@@ -696,7 +1077,7 @@ export function ResultadoPage({
               color: "#00796b",
             }}
           >
-            {resultadoAuditoria.totalGuiasAnalisadas}
+            {totalDocumentos}
           </p>
         </div>
 
@@ -721,18 +1102,16 @@ export function ResultadoPage({
               color: "#2e7d32",
             }}
           >
-            {resultadoAuditoria.guiasValidas}
+            {documentosValidos}
           </p>
         </div>
 
         <div
           style={{
             backgroundColor:
-              resultadoAuditoria.guiasComInconsistencia > 0
-                ? "#ffebee"
-                : "#f5f5f5",
+              documentosInconsistentes > 0 ? "#ffebee" : "#f5f5f5",
             border:
-              resultadoAuditoria.guiasComInconsistencia > 0
+              documentosInconsistentes > 0
                 ? "1px solid #ffcdd2"
                 : "1px solid #e0e0e0",
             borderRadius: "4px",
@@ -742,10 +1121,7 @@ export function ResultadoPage({
           <span
             style={{
               fontSize: "0.75rem",
-              color:
-                resultadoAuditoria.guiasComInconsistencia > 0
-                  ? "#b71c1c"
-                  : "#757575",
+              color: documentosInconsistentes > 0 ? "#b71c1c" : "#757575",
               fontWeight: 700,
             }}
           >
@@ -756,19 +1132,16 @@ export function ResultadoPage({
               margin: "4px 0 0 0",
               fontSize: "1.4rem",
               fontWeight: 700,
-              color:
-                resultadoAuditoria.guiasComInconsistencia > 0
-                  ? "#c62828"
-                  : "#9e9e9e",
+              color: documentosInconsistentes > 0 ? "#c62828" : "#9e9e9e",
             }}
           >
-            {resultadoAuditoria.guiasComInconsistencia}
+            {documentosInconsistentes}
           </p>
         </div>
       </div>
 
-      {/* Tabela de Inconsistências / Detalhes */}
-      {(resultadoAuditoria.inconsistencias?.length ?? 0) === 0 ? (
+      {/* Grid Dinâmico AG Grid */}
+      {itensExibicao.length === 0 ? (
         <div
           style={{
             padding: "20px",
@@ -780,85 +1153,38 @@ export function ResultadoPage({
             fontWeight: 600,
           }}
         >
-          Nenhuma inconsistência encontrada. Todas as regras de validação foram
-          atendidas perfeitamente!
+          {apenasDivergencias
+            ? "Nenhuma inconsistência encontrada. Todas as regras de validação foram atendidas perfeitamente!"
+            : "Nenhum dado de validação encontrado para exibição."}
         </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: "0.85rem",
+        <div
+          style={{
+            width: "100%",
+            height: "520px",
+            border: "1px solid #cfd8dc",
+            borderRadius: "4px",
+            overflow: "hidden",
+          }}
+        >
+          <AgGridReact<ItemTabelaExibicao>
+            rowData={itensExibicao}
+            columnDefs={definicoesColunas}
+            pagination={true}
+            paginationPageSize={20}
+            paginationPageSizeSelector={[10, 20, 50, 100]}
+            defaultColDef={{
+              resizable: true,
+              sortable: true,
+              filter: true,
             }}
-          >
-            <thead>
-              <tr
-                style={{
-                  backgroundColor: "#37474f",
-                  color: "#ffffff",
-                  textAlign: "left",
-                }}
-              >
-                <th style={{ padding: "8px 10px" }}>Localização</th>
-                <th style={{ padding: "8px 10px" }}>Campo</th>
-                <th style={{ padding: "8px 10px" }}>
-                  Valor Encontrado (Arquivo)
-                </th>
-                <th style={{ padding: "8px 10px" }}>
-                  Valor Esperado (Base de Dados)
-                </th>
-                <th style={{ padding: "8px 10px" }}>Mensagem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(resultadoAuditoria.inconsistencias ?? []).map((item, idx) => (
-                <tr
-                  key={idx}
-                  style={{
-                    borderBottom: "1px solid #eceff1",
-                    backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fcfcfc",
-                  }}
-                >
-                  <td style={{ padding: "8px 10px", fontWeight: 700 }}>
-                    {item.identificadorGuia || `Item #${idx + 1}`}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      color: "#00796b",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {item.campo}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      color: "#c62828",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {item.valorExtraidoPdf || "—"}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      color: "#2e7d32",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {item.valorEsperadoBanco || "—"}
-                  </td>
-                  <td style={{ padding: "8px 10px", color: "#455a64" }}>
-                    {item.mensagem}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            animateRows={true}
+            localeText={AG_GRID_LOCALE_BR}
+          ></AgGridReact>
         </div>
       )}
     </div>
   );
 }
+
+export default ResultadoPage;

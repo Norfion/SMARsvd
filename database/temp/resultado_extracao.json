@@ -8,13 +8,13 @@
       "PaginaFim": 4,
       "Campos": [
         {
-          "Nome": "Nome Prefeitura",
-          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
-          "PaginaExtraido": 3,
+          "Nome": "Lote",
+          "ValorExtraido": "18",
+          "PaginaExtraido": 4,
           "ExtracaoMetodo": "Digital"
         },
         {
-          "Nome": "Nro Parcelamento",
+          "Nome": "NroParcelamento",
           "ValorExtraido": "27480059",
           "PaginaExtraido": 4,
           "ExtracaoMetodo": "Digital"
@@ -26,9 +26,9 @@
           "ExtracaoMetodo": "Digital"
         },
         {
-          "Nome": "Lote",
-          "ValorExtraido": "18",
-          "PaginaExtraido": 4,
+          "Nome": "Nome Prefeitura",
+          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
+          "PaginaExtraido": 3,
           "ExtracaoMetodo": "Digital"
         }
       ]
@@ -38,13 +38,13 @@
       "PaginaFim": 2,
       "Campos": [
         {
-          "Nome": "Nome Prefeitura",
-          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
-          "PaginaExtraido": 1,
+          "Nome": "Lote",
+          "ValorExtraido": "18",
+          "PaginaExtraido": 2,
           "ExtracaoMetodo": "Digital"
         },
         {
-          "Nome": "Nro Parcelamento",
+          "Nome": "NroParcelamento",
           "ValorExtraido": "27480056",
           "PaginaExtraido": 2,
           "ExtracaoMetodo": "Digital"
@@ -56,9 +56,9 @@
           "ExtracaoMetodo": "Digital"
         },
         {
-          "Nome": "Lote",
-          "ValorExtraido": "18",
-          "PaginaExtraido": 2,
+          "Nome": "Nome Prefeitura",
+          "ValorExtraido": "MUNICÍPIO DE SERTÃOZINHO",
+          "PaginaExtraido": 1,
           "ExtracaoMetodo": "Digital"
         }
       ]

@@ -1,0 +1,71 @@
+{
+  "NomeArquivo": "Lote de Testes - Digital.pdf",
+  "LayoutUtilizado": "Carnê de Parcelamento",
+  "TotalDocumentosAnalisados": 2,
+  "DocumentosValidos": 0,
+  "DocumentosComInconsistencia": 2,
+  "Amostragem": 100,
+  "UsouOcr": false,
+  "Inconsistencias": [
+    {
+      "PaginaExtraido": 3,
+      "Campo": "Nro Parcelamento",
+      "ValorExtraidoPdf": "Vazio/Null",
+      "ValorEsperadoBanco": "27480057",
+      "MensagemAuditoria": "Divergência de valores."
+    },
+    {
+      "PaginaExtraido": 1,
+      "Campo": "Nro Parcelamento",
+      "ValorExtraidoPdf": "Vazio/Null",
+      "ValorEsperadoBanco": "27480056",
+      "MensagemAuditoria": "Divergência de valores."
+    }
+  ],
+  "Validacoes": [
+    {
+      "PaginaExtraido": 3,
+      "NomeQuery": "CRC",
+      "CampoLayout": "Nro Parcelamento",
+      "CampoBanco": "NroParcelamento",
+      "RegraAplicada": "=",
+      "ValorExtraido": "Vazio/Null",
+      "ValorBanco": "27480057",
+      "Status": "DIVERGÊNCIA",
+      "MensagemAuditoria": "Divergência de valores."
+    },
+    {
+      "PaginaExtraido": 3,
+      "NomeQuery": "CRC",
+      "CampoLayout": "CRC",
+      "CampoBanco": "CRC",
+      "RegraAplicada": "=",
+      "ValorExtraido": "414990",
+      "ValorBanco": "414990",
+      "Status": "OK",
+      "MensagemAuditoria": "Valor validado com sucesso."
+    },
+    {
+      "PaginaExtraido": 1,
+      "NomeQuery": "CRC",
+      "CampoLayout": "Nro Parcelamento",
+      "CampoBanco": "NroParcelamento",
+      "RegraAplicada": "=",
+      "ValorExtraido": "Vazio/Null",
+      "ValorBanco": "27480056",
+      "Status": "DIVERGÊNCIA",
+      "MensagemAuditoria": "Divergência de valores."
+    },
+    {
+      "PaginaExtraido": 1,
+      "NomeQuery": "CRC",
+      "CampoLayout": "CRC",
+      "CampoBanco": "CRC",
+      "RegraAplicada": "=",
+      "ValorExtraido": "650",
+      "ValorBanco": "650",
+      "Status": "OK",
+      "MensagemAuditoria": "Valor validado com sucesso."
+    }
+  ]
+}

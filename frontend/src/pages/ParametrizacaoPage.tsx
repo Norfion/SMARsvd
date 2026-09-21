@@ -692,30 +692,35 @@ export function ParametrizacaoPage({
     const comandosBloqueados =
       /\b(UPDATE|DELETE|INSERT|EXEC|EXECUTE|DROP|ALTER|CREATE|TRUNCATE|MERGE)\b/i;
     if (comandosBloqueados.test(texto)) {
-      exibirMensagem(
-        "aviso",
-        "Bloqueio de Segurança",
-        "São permitidas apenas consultas somente leitura (SELECT).",
-      );
+      exibirMensagem("aviso", "Bloqueio", "Apenas (SELECT) permitido.");
       return;
     }
 
-    const regexParam = /\$([a-zA-Z0-9_]+)/g;
+    // Suporte robusto a ${Nome com espaços} ou $NomeSimples
+    const regexParam = /\$\{([^}]+)\}|\$([a-zA-Z0-9_]+)/g;
     const params: string[] = [];
-    let match;
-    while ((match = regexParam.exec(texto)) !== null) {
-      params.push(match[1]);
+    let matchParam;
+    while ((matchParam = regexParam.exec(texto)) !== null) {
+      const capturado = matchParam[1] || matchParam[2];
+      if (capturado && capturado.trim()) {
+        params.push(capturado.trim());
+      }
     }
     const paramsUnicos = [...new Set(params)];
 
-    const nomesDosCampos = campos.map((c) => c.nomeCampo);
+    // Validação dos parâmetros encontrados contra os campos demarcados do layout
     const parametrosInvalidos = paramsUnicos.filter(
-      (p) => !nomesDosCampos.includes(p),
+      (param) =>
+        !campos.some(
+          (c) =>
+            c.nomeCampo.trim().toLowerCase() === param.trim().toLowerCase(),
+        ),
     );
+
     if (parametrosInvalidos.length > 0) {
       exibirMensagem(
         "aviso",
-        "Parâmetros inválidos",
+        "Parâmetros não encontrados",
         `Os seguintes parâmetros não existem nos campos do layout: ${parametrosInvalidos.join(
           ", ",
         )}`,
@@ -725,8 +730,11 @@ export function ParametrizacaoPage({
 
     const regexRetorno = /\bAS\s+([a-zA-Z0-9_]+)/gi;
     const rets: string[] = [];
-    while ((match = regexRetorno.exec(texto)) !== null) {
-      rets.push(match[1]);
+    let matchRetorno;
+    while ((matchRetorno = regexRetorno.exec(texto)) !== null) {
+      if (matchRetorno[1] && matchRetorno[1].trim()) {
+        rets.push(matchRetorno[1].trim());
+      }
     }
     const retsUnicos = [...new Set(rets)];
 
@@ -734,7 +742,7 @@ export function ParametrizacaoPage({
       exibirMensagem(
         "aviso",
         "Campo inválido",
-        "Não foi possível identificar os campos de retorno. Utilize 'AS NomeVariavel' na query para especificar as colunas.",
+        "Use 'AS NomeVariavel' para cada campo retornado no SELECT.",
       );
       return;
     }
@@ -742,8 +750,40 @@ export function ParametrizacaoPage({
     setParametrosEncontrados(paramsUnicos);
     setCamposRetornados(retsUnicos);
     setSqlAnalisado(true);
+
     if (retsUnicos.length > 0) setRegraCampoRetornado(retsUnicos[0]);
     if (campos.length > 0) setRegraCampoCarne(campos[0].nomeCampo);
+
+    // Identificar regras órfãs e sincronizar caso o SQL mude
+    const regrasInvalidas = regrasAtuais.filter(
+      (r) =>
+        !retsUnicos.some(
+          (cRet) =>
+            cRet.toLowerCase() === r.campoRetornado.trim().toLowerCase(),
+        ),
+    );
+
+    if (regrasInvalidas.length > 0) {
+      exibirConfirmacao(
+        "SQL Inconsistente",
+        `O novo SQL não retorna os campos: ${regrasInvalidas
+          .map((r) => r.campoRetornado)
+          .join(
+            ", ",
+          )}. As regras associadas serão removidas.\n\nDeseja continuar?`,
+        () => {
+          setRegrasAtuais(
+            regrasAtuais.filter((r) =>
+              retsUnicos.some(
+                (cRet) =>
+                  cRet.toLowerCase() === r.campoRetornado.trim().toLowerCase(),
+              ),
+            ),
+          );
+        },
+        "Continuar",
+      );
+    }
   };
 
   const adicionarRegraValidacao = () => {
@@ -755,6 +795,22 @@ export function ParametrizacaoPage({
       );
       return;
     }
+
+    const duplicada = regrasAtuais.some(
+      (r) =>
+        r.campoRetornado === regraCampoRetornado &&
+        r.operador === regraOperador &&
+        r.campoCarne === regraCampoCarne,
+    );
+    if (duplicada) {
+      exibirMensagem(
+        "aviso",
+        "Regra Duplicada",
+        "Esta regra exata já foi vinculada a esta query.",
+      );
+      return;
+    }
+
     const novaRegra: RegraValidacao = {
       id: crypto.randomUUID(),
       campoRetornado: regraCampoRetornado,
@@ -2050,15 +2106,15 @@ export function ParametrizacaoPage({
                               style={{
                                 border: "1px solid #cfd8dc",
                                 background: "#ffffff",
-                                color: "#00796b",
+                                color: "#37474f",
                                 padding: "3px 6px",
                                 borderRadius: "3px",
                                 cursor: "pointer",
                                 fontSize: "0.7rem",
-                                fontWeight: 700,
+                                fontWeight: 600,
                               }}
                             >
-                              ✎
+                              Editar
                             </button>
                             <button
                               onClick={() =>
@@ -2066,17 +2122,17 @@ export function ParametrizacaoPage({
                               }
                               title="Remover"
                               style={{
+                                backgroundColor: "#ffebee",
                                 border: "1px solid #ffcdd2",
-                                background: "#ffebee",
                                 color: "#c62828",
                                 padding: "3px 6px",
                                 borderRadius: "3px",
                                 cursor: "pointer",
                                 fontSize: "0.7rem",
-                                fontWeight: 700,
+                                fontWeight: 600,
                               }}
                             >
-                              ✕
+                              Remover
                             </button>
                           </div>
                         </li>
@@ -2385,7 +2441,7 @@ export function ParametrizacaoPage({
                           color: "#455a64",
                         }}
                       >
-                        Campo Retornado (Banco)
+                        Campo SQL
                       </label>
                       <select
                         value={regraCampoRetornado}
@@ -2428,7 +2484,6 @@ export function ParametrizacaoPage({
                         }}
                       >
                         <option value="=">=</option>
-                        <option value="<>">&lt;&gt;</option>
                       </select>
                     </div>
 
@@ -2440,7 +2495,7 @@ export function ParametrizacaoPage({
                           color: "#455a64",
                         }}
                       >
-                        Campo no Documento
+                        Campo Arquivo
                       </label>
                       <select
                         value={regraCampoCarne}
@@ -2474,7 +2529,7 @@ export function ParametrizacaoPage({
                         height: "28px",
                       }}
                     >
-                      + Vincular
+                      Vincular <strong>+</strong>
                     </button>
                   </div>
 
@@ -2505,7 +2560,7 @@ export function ParametrizacaoPage({
                         >
                           Operador
                         </th>
-                        <th style={{ padding: "6px 8px" }}>Campo Documento</th>
+                        <th style={{ padding: "6px 8px" }}>Campo Arquivo</th>
                         <th
                           style={{
                             padding: "6px 8px",
@@ -2626,7 +2681,7 @@ export function ParametrizacaoPage({
                         cursor: "pointer",
                       }}
                     >
-                      Salvar Validação
+                      Associar
                     </button>
                   </div>
                 </div>

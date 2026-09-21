@@ -13,14 +13,20 @@ public class ProcessadorCarnesService
 {
     private readonly IExtratorPdfService _extratorPdf;
     private readonly IOcrService _ocrService;
+    private readonly IAuditoriaValidacaoService _auditoriaService;
 
-    public ProcessadorCarnesService(IExtratorPdfService extratorPdf, IOcrService ocrService)
+    // Construtor alterado para receber o novo motor de validação dinâmica
+    public ProcessadorCarnesService(
+        IExtratorPdfService extratorPdf,
+        IOcrService ocrService,
+        IAuditoriaValidacaoService auditoriaService)
     {
         _extratorPdf = extratorPdf;
         _ocrService = ocrService;
+        _auditoriaService = auditoriaService;
     }
 
-    public async Task<ResultadoProcessamentoDto> ProcessarLoteAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem)
+    public async Task<ResultadoAuditoriaDto> ProcessarLoteAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem)
     {
         var regiaoId = layout.Campos.FirstOrDefault(c => c.EhIdentificadorPrimeiraPagina);
         if (regiaoId == null)
@@ -81,12 +87,10 @@ public class ProcessadorCarnesService
 
         // 2. Salvar estrutura temporária
         string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
-
         if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
         {
             pastaTemp = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", "temp");
         }
-
         Directory.CreateDirectory(pastaTemp);
 
         var opcoesJson = new JsonSerializerOptions
@@ -95,11 +99,8 @@ public class ProcessadorCarnesService
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
-        string caminhoEstruturaJson = Path.Combine(pastaTemp, "arquivo_estrutura.json");
-        await File.WriteAllTextAsync(
-            caminhoEstruturaJson,
-            JsonSerializer.Serialize(estrutura, opcoesJson)
-        );
+        string caminhoEstruturaJson = Path.Combine(pastaTemp, "documentos_estrutura.json");
+        await File.WriteAllTextAsync(caminhoEstruturaJson, JsonSerializer.Serialize(estrutura, opcoesJson));
 
         // 3. Aplicação da Amostragem
         int qtdAmostra = (int)Math.Ceiling(estrutura.Count * (amostragem / 100m));
@@ -121,6 +122,8 @@ public class ProcessadorCarnesService
             Documentos = documentosExtracao
         };
 
+        bool utilizouOcr = false;
+
         // 4. Extração da amostra selecionada
         foreach (var doc in documentosExtracao)
         {
@@ -141,14 +144,11 @@ public class ProcessadorCarnesService
 
                 try
                 {
-                    // TENTATIVA 1: Leitura do PDF Digital
                     var valorExtraido = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, paginaReal, campo);
 
                     if (!string.IsNullOrWhiteSpace(valorExtraido))
                     {
-                        // Agora passamos o Nome do Campo e TipoDado para nortear a limpeza
                         valorExtraido = AplicarIdentificadorAnterior(valorExtraido, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
-
                         doc.Campos.Add(new CampoExtraidoDto
                         {
                             Nome = campo.NomeCampo,
@@ -159,7 +159,6 @@ public class ProcessadorCarnesService
                     }
                     else
                     {
-                        // TENTATIVA 2: OCR
                         var valorOcr = await _ocrService.ExtrairTextoPorOcrAsync(
                             caminhoPdf,
                             paginaReal,
@@ -169,6 +168,7 @@ public class ProcessadorCarnesService
                             campo.AlturaMm);
 
                         valorOcr = AplicarIdentificadorAnterior(valorOcr, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
+                        utilizouOcr = true;
 
                         doc.Campos.Add(new CampoExtraidoDto
                         {
@@ -191,14 +191,20 @@ public class ProcessadorCarnesService
             }
         }
 
-        // 5. Salvar resultado final
-        string caminhoResultadoJson = Path.Combine(pastaTemp, "dados_extraidos.json");
-        await File.WriteAllTextAsync(
-            caminhoResultadoJson,
-            JsonSerializer.Serialize(resultadoFinal, opcoesJson)
+        // 5. Salvar resultado extração temporário
+        string caminhoDadosExtraidos = Path.Combine(pastaTemp, "resultado_extracao.json");
+        await File.WriteAllTextAsync(caminhoDadosExtraidos, JsonSerializer.Serialize(resultadoFinal, opcoesJson));
+
+        // 6. Novo Motor de Auditoria e Validação Dinâmica
+        var resultadoAuditoria = await _auditoriaService.ProcessarAuditoriaSimuladaAsync(
+            resultadoFinal,
+            layout,
+            Path.GetFileName(caminhoPdf),
+            utilizouOcr,
+            pastaTemp
         );
 
-        return resultadoFinal;
+        return resultadoAuditoria;
     }
 
     private static string NormalizarTextoParaComparacao(string texto)
@@ -226,7 +232,6 @@ public class ProcessadorCarnesService
         if (string.IsNullOrWhiteSpace(texto))
             return string.Empty;
 
-        // 1. Recorte pelo Identificador Anterior (se configurado)
         if (!string.IsNullOrWhiteSpace(identificadorAnterior))
         {
             string identificador = identificadorAnterior.Trim();
@@ -238,7 +243,6 @@ public class ProcessadorCarnesService
             }
             else
             {
-                // Busca resiliente com Regex
                 string padraoEscapado = Regex.Escape(identificador)
                     .Replace(@"\:", @"\s*\:\s*")
                     .Replace(@"\-", @"\s*\-\s*");
@@ -251,29 +255,20 @@ public class ProcessadorCarnesService
             }
         }
 
-        // Limpa pontuações residuais soltas no início (ex: ":", "-", ".")
         texto = texto.TrimStart(':', '-', ' ', '.', ',', '|').Trim();
 
-        // 2. Limpeza Inteligente baseada no Tipo do Campo
-        // Inferimos se o campo é numérico através do TipoDado explícito (se existir no BD) 
-        // ou heurística pelo Nome do Campo (assegurando retrocompatibilidade).
         bool ehCampoNumerico = (!string.IsNullOrWhiteSpace(tipoDado) && tipoDado.Equals("Numerico", StringComparison.OrdinalIgnoreCase)) ||
                                Regex.IsMatch(nomeCampo, @"(?i)(CRC|Lote|Nro|Número|Parcela|Valor|Data|CEP|CPF|CNPJ)");
 
         if (ehCampoNumerico && !string.IsNullOrWhiteSpace(texto))
         {
-            // O OCR frequentemente insere ruídos curtos alfabéticos antes dos números (Ex: "ec 650", "s 18")
-            // Localizamos onde começa o primeiro número válido.
             var matchNumero = Regex.Match(texto, @"\d");
 
-            // Se encontrou o número nas primeiras posições (ruído curto <= 6 caracteres), descartamos o prefixo.
             if (matchNumero.Success && matchNumero.Index > 0 && matchNumero.Index <= 6)
             {
                 texto = texto.Substring(matchNumero.Index).Trim();
             }
 
-            // Remove sujeiras isoladas no final (ex: "650 o", "18 l")
-            // Mantém apenas números e delimitadores comuns em formatações numéricas e de documentos
             texto = Regex.Replace(texto, @"^[^\d]+|[^\d\.\,\-\/]+$", "").Trim();
         }
 
