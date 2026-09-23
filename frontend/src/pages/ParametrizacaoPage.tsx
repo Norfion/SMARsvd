@@ -126,7 +126,6 @@ export function ParametrizacaoPage({
 
   const [campos, setCampos] = useState<RegiaoCampo[]>([]);
 
-  // Filtra apenas campos normais (exclui identificador de documento e identificador de página)
   const camposNormaisDisponiveis = campos.filter(
     (c) =>
       c.tipoClassificacao === TipoClassificacaoCampo.Nenhum ||
@@ -138,7 +137,6 @@ export function ParametrizacaoPage({
   const [paginaCampo, setPaginaCampo] = useState<number>(1);
   const [paginaAtivaCanvas, setPaginaAtivaCanvas] = useState<number>(1);
 
-  // Estados dos novos identificadores
   const [tipoClassificacao, setTipoClassificacao] =
     useState<TipoClassificacaoCampo>(TipoClassificacaoCampo.Nenhum);
   const [textoEsperadoDocumento, setTextoEsperadoDocumento] = useState("");
@@ -355,7 +353,6 @@ export function ParametrizacaoPage({
     setLarguraMm(layout.larguraPaginaMm);
     setAlturaMm(layout.alturaPaginaMm);
 
-    // Compatibilidade com cadastros legados
     const camposCarregados: RegiaoCampo[] = (layout.campos || []).map((c) => {
       let classif = c.tipoClassificacao;
       if (classif === undefined) {
@@ -906,16 +903,6 @@ export function ParametrizacaoPage({
 
   return (
     <div id="container-parametrizacao">
-      <style>
-        {`
-          .accordion-content-wrapper { transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease; overflow: hidden; }
-          .accordion-content-open { max-height: 2000px; opacity: 1; padding: 16px; }
-          .accordion-content-closed { max-height: 0; opacity: 0; padding: 0 16px; }
-          input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-          input[type="number"] { -moz-appearance: textfield; }
-        `}
-      </style>
-
       <input
         ref={fileInputRef}
         type="file"
@@ -924,18 +911,16 @@ export function ParametrizacaoPage({
         style={{ display: "none" }}
       ></input>
 
+      {/* SELETOR GLOBAL DE LAYOUT */}
       <div
         id="cabecalho-seletor-global"
+        className="smar-card"
         style={{
-          backgroundColor: "#ffffff",
           padding: "12px 16px",
-          borderRadius: "4px",
-          border: "1px solid #cfd8dc",
           marginBottom: "16px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
         }}
       >
         <div
@@ -949,19 +934,10 @@ export function ParametrizacaoPage({
           <div style={{ flex: 1, maxWidth: "420px" }}>
             <select
               id="select-layout-global"
+              className="smar-select"
               value={layoutSelecionadoId}
               onChange={(e) => carregarLayout(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "6px 10px",
-                borderRadius: "4px",
-                border: "1px solid #b0bec5",
-                backgroundColor: "#ffffff",
-                color: "#263238",
-                fontWeight: 600,
-                outline: "none",
-                height: "32px",
-              }}
+              style={{ fontWeight: 600, height: "32px" }}
             >
               <option value="">(Selecione um layout)</option>
               {layoutsSalvos.map((layout) => (
@@ -978,21 +954,8 @@ export function ParametrizacaoPage({
             type="button"
             onClick={cancelarCriacaoNovoLayout}
             title="Descartar alterações"
-            style={{
-              backgroundColor: "#ffebee",
-              color: "#c62828",
-              border: "1px solid #ffcdd2",
-              padding: "6px 14px",
-              borderRadius: "4px",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              height: "32px",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-              marginRight: "8px",
-            }}
+            className="smar-btn smar-btn-danger"
+            style={{ marginRight: "8px" }}
           >
             <span>Cancelar</span>
           </button>
@@ -1006,23 +969,8 @@ export function ParametrizacaoPage({
                 ? "Selecione um layout para remover"
                 : `Excluir o layout "${layoutSelecionadoId}"`
             }
-            style={{
-              backgroundColor: !layoutSelecionadoId ? "#f5f5f5" : "#ffebee",
-              color: !layoutSelecionadoId ? "#9e9e9e" : "#c62828",
-              border: !layoutSelecionadoId
-                ? "1px solid #e0e0e0"
-                : "1px solid #ffcdd2",
-              padding: "6px 14px",
-              borderRadius: "4px",
-              fontWeight: 700,
-              cursor: !layoutSelecionadoId ? "not-allowed" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              height: "32px",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-              marginRight: "8px",
-            }}
+            className="smar-btn smar-btn-danger"
+            style={{ marginRight: "8px" }}
           >
             <span>Remover</span>
           </button>
@@ -1037,77 +985,24 @@ export function ParametrizacaoPage({
             <button
               type="button"
               disabled={carregandoPdfModelo}
-              style={{
-                backgroundColor: "#009688",
-                color: "#ffffff",
-                border: "none",
-                padding: "6px 16px",
-                borderRadius: "4px",
-                fontWeight: 700,
-                cursor: carregandoPdfModelo ? "wait" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                height: "32px",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-              }}
+              className="smar-btn smar-btn-primary"
             >
               <span>{carregandoPdfModelo ? "Processando..." : "Novo"}</span>
               <span style={{ fontSize: "0.65rem" }}>▼</span>
             </button>
             {modalNovoLayoutAberto && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #b0bec5",
-                  borderRadius: "4px",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                  zIndex: 50,
-                  width: "220px",
-                  overflow: "hidden",
-                }}
-              >
+              <div className="smar-dropdown-menu" style={{ width: "220px" }}>
                 <button
                   type="button"
+                  className="smar-dropdown-item"
                   onClick={iniciarCriacaoManual}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "10px 14px",
-                    background: "none",
-                    border: "none",
-                    borderBottom: "1px solid #eceff1",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: "#37474f",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
                 >
                   <span>Criar Manualmente</span>
                 </button>
                 <button
                   type="button"
+                  className="smar-dropdown-item"
                   onClick={dispararUploadModelo}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "10px 14px",
-                    background: "none",
-                    border: "none",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: "#37474f",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
                 >
                   <span>Importar Modelo (PDF)</span>
                 </button>
@@ -1120,63 +1015,37 @@ export function ParametrizacaoPage({
       {/* 1. CONFIGURAÇÕES DO DOCUMENTO */}
       <div
         id="accordion-layout"
-        style={{
-          marginBottom: "12px",
-          backgroundColor: "#ffffff",
-          border: "1px solid #cfd8dc",
-          borderRadius: "4px",
-          overflow: "hidden",
-          opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1,
-        }}
+        className="smar-accordion"
+        style={{ opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1 }}
       >
         <div
           onClick={() => {
             if (!semLayoutSelecionado && !emModoEdicao) alternarEtapa("layout");
           }}
+          className={`smar-accordion-header ${etapaAberta === "layout" ? "aberto" : "fechado"}`}
           style={{
-            backgroundColor: etapaAberta === "layout" ? "#e0f2f1" : "#f8fafc",
-            padding: "10px 16px",
             cursor:
               !semLayoutSelecionado && !emModoEdicao
                 ? "pointer"
                 : "not-allowed",
-            borderBottom:
-              etapaAberta === "layout" ? "1px solid #b2dfdb" : "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            userSelect: "none",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{
-                color: etapaAberta === "layout" ? "#00796b" : "#546e7a",
-                fontWeight: 700,
-                fontSize: "0.85rem",
-              }}
-            >
+          <div className="smar-accordion-title">
+            <span className="smar-accordion-icon">
               {etapaAberta === "layout" ? "▼" : "▶"}
             </span>
-            <strong
-              style={{
-                fontSize: "0.9rem",
-                color: etapaAberta === "layout" ? "#00796b" : "#263238",
-              }}
-            >
-              1. Configurações do documento
-            </strong>
+            <strong>1. Configurações do documento</strong>
           </div>
           {nomeArquivoModelo && (
             <span
               style={{
                 fontSize: "0.75rem",
-                color: "#00796b",
+                color: "var(--smar-teal-dark)",
                 fontWeight: 600,
                 backgroundColor: "#ffffff",
                 padding: "2px 8px",
                 borderRadius: "3px",
-                border: "1px solid #b2dfdb",
+                border: "1px solid var(--smar-teal-border)",
               }}
             >
               Modelo: {nomeArquivoModelo}
@@ -1184,7 +1053,7 @@ export function ParametrizacaoPage({
           )}
         </div>
         <div
-          className={`accordion-content-wrapper ${etapaAberta === "layout" && !semLayoutSelecionado ? "accordion-content-open" : "accordion-content-closed"}`}
+          className={`smar-accordion-content-wrapper ${etapaAberta === "layout" && !semLayoutSelecionado ? "smar-accordion-content-open" : "smar-accordion-content-closed"}`}
         >
           <div
             style={{
@@ -1195,28 +1064,11 @@ export function ParametrizacaoPage({
             }}
           >
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Cliente
-              </label>
+              <label className="smar-label">Cliente</label>
               <select
                 value={cliente}
                 onChange={(e) => setCliente(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
+                className="smar-select"
               >
                 {CLIENTES_DISPONIVEIS.map((c) => (
                   <option key={c} value={c}>
@@ -1226,30 +1078,13 @@ export function ParametrizacaoPage({
               </select>
             </div>
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Nome do Layout
-              </label>
+              <label className="smar-label">Nome do Layout</label>
               <input
                 type="text"
                 value={nomeModelo}
                 onChange={(e) => setNomeModelo(e.target.value)}
                 placeholder="Ex: IPTU Padrão 2026"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
+                className="smar-input"
               ></input>
             </div>
           </div>
@@ -1261,55 +1096,21 @@ export function ParametrizacaoPage({
             }}
           >
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Largura (mm)
-              </label>
+              <label className="smar-label">Largura (mm)</label>
               <input
                 type="number"
                 value={larguraMm}
                 onChange={(e) => setLarguraMm(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
+                className="smar-input"
               ></input>
             </div>
             <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Altura (mm)
-              </label>
+              <label className="smar-label">Altura (mm)</label>
               <input
                 type="number"
                 value={alturaMm}
                 onChange={(e) => setAlturaMm(Number(e.target.value))}
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
+                className="smar-input"
               ></input>
             </div>
           </div>
@@ -1319,12 +1120,8 @@ export function ParametrizacaoPage({
       {/* 2. MAPEAMENTO DOS CAMPOS */}
       <div
         id="accordion-campos"
+        className="smar-accordion"
         style={{
-          marginBottom: "12px",
-          backgroundColor: "#ffffff",
-          border: "1px solid #cfd8dc",
-          borderRadius: "4px",
-          overflow: "hidden",
           opacity:
             semLayoutSelecionado || (emModoEdicao && etapaAberta !== "campos")
               ? 0.65
@@ -1335,46 +1132,28 @@ export function ParametrizacaoPage({
           onClick={() => {
             if (!semLayoutSelecionado && !emModoEdicao) alternarEtapa("campos");
           }}
+          className={`smar-accordion-header ${etapaAberta === "campos" ? "aberto" : "fechado"}`}
           style={{
-            backgroundColor: etapaAberta === "campos" ? "#e0f2f1" : "#f8fafc",
-            padding: "10px 16px",
             cursor:
               !semLayoutSelecionado && !emModoEdicao
                 ? "pointer"
                 : "not-allowed",
-            borderBottom:
-              etapaAberta === "campos" ? "1px solid #b2dfdb" : "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            userSelect: "none",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{
-                color: etapaAberta === "campos" ? "#00796b" : "#546e7a",
-                fontWeight: 700,
-                fontSize: "0.85rem",
-              }}
-            >
+          <div className="smar-accordion-title">
+            <span className="smar-accordion-icon">
               {etapaAberta === "campos" ? "▼" : "▶"}
             </span>
-            <strong
-              style={{
-                fontSize: "0.9rem",
-                color: etapaAberta === "campos" ? "#00796b" : "#263238",
-              }}
-            >
-              2. Mapeamento dos campos
-            </strong>
+            <strong>2. Mapeamento dos campos</strong>
           </div>
-          <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
+          <span
+            style={{ fontSize: "0.75rem", color: "var(--smar-text-secondary)" }}
+          >
             {campos.length} campos parametrizados
           </span>
         </div>
         <div
-          className={`accordion-content-wrapper ${etapaAberta === "campos" && !semLayoutSelecionado ? "accordion-content-open" : "accordion-content-closed"}`}
+          className={`smar-accordion-content-wrapper ${etapaAberta === "campos" && !semLayoutSelecionado ? "smar-accordion-content-open" : "smar-accordion-content-closed"}`}
         >
           <div
             style={{
@@ -1403,16 +1182,16 @@ export function ParametrizacaoPage({
                   alignItems: "center",
                   flexWrap: "wrap",
                   gap: "8px",
-                  backgroundColor: "#f5f7f8",
+                  backgroundColor: "var(--smar-bg-alt)",
                   padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
+                  borderRadius: "var(--smar-radius)",
+                  border: "1px solid var(--smar-border-color)",
                 }}
               >
                 <div
                   style={{
                     fontWeight: 600,
-                    color: "#37474f",
+                    color: "var(--smar-text-body)",
                     fontSize: "0.75rem",
                   }}
                 >
@@ -1429,7 +1208,7 @@ export function ParametrizacaoPage({
                     <span
                       style={{
                         fontSize: "0.75rem",
-                        color: "#546e7a",
+                        color: "var(--smar-text-secondary)",
                         fontWeight: 600,
                       }}
                     >
@@ -1445,7 +1224,12 @@ export function ParametrizacaoPage({
                       }
                       style={{ width: "70px", cursor: "pointer" }}
                     ></input>
-                    <span style={{ fontSize: "0.7rem", color: "#37474f" }}>
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        color: "var(--smar-text-body)",
+                      }}
+                    >
                       {opacidadeModelo}%
                     </span>
                   </div>
@@ -1456,15 +1240,8 @@ export function ParametrizacaoPage({
                   <button
                     type="button"
                     onClick={() => setZoomNivel(Math.max(10, zoomNivel - 15))}
-                    style={{
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "3px",
-                      border: "1px solid #b0bec5",
-                      backgroundColor: "#ffffff",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                    }}
+                    className="smar-btn smar-btn-secondary"
+                    style={{ width: "24px", height: "24px", padding: 0 }}
                   >
                     -
                   </button>
@@ -1483,15 +1260,8 @@ export function ParametrizacaoPage({
                   <button
                     type="button"
                     onClick={() => setZoomNivel(Math.min(500, zoomNivel + 15))}
-                    style={{
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "3px",
-                      border: "1px solid #b0bec5",
-                      backgroundColor: "#ffffff",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                    }}
+                    className="smar-btn smar-btn-secondary"
+                    style={{ width: "24px", height: "24px", padding: 0 }}
                   >
                     +
                   </button>
@@ -1524,10 +1294,14 @@ export function ParametrizacaoPage({
                           padding: "3px 8px",
                           borderRadius: "3px",
                           border: estaAtiva
-                            ? "1px solid #00796b"
-                            : "1px solid #cfd8dc",
-                          backgroundColor: estaAtiva ? "#009688" : "#ffffff",
-                          color: estaAtiva ? "#ffffff" : "#455a64",
+                            ? "1px solid var(--smar-teal-dark)"
+                            : "1px solid var(--smar-border-color)",
+                          backgroundColor: estaAtiva
+                            ? "var(--smar-teal-primary)"
+                            : "#ffffff",
+                          color: estaAtiva
+                            ? "#ffffff"
+                            : "var(--smar-text-label)",
                           fontSize: "0.75rem",
                           fontWeight: 700,
                           cursor: "pointer",
@@ -1542,8 +1316,10 @@ export function ParametrizacaoPage({
                             style={{
                               backgroundColor: estaAtiva
                                 ? "rgba(255,255,255,0.3)"
-                                : "#eceff1",
-                              color: estaAtiva ? "#ffffff" : "#37474f",
+                                : "var(--smar-border-light)",
+                              color: estaAtiva
+                                ? "#ffffff"
+                                : "var(--smar-text-body)",
                               borderRadius: "10px",
                               padding: "0 4px",
                               fontSize: "0.65rem",
@@ -1565,9 +1341,9 @@ export function ParametrizacaoPage({
                 style={{
                   width: "100%",
                   height: "560px",
-                  backgroundColor: "#cfd8dc",
-                  border: "1px solid #90a4ae",
-                  borderRadius: "4px",
+                  backgroundColor: "var(--smar-border-color)",
+                  border: "1px solid var(--smar-text-muted)",
+                  borderRadius: "var(--smar-radius)",
                   overflow: "auto",
                   position: "relative",
                   boxSizing: "border-box",
@@ -1590,7 +1366,7 @@ export function ParametrizacaoPage({
                     minWidth: `${larguraVisualPx}px`,
                     minHeight: `${alturaVisualPx}px`,
                     backgroundColor: "#ffffff",
-                    border: "1px solid #78909c",
+                    border: "1px solid var(--smar-text-muted)",
                     borderRadius: "2px",
                     cursor: "crosshair",
                     userSelect: "none",
@@ -1614,10 +1390,15 @@ export function ParametrizacaoPage({
                       }}
                     ></img>
                   ) : (
-                    <div style={{ padding: "16px", color: "#b0bec5" }}>
+                    <div
+                      style={{
+                        padding: "16px",
+                        color: "var(--smar-border-dark)",
+                      }}
+                    >
                       <div
                         style={{
-                          borderBottom: "1px dashed #cfd8dc",
+                          borderBottom: "1px dashed var(--smar-border-color)",
                           paddingBottom: "4px",
                           display: "flex",
                           justifyContent: "space-between",
@@ -1718,34 +1499,18 @@ export function ParametrizacaoPage({
                 gap: "14px",
               }}
             >
-              <div
-                style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: "#e0f2f1",
-                    padding: "8px 12px",
-                    borderBottom: "1px solid #b2dfdb",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <strong style={{ fontSize: "0.8rem", color: "#00796b" }}>
+              <div className="smar-card">
+                <div className="smar-card-header-teal">
+                  <span>
                     {campoEmEdicaoId ? "Editar Campo" : "Criar Campo"}
-                  </strong>
+                  </span>
                   {campoEmEdicaoId && (
                     <button
                       onClick={cancelarEdicaoCampo}
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#78909c",
+                        color: "var(--smar-text-muted)",
                         cursor: "pointer",
                         fontSize: "0.75rem",
                         textDecoration: "underline",
@@ -1758,27 +1523,16 @@ export function ParametrizacaoPage({
 
                 <div style={{ padding: "12px" }}>
                   <div style={{ marginBottom: "12px" }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "0.75rem",
-                        fontWeight: 700,
-                        color: "#455a64",
-                        marginBottom: "6px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Classificação do Campo
-                    </label>
+                    <label className="smar-label">Classificação do Campo</label>
                     <div
                       style={{
                         display: "flex",
                         flexDirection: "column",
                         gap: "6px",
-                        backgroundColor: "#f5f7f8",
+                        backgroundColor: "var(--smar-bg-alt)",
                         padding: "8px 10px",
-                        borderRadius: "4px",
-                        border: "1px solid #cfd8dc",
+                        borderRadius: "var(--smar-radius)",
+                        border: "1px solid var(--smar-border-color)",
                       }}
                     >
                       <label
@@ -1797,7 +1551,7 @@ export function ParametrizacaoPage({
                             tipoClassificacao ===
                             TipoClassificacaoCampo.IdentificadorDocumento
                               ? "#1a237e"
-                              : "#37474f",
+                              : "var(--smar-text-body)",
                         }}
                       >
                         <input
@@ -1832,7 +1586,7 @@ export function ParametrizacaoPage({
                             tipoClassificacao ===
                             TipoClassificacaoCampo.IdentificadorPagina
                               ? "#4a148c"
-                              : "#37474f",
+                              : "var(--smar-text-body)",
                         }}
                       >
                         <input
@@ -1864,8 +1618,8 @@ export function ParametrizacaoPage({
                               : 500,
                           color:
                             tipoClassificacao === TipoClassificacaoCampo.Nenhum
-                              ? "#004d40"
-                              : "#37474f",
+                              ? "var(--smar-teal-darker)"
+                              : "var(--smar-text-body)",
                         }}
                       >
                         <input
@@ -1884,18 +1638,7 @@ export function ParametrizacaoPage({
                   </div>
 
                   <div style={{ marginBottom: "10px" }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "0.75rem",
-                        fontWeight: 700,
-                        color: "#455a64",
-                        marginBottom: "4px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Nome do Campo
-                    </label>
+                    <label className="smar-label">Nome do Campo</label>
                     <input
                       type="text"
                       value={nomeCampo}
@@ -1906,13 +1649,8 @@ export function ParametrizacaoPage({
                           ? "Ex: Débitos, Identificação, Resumo"
                           : "Ex: Total, Contribuinte, Inscrição"
                       }
-                      style={{
-                        width: "100%",
-                        padding: "6px 10px",
-                        borderRadius: "4px",
-                        border: "1px solid #cfd8dc",
-                        height: "32px",
-                      }}
+                      className="smar-input"
+                      style={{ height: "32px" }}
                     ></input>
                   </div>
 
@@ -1923,19 +1661,13 @@ export function ParametrizacaoPage({
                         marginBottom: "10px",
                         backgroundColor: "#e8eaf6",
                         padding: "8px",
-                        borderRadius: "4px",
+                        borderRadius: "var(--smar-radius)",
                         border: "1px solid #c5cae9",
                       }}
                     >
                       <label
-                        style={{
-                          display: "block",
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                          color: "#1a237e",
-                          marginBottom: "4px",
-                          textTransform: "uppercase",
-                        }}
+                        className="smar-label"
+                        style={{ color: "#1a237e", fontSize: "0.7rem" }}
                       >
                         Texto esperado no documento
                       </label>
@@ -1946,13 +1678,11 @@ export function ParametrizacaoPage({
                           setTextoEsperadoDocumento(e.target.value)
                         }
                         placeholder="Ex: PREFEITURA MUNICIPAL"
+                        className="smar-input"
                         style={{
-                          width: "100%",
-                          padding: "6px 8px",
-                          borderRadius: "3px",
-                          border: "1px solid #9fa8da",
-                          fontSize: "0.75rem",
                           height: "30px",
+                          fontSize: "0.75rem",
+                          borderColor: "#9fa8da",
                         }}
                       ></input>
                       <span
@@ -1975,19 +1705,13 @@ export function ParametrizacaoPage({
                         marginBottom: "10px",
                         backgroundColor: "#f3e5f5",
                         padding: "8px",
-                        borderRadius: "4px",
+                        borderRadius: "var(--smar-radius)",
                         border: "1px solid #e1bee7",
                       }}
                     >
                       <label
-                        style={{
-                          display: "block",
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                          color: "#4a148c",
-                          marginBottom: "4px",
-                          textTransform: "uppercase",
-                        }}
+                        className="smar-label"
+                        style={{ color: "#4a148c", fontSize: "0.7rem" }}
                       >
                         Texto esperado na página
                       </label>
@@ -1996,13 +1720,11 @@ export function ParametrizacaoPage({
                         value={textoEsperadoPagina}
                         onChange={(e) => setTextoEsperadoPagina(e.target.value)}
                         placeholder="Ex: DEMONSTRATIVO DE DÉBITOS"
+                        className="smar-input"
                         style={{
-                          width: "100%",
-                          padding: "6px 8px",
-                          borderRadius: "3px",
-                          border: "1px solid #ba68c8",
-                          fontSize: "0.75rem",
                           height: "30px",
+                          fontSize: "0.75rem",
+                          borderColor: "#ba68c8",
                         }}
                       ></input>
                       <span
@@ -2021,16 +1743,7 @@ export function ParametrizacaoPage({
                   {tipoClassificacao === TipoClassificacaoCampo.Nenhum && (
                     <>
                       <div style={{ marginBottom: "10px" }}>
-                        <label
-                          style={{
-                            display: "block",
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                            color: "#455a64",
-                            marginBottom: "4px",
-                            textTransform: "uppercase",
-                          }}
-                        >
+                        <label className="smar-label">
                           Identificador de página
                         </label>
                         <select
@@ -2038,16 +1751,8 @@ export function ParametrizacaoPage({
                           onChange={(e) =>
                             setIdentificadorPagina(e.target.value)
                           }
-                          style={{
-                            width: "100%",
-                            padding: "6px 10px",
-                            borderRadius: "4px",
-                            border: "1px solid #cfd8dc",
-                            height: "32px",
-                            backgroundColor: "#ffffff",
-                            color: "#263238",
-                            fontWeight: 600,
-                          }}
+                          className="smar-select"
+                          style={{ height: "32px", fontWeight: 600 }}
                         >
                           <option value="">
                             (Selecione o Identificador de página)
@@ -2062,7 +1767,7 @@ export function ParametrizacaoPage({
                           <span
                             style={{
                               fontSize: "0.68rem",
-                              color: "#c62828",
+                              color: "var(--smar-danger-text)",
                               marginTop: "2px",
                               display: "block",
                             }}
@@ -2074,16 +1779,7 @@ export function ParametrizacaoPage({
                       </div>
 
                       <div style={{ marginBottom: "10px" }}>
-                        <label
-                          style={{
-                            display: "block",
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                            color: "#455a64",
-                            marginBottom: "4px",
-                            textTransform: "uppercase",
-                          }}
-                        >
+                        <label className="smar-label">
                           Identificador anterior (opcional)
                         </label>
                         <input
@@ -2093,18 +1789,13 @@ export function ParametrizacaoPage({
                             setIdentificadorAnterior(e.target.value)
                           }
                           placeholder="Ex: TOTAL:, VALOR:"
-                          style={{
-                            width: "100%",
-                            padding: "6px 10px",
-                            borderRadius: "4px",
-                            border: "1px solid #cfd8dc",
-                            height: "32px",
-                          }}
+                          className="smar-input"
+                          style={{ height: "32px" }}
                         ></input>
                         <span
                           style={{
                             fontSize: "0.68rem",
-                            color: "#78909c",
+                            color: "var(--smar-text-muted)",
                             marginTop: "2px",
                             display: "block",
                           }}
@@ -2118,13 +1809,13 @@ export function ParametrizacaoPage({
                   {retanguloAtualMm && (
                     <div
                       style={{
-                        backgroundColor: "#f5f7f8",
+                        backgroundColor: "var(--smar-bg-alt)",
                         padding: "6px 8px",
-                        borderRadius: "3px",
+                        borderRadius: "var(--smar-radius-sm)",
                         fontSize: "0.7rem",
-                        color: "#546e7a",
+                        color: "var(--smar-text-secondary)",
                         marginBottom: "10px",
-                        border: "1px solid #eceff1",
+                        border: "1px solid var(--smar-border-light)",
                       }}
                     >
                       <strong>Coordenadas (mm):</strong> Pg: {paginaCampo} | X:{" "}
@@ -2137,17 +1828,14 @@ export function ParametrizacaoPage({
 
                   <button
                     onClick={salvarRegiaoCampo}
+                    className="smar-btn"
                     style={{
                       width: "100%",
-                      backgroundColor: campoEmEdicaoId ? "#f57c00" : "#009688",
+                      backgroundColor: campoEmEdicaoId
+                        ? "#f57c00"
+                        : "var(--smar-teal-primary)",
                       color: "#ffffff",
-                      border: "none",
-                      padding: "8px",
-                      borderRadius: "4px",
-                      fontWeight: 700,
-                      cursor: "pointer",
                       height: "34px",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
                     }}
                   >
                     {campoEmEdicaoId ? "Atualizar Campo" : "Criar Campo"}
@@ -2155,24 +1843,8 @@ export function ParametrizacaoPage({
                 </div>
               </div>
 
-              <div
-                style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: "#f5f7f8",
-                    padding: "8px 12px",
-                    borderBottom: "1px solid #cfd8dc",
-                    fontWeight: 700,
-                    fontSize: "0.75rem",
-                    color: "#455a64",
-                  }}
-                >
+              <div className="smar-card">
+                <div className="smar-card-header-gray">
                   CAMPOS DO MODELO ({campos.length})
                 </div>
                 <div
@@ -2186,7 +1858,7 @@ export function ParametrizacaoPage({
                     <p
                       style={{
                         fontSize: "0.75rem",
-                        color: "#78909c",
+                        color: "var(--smar-text-muted)",
                         margin: "8px",
                       }}
                     >
@@ -2215,9 +1887,9 @@ export function ParametrizacaoPage({
                           <li
                             key={c.id}
                             style={{
-                              border: "1px solid #eceff1",
+                              border: "1px solid var(--smar-border-light)",
                               backgroundColor: "#fafafa",
-                              borderRadius: "3px",
+                              borderRadius: "var(--smar-radius-sm)",
                               padding: "6px 8px",
                               display: "flex",
                               justifyContent: "space-between",
@@ -2233,7 +1905,7 @@ export function ParametrizacaoPage({
                                     ? "#3f51b5"
                                     : ehPagId
                                       ? "#8e24aa"
-                                      : "#263238",
+                                      : "var(--smar-text-primary)",
                                 }}
                               >
                                 {ehDocId
@@ -2245,7 +1917,7 @@ export function ParametrizacaoPage({
                               <span
                                 style={{
                                   fontSize: "0.65rem",
-                                  color: "#78909c",
+                                  color: "var(--smar-text-muted)",
                                 }}
                               >
                                 {ehDocId &&
@@ -2263,15 +1935,12 @@ export function ParametrizacaoPage({
                               <button
                                 onClick={() => iniciarEdicaoCampo(c)}
                                 title="Editar"
+                                className="smar-btn smar-btn-secondary"
                                 style={{
-                                  border: "1px solid #cfd8dc",
-                                  background: "#ffffff",
-                                  color: "#00796b",
                                   padding: "3px 6px",
-                                  borderRadius: "3px",
-                                  cursor: "pointer",
+                                  height: "auto",
                                   fontSize: "0.7rem",
-                                  fontWeight: 700,
+                                  color: "var(--smar-teal-dark)",
                                 }}
                               >
                                 ✎
@@ -2281,15 +1950,11 @@ export function ParametrizacaoPage({
                                   removerRegiaoCampo(c.id, c.nomeCampo)
                                 }
                                 title="Remover"
+                                className="smar-btn smar-btn-danger"
                                 style={{
-                                  border: "1px solid #ffcdd2",
-                                  background: "#ffebee",
-                                  color: "#c62828",
                                   padding: "3px 6px",
-                                  borderRadius: "3px",
-                                  cursor: "pointer",
+                                  height: "auto",
                                   fontSize: "0.7rem",
-                                  fontWeight: 700,
                                 }}
                               >
                                 ✕
@@ -2310,12 +1975,8 @@ export function ParametrizacaoPage({
       {/* 3. REGRAS DE VALIDAÇÃO */}
       <div
         id="accordion-validacoes"
+        className="smar-accordion"
         style={{
-          marginBottom: "12px",
-          backgroundColor: "#ffffff",
-          border: "1px solid #cfd8dc",
-          borderRadius: "4px",
-          overflow: "hidden",
           opacity:
             semLayoutSelecionado ||
             (emModoEdicao && etapaAberta !== "validacoes")
@@ -2328,47 +1989,28 @@ export function ParametrizacaoPage({
             if (!semLayoutSelecionado && !emModoEdicao)
               alternarEtapa("validacoes");
           }}
+          className={`smar-accordion-header ${etapaAberta === "validacoes" ? "aberto" : "fechado"}`}
           style={{
-            backgroundColor:
-              etapaAberta === "validacoes" ? "#e0f2f1" : "#f8fafc",
-            padding: "10px 16px",
             cursor:
               !semLayoutSelecionado && !emModoEdicao
                 ? "pointer"
                 : "not-allowed",
-            borderBottom:
-              etapaAberta === "validacoes" ? "1px solid #b2dfdb" : "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            userSelect: "none",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{
-                color: etapaAberta === "validacoes" ? "#00796b" : "#546e7a",
-                fontWeight: 700,
-                fontSize: "0.85rem",
-              }}
-            >
+          <div className="smar-accordion-title">
+            <span className="smar-accordion-icon">
               {etapaAberta === "validacoes" ? "▼" : "▶"}
             </span>
-            <strong
-              style={{
-                fontSize: "0.9rem",
-                color: etapaAberta === "validacoes" ? "#00796b" : "#263238",
-              }}
-            >
-              3. Regras de validação
-            </strong>
+            <strong>3. Regras de validação</strong>
           </div>
-          <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
+          <span
+            style={{ fontSize: "0.75rem", color: "var(--smar-text-secondary)" }}
+          >
             {queries.length} validações ativas
           </span>
         </div>
         <div
-          className={`accordion-content-wrapper ${etapaAberta === "validacoes" && !semLayoutSelecionado ? "accordion-content-open" : "accordion-content-closed"}`}
+          className={`smar-accordion-content-wrapper ${etapaAberta === "validacoes" && !semLayoutSelecionado ? "smar-accordion-content-open" : "smar-accordion-content-closed"}`}
         >
           <div
             style={{
@@ -2379,67 +2021,36 @@ export function ParametrizacaoPage({
             }}
           >
             <div
+              className="smar-card"
               style={{
                 flex: "2 1 500px",
-                backgroundColor: "#ffffff",
-                border: "1px solid #cfd8dc",
-                borderRadius: "4px",
                 padding: "14px",
               }}
             >
               <div
+                className="smar-card-header-teal"
                 style={{
-                  backgroundColor: "#e0f2f1",
                   margin: "-14px -14px 14px -14px",
                   padding: "8px 14px",
-                  borderBottom: "1px solid #b2dfdb",
-                  fontWeight: 700,
-                  fontSize: "0.8rem",
-                  color: "#00796b",
                 }}
               >
-                {queryEmEdicaoId ? "EDITAR QUERY" : "NOVA VALIDAÇÃO"}
+                <span>
+                  {queryEmEdicaoId ? "EDITAR QUERY" : "NOVA VALIDAÇÃO"}
+                </span>
               </div>
               <div style={{ marginBottom: "12px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    color: "#455a64",
-                    marginBottom: "4px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Nome
-                </label>
+                <label className="smar-label">Nome</label>
                 <input
                   type="text"
                   value={nomeQuery}
                   onChange={(e) => setNomeQuery(e.target.value)}
                   placeholder="Ex: Nome do contribuinte"
-                  style={{
-                    width: "100%",
-                    padding: "6px 10px",
-                    borderRadius: "4px",
-                    border: "1px solid #cfd8dc",
-                    height: "32px",
-                  }}
+                  className="smar-input"
+                  style={{ height: "32px" }}
                 ></input>
               </div>
               <div style={{ marginBottom: "12px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    color: "#455a64",
-                    marginBottom: "4px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Regra para validar
-                </label>
+                <label className="smar-label">Regra para validar</label>
                 <SqlCodeEditor
                   value={sqlQuery}
                   onChange={(novoSql) => {
@@ -2460,19 +2071,7 @@ export function ParametrizacaoPage({
                 <button
                   type="button"
                   onClick={analisarQuerySQL}
-                  style={{
-                    backgroundColor: "#37474f",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "6px 14px",
-                    borderRadius: "4px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
+                  className="smar-btn smar-btn-dark"
                 >
                   <span>Analisar</span>
                 </button>
@@ -2480,10 +2079,10 @@ export function ParametrizacaoPage({
               {sqlAnalisado && (
                 <div
                   style={{
-                    backgroundColor: "#f5f7f8",
-                    border: "1px solid #cfd8dc",
+                    backgroundColor: "var(--smar-bg-alt)",
+                    border: "1px solid var(--smar-border-color)",
                     padding: "12px",
-                    borderRadius: "4px",
+                    borderRadius: "var(--smar-radius)",
                   }}
                 >
                   <div
@@ -2497,7 +2096,7 @@ export function ParametrizacaoPage({
                       <strong
                         style={{
                           fontSize: "0.75rem",
-                          color: "#00796b",
+                          color: "var(--smar-teal-dark)",
                           display: "block",
                           marginBottom: "4px",
                         }}
@@ -2510,21 +2109,26 @@ export function ParametrizacaoPage({
                             key={p}
                             style={{
                               display: "inline-block",
-                              backgroundColor: "#e0f2f1",
-                              color: "#00796b",
+                              backgroundColor: "var(--smar-teal-light)",
+                              color: "var(--smar-teal-dark)",
                               padding: "2px 6px",
-                              borderRadius: "3px",
+                              borderRadius: "var(--smar-radius-sm)",
                               fontSize: "0.75rem",
                               fontWeight: 700,
                               marginRight: "4px",
-                              border: "1px solid #b2dfdb",
+                              border: "1px solid var(--smar-teal-border)",
                             }}
                           >
                             {p.includes(" ") ? `\${${p}}` : `$${p}`}
                           </span>
                         ))
                       ) : (
-                        <span style={{ fontSize: "0.75rem", color: "#78909c" }}>
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--smar-text-muted)",
+                          }}
+                        >
                           Nenhum
                         </span>
                       )}
@@ -2533,7 +2137,7 @@ export function ParametrizacaoPage({
                       <strong
                         style={{
                           fontSize: "0.75rem",
-                          color: "#00796b",
+                          color: "var(--smar-teal-dark)",
                           display: "block",
                           marginBottom: "4px",
                         }}
@@ -2549,7 +2153,7 @@ export function ParametrizacaoPage({
                               backgroundColor: "#e8eaf6",
                               color: "#283593",
                               padding: "2px 6px",
-                              borderRadius: "3px",
+                              borderRadius: "var(--smar-radius-sm)",
                               fontSize: "0.75rem",
                               fontWeight: 700,
                               marginRight: "4px",
@@ -2560,7 +2164,12 @@ export function ParametrizacaoPage({
                           </span>
                         ))
                       ) : (
-                        <span style={{ fontSize: "0.75rem", color: "#78909c" }}>
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "var(--smar-text-muted)",
+                          }}
+                        >
                           Nenhum
                         </span>
                       )}
@@ -2574,30 +2183,22 @@ export function ParametrizacaoPage({
                       marginBottom: "12px",
                       backgroundColor: "#ffffff",
                       padding: "8px",
-                      borderRadius: "3px",
-                      border: "1px solid #cfd8dc",
+                      borderRadius: "var(--smar-radius-sm)",
+                      border: "1px solid var(--smar-border-color)",
                     }}
                   >
                     <div style={{ flex: 1 }}>
                       <label
-                        style={{
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                          color: "#455a64",
-                        }}
+                        className="smar-label"
+                        style={{ fontSize: "0.7rem" }}
                       >
                         Campo Retornado (Banco)
                       </label>
                       <select
                         value={regraCampoRetornado}
                         onChange={(e) => setRegraCampoRetornado(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "4px 8px",
-                          borderRadius: "3px",
-                          border: "1px solid #cfd8dc",
-                          height: "28px",
-                        }}
+                        className="smar-select"
+                        style={{ height: "28px", padding: "4px 8px" }}
                       >
                         {camposRetornados.map((cr) => (
                           <option key={cr} value={cr}>
@@ -2608,24 +2209,16 @@ export function ParametrizacaoPage({
                     </div>
                     <div style={{ width: "70px" }}>
                       <label
-                        style={{
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                          color: "#455a64",
-                        }}
+                        className="smar-label"
+                        style={{ fontSize: "0.7rem" }}
                       >
                         Operador
                       </label>
                       <select
                         value={regraOperador}
                         onChange={(e) => setRegraOperador(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "4px 8px",
-                          borderRadius: "3px",
-                          border: "1px solid #cfd8dc",
-                          height: "28px",
-                        }}
+                        className="smar-select"
+                        style={{ height: "28px", padding: "4px 8px" }}
                       >
                         <option value="=">=</option>
                         <option value="<>">&lt;&gt;</option>
@@ -2633,24 +2226,16 @@ export function ParametrizacaoPage({
                     </div>
                     <div style={{ flex: 1 }}>
                       <label
-                        style={{
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                          color: "#455a64",
-                        }}
+                        className="smar-label"
+                        style={{ fontSize: "0.7rem" }}
                       >
                         Campo no Documento
                       </label>
                       <select
                         value={regraCampoCarne}
                         onChange={(e) => setRegraCampoCarne(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "4px 8px",
-                          borderRadius: "3px",
-                          border: "1px solid #cfd8dc",
-                          height: "28px",
-                        }}
+                        className="smar-select"
+                        style={{ height: "28px", padding: "4px 8px" }}
                       >
                         {camposNormaisDisponiveis.map((c) => (
                           <option key={c.id} value={c.nomeCampo}>
@@ -2661,46 +2246,22 @@ export function ParametrizacaoPage({
                     </div>
                     <button
                       onClick={adicionarRegraValidacao}
-                      style={{
-                        padding: "0 12px",
-                        backgroundColor: "#009688",
-                        color: "#ffffff",
-                        border: "none",
-                        borderRadius: "3px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        height: "28px",
-                      }}
+                      className="smar-btn smar-btn-primary"
+                      style={{ height: "28px", padding: "0 12px" }}
                     >
                       + Vincular
                     </button>
                   </div>
                   <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      fontSize: "0.8rem",
-                      marginBottom: "12px",
-                    }}
+                    className="smar-table"
+                    style={{ marginBottom: "12px" }}
                   >
                     <thead>
-                      <tr
-                        style={{
-                          backgroundColor: "#009688",
-                          color: "#ffffff",
-                          textAlign: "left",
-                        }}
-                      >
-                        <th style={{ padding: "6px 8px" }}>
-                          Campo Banco de Dados
-                        </th>
-                        <th style={{ padding: "6px 8px", textAlign: "center" }}>
-                          Operador
-                        </th>
-                        <th style={{ padding: "6px 8px" }}>Campo Documento</th>
-                        <th style={{ padding: "6px 8px", textAlign: "center" }}>
-                          Ação
-                        </th>
+                      <tr>
+                        <th>Campo Banco de Dados</th>
+                        <th style={{ textAlign: "center" }}>Operador</th>
+                        <th>Campo Documento</th>
+                        <th style={{ textAlign: "center" }}>Ação</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2711,9 +2272,10 @@ export function ParametrizacaoPage({
                             style={{
                               padding: "8px",
                               textAlign: "center",
-                              color: "#78909c",
+                              color: "var(--smar-text-muted)",
                               backgroundColor: "#ffffff",
-                              borderBottom: "1px solid #cfd8dc",
+                              borderBottom:
+                                "1px solid var(--smar-border-color)",
                             }}
                           >
                             Nenhuma regra configurada
@@ -2721,49 +2283,28 @@ export function ParametrizacaoPage({
                         </tr>
                       )}
                       {regrasAtuais.map((r) => (
-                        <tr
-                          key={r.id}
-                          style={{
-                            borderBottom: "1px solid #eceff1",
-                            backgroundColor: "#ffffff",
-                          }}
-                        >
-                          <td
-                            style={{
-                              padding: "6px 8px",
-                              fontWeight: 700,
-                              color: "#283593",
-                            }}
-                          >
+                        <tr key={r.id}>
+                          <td style={{ fontWeight: 700, color: "#283593" }}>
                             {r.campoRetornado}
                           </td>
-                          <td
-                            style={{
-                              padding: "6px 8px",
-                              textAlign: "center",
-                              fontWeight: 700,
-                            }}
-                          >
+                          <td style={{ textAlign: "center", fontWeight: 700 }}>
                             {r.operador}
                           </td>
                           <td
                             style={{
-                              padding: "6px 8px",
                               fontWeight: 700,
-                              color: "#00796b",
+                              color: "var(--smar-teal-dark)",
                             }}
                           >
                             {r.campoCarne}
                           </td>
-                          <td
-                            style={{ padding: "6px 8px", textAlign: "center" }}
-                          >
+                          <td style={{ textAlign: "center" }}>
                             <button
                               onClick={() => removerRegraValidacao(r.id)}
                               style={{
                                 border: "none",
                                 background: "none",
-                                color: "#c62828",
+                                color: "var(--smar-danger-text)",
                                 cursor: "pointer",
                                 fontWeight: 700,
                               }}
@@ -2785,13 +2326,11 @@ export function ParametrizacaoPage({
                     {queryEmEdicaoId && (
                       <button
                         onClick={cancelarEdicaoQuery}
+                        className="smar-btn"
                         style={{
                           backgroundColor: "transparent",
-                          color: "#546e7a",
-                          border: "none",
-                          padding: "6px 12px",
-                          cursor: "pointer",
-                          fontSize: "0.8rem",
+                          color: "var(--smar-text-secondary)",
+                          boxShadow: "none",
                         }}
                       >
                         Cancelar
@@ -2799,15 +2338,7 @@ export function ParametrizacaoPage({
                     )}
                     <button
                       onClick={salvarQueryCompleta}
-                      style={{
-                        backgroundColor: "#009688",
-                        color: "#ffffff",
-                        border: "none",
-                        padding: "6px 14px",
-                        borderRadius: "4px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
+                      className="smar-btn smar-btn-primary"
                     >
                       Salvar Validação
                     </button>
@@ -2815,25 +2346,10 @@ export function ParametrizacaoPage({
                 </div>
               )}
             </div>
+
             <div style={{ flex: "1 1 280px", minWidth: "260px" }}>
-              <div
-                style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: "#f5f7f8",
-                    padding: "8px 12px",
-                    borderBottom: "1px solid #cfd8dc",
-                    fontWeight: 700,
-                    fontSize: "0.75rem",
-                    color: "#455a64",
-                  }}
-                >
+              <div className="smar-card">
+                <div className="smar-card-header-gray">
                   VALIDAÇÕES CONFIGURADAS ({queries.length})
                 </div>
                 <div
@@ -2848,7 +2364,7 @@ export function ParametrizacaoPage({
                     <p
                       style={{
                         fontSize: "0.75rem",
-                        color: "#78909c",
+                        color: "var(--smar-text-muted)",
                         margin: "4px",
                       }}
                     >
@@ -2859,8 +2375,8 @@ export function ParametrizacaoPage({
                     <div
                       key={q.id}
                       style={{
-                        border: "1px solid #cfd8dc",
-                        borderRadius: "3px",
+                        border: "1px solid var(--smar-border-color)",
+                        borderRadius: "var(--smar-radius-sm)",
                         padding: "10px",
                         backgroundColor: "#fafafa",
                       }}
@@ -2869,7 +2385,7 @@ export function ParametrizacaoPage({
                         style={{
                           margin: "0 0 4px 0",
                           fontSize: "0.85rem",
-                          color: "#00796b",
+                          color: "var(--smar-teal-dark)",
                         }}
                       >
                         {q.nome}
@@ -2877,7 +2393,7 @@ export function ParametrizacaoPage({
                       <div
                         style={{
                           fontSize: "0.75rem",
-                          color: "#546e7a",
+                          color: "var(--smar-text-secondary)",
                           marginBottom: "8px",
                         }}
                       >
@@ -2886,32 +2402,22 @@ export function ParametrizacaoPage({
                       <div style={{ display: "flex", gap: "6px" }}>
                         <button
                           onClick={() => editarQuery(q)}
+                          className="smar-btn smar-btn-secondary"
                           style={{
                             flex: 1,
-                            padding: "4px",
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #cfd8dc",
-                            borderRadius: "3px",
-                            cursor: "pointer",
+                            height: "26px",
                             fontSize: "0.75rem",
-                            fontWeight: 600,
-                            color: "#37474f",
                           }}
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => removerQuery(q.id, q.nome)}
+                          className="smar-btn smar-btn-danger"
                           style={{
                             flex: 1,
-                            padding: "4px",
-                            backgroundColor: "#ffebee",
-                            color: "#c62828",
-                            border: "1px solid #ffcdd2",
-                            borderRadius: "3px",
-                            cursor: "pointer",
+                            height: "26px",
                             fontSize: "0.75rem",
-                            fontWeight: 600,
                           }}
                         >
                           Remover
@@ -2926,16 +2432,8 @@ export function ParametrizacaoPage({
         </div>
       </div>
 
-      <div
-        id="rodape-salvar-tudo"
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginTop: "20px",
-          paddingTop: "16px",
-          borderTop: "2px solid #cfd8dc",
-        }}
-      >
+      {/* RODAPÉ PRINCIPAL: SALVAR TUDO */}
+      <div id="rodape-salvar-tudo" className="smar-footer-actions">
         <button
           type="button"
           onClick={salvarTudo}
@@ -2949,26 +2447,7 @@ export function ParametrizacaoPage({
                   ? "Nenhuma alteração foi realizada para salvar"
                   : "Salvar todas as alterações"
           }
-          style={{
-            backgroundColor:
-              semLayoutSelecionado || emModoEdicao || !houveAlteracao
-                ? "#b0bec5"
-                : "#00796b",
-            color: "#ffffff",
-            border: "none",
-            padding: "10px 20px",
-            borderRadius: "4px",
-            fontWeight: 700,
-            fontSize: "0.9rem",
-            cursor:
-              semLayoutSelecionado || emModoEdicao || !houveAlteracao
-                ? "not-allowed"
-                : "pointer",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
+          className="smar-btn smar-btn-save"
         >
           <span>Salvar</span>
         </button>

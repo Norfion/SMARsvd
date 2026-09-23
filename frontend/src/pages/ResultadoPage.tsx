@@ -12,9 +12,9 @@ import {
   ModuleRegistry,
   type ColDef,
   type ICellRendererParams,
+  type CellStyle,
 } from "ag-grid-community";
 
-// Registra todos os recursos comunitários do AG Grid (filtros, ordenação, paginação)
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface ResultadoPageProps {
@@ -31,9 +31,7 @@ interface ItemTabelaExibicao {
   mensagem: string;
 }
 
-// Dicionário de tradução para os controles do AG Grid em Português (pt-BR)
 const AG_GRID_LOCALE_BR = {
-  // Filtros de texto
   filterOoo: "Filtrar...",
   equals: "Igual a",
   notEqual: "Diferente de",
@@ -44,23 +42,17 @@ const AG_GRID_LOCALE_BR = {
   notContains: "Não contém",
   startsWith: "Começa com",
   endsWith: "Termina com",
-
-  // Filtros de número
   lessThan: "Menor que",
   lessThanOrEqual: "Menor ou igual a",
   greaterThan: "Maior que",
   greaterThanOrEqual: "Maior ou igual a",
   inRange: "No intervalo",
-
-  // Condições lógicas do filtro
   andCondition: "E",
   orCondition: "OU",
   applyFilter: "Aplicar",
   resetFilter: "Limpar",
   clearFilter: "Limpar",
   cancelFilter: "Cancelar",
-
-  // Paginação
   page: "Página",
   more: "mais",
   to: "a",
@@ -70,14 +62,10 @@ const AG_GRID_LOCALE_BR = {
   first: "Primeira",
   previous: "Anterior",
   pageSizeSelectorLabel: "Itens por página:",
-
-  // Menus e ordenação
   sortAscending: "Ordem crescente",
   sortDescending: "Ordem decrescente",
   columns: "Colunas",
   filters: "Filtros",
-
-  // Mensagens neutras
   noRowsToShow: "Nenhum registro para exibir",
   loadingOoo: "Carregando...",
 };
@@ -88,7 +76,6 @@ export function ResultadoPage({
 }: ResultadoPageProps) {
   const [menuExportarAberto, setMenuExportarAberto] = useState(false);
 
-  // Normalizadores defensivos para aceitar PascalCase e camelCase
   const nomeArquivo =
     resultadoAuditoria?.NomeArquivo ??
     resultadoAuditoria?.nomeArquivo ??
@@ -127,14 +114,6 @@ export function ResultadoPage({
   const usouOcr =
     resultadoAuditoria?.UsouOcr ?? resultadoAuditoria?.usouOcr ?? false;
 
-  const listaInconsistencias: InconsistenciaItem[] =
-    resultadoAuditoria?.Inconsistencias ??
-    resultadoAuditoria?.inconsistencias ??
-    [];
-
-  const listaValidacoesCompletas: ValidacaoDetalhadaItem[] =
-    resultadoAuditoria?.Validacoes ?? resultadoAuditoria?.validacoes ?? [];
-
   const textoAmostragemBase = ehIntegral
     ? "Validação Integral (100% do arquivo validado)"
     : `Validação por Amostragem (${percentual}% do arquivo validado)`;
@@ -143,9 +122,15 @@ export function ResultadoPage({
     ? `${textoAmostragemBase} [Extração via OCR/IA]`
     : textoAmostragemBase;
 
-  // Unifica e normaliza todos os itens da auditoria para o grid
   const itensExibicao = useMemo<ItemTabelaExibicao[]>(() => {
-    // Se houver lista de validações detalhadas (sucessos e divergências)
+    const listaValidacoesCompletas: ValidacaoDetalhadaItem[] =
+      resultadoAuditoria?.Validacoes ?? resultadoAuditoria?.validacoes ?? [];
+
+    const listaInconsistencias: InconsistenciaItem[] =
+      resultadoAuditoria?.Inconsistencias ??
+      resultadoAuditoria?.inconsistencias ??
+      [];
+
     if (listaValidacoesCompletas.length > 0) {
       return listaValidacoesCompletas.map((val, idx) => {
         const numPagina = val.PaginaExtraido ?? val.paginaExtraido;
@@ -184,7 +169,6 @@ export function ResultadoPage({
       });
     }
 
-    // Fallback: se apenas houver inconsistências retornadas
     return listaInconsistencias.map((item, idx) => {
       const numPagina = item.PaginaExtraido ?? item.paginaExtraido;
       const ident = item.IdentificadorGuia ?? item.identificadorGuia;
@@ -210,10 +194,14 @@ export function ResultadoPage({
           "Divergência detectada",
       };
     });
-  }, [listaInconsistencias, listaValidacoesCompletas]);
+  }, [resultadoAuditoria]);
 
-  // Definição das colunas dinâmicas para o AG Grid
   const definicoesColunas = useMemo<ColDef<ItemTabelaExibicao>[]>(() => {
+    const estiloBase: CellStyle = {
+      display: "flex",
+      alignItems: "center",
+    };
+
     return [
       {
         headerName: "Página",
@@ -230,7 +218,7 @@ export function ResultadoPage({
           return valorA.localeCompare(valorB);
         },
         filter: true,
-        cellStyle: { fontWeight: "700", display: "flex", alignItems: "center" },
+        cellStyle: { ...estiloBase, fontWeight: "700" },
       },
       {
         headerName: "Campo",
@@ -239,10 +227,9 @@ export function ResultadoPage({
         sortable: true,
         filter: true,
         cellStyle: {
-          color: "#00796b",
+          ...estiloBase,
+          color: "var(--smar-teal-dark)",
           fontWeight: "600",
-          display: "flex",
-          alignItems: "center",
         },
       },
       {
@@ -252,10 +239,9 @@ export function ResultadoPage({
         sortable: true,
         filter: true,
         cellStyle: {
-          color: "#2e7d32",
+          ...estiloBase,
+          color: "var(--smar-success-text)",
           fontWeight: "600",
-          display: "flex",
-          alignItems: "center",
         },
       },
       {
@@ -265,10 +251,12 @@ export function ResultadoPage({
         sortable: true,
         filter: true,
         cellStyle: (params) => ({
-          color: params.data?.status === "OK" ? "#263238" : "#c62828",
+          ...estiloBase,
+          color:
+            params.data?.status === "OK"
+              ? "var(--smar-text-primary)"
+              : "var(--smar-danger-text)",
           fontWeight: "600",
-          display: "flex",
-          alignItems: "center",
         }),
       },
       {
@@ -281,11 +269,7 @@ export function ResultadoPage({
           const ehOk = params.value === "OK";
           return (
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                height: "100%",
-              }}
+              style={{ display: "flex", alignItems: "center", height: "100%" }}
             >
               <span
                 style={{
@@ -294,9 +278,15 @@ export function ResultadoPage({
                   borderRadius: "12px",
                   fontSize: "0.7rem",
                   fontWeight: 700,
-                  backgroundColor: ehOk ? "#e8f5e9" : "#ffebee",
-                  color: ehOk ? "#2e7d32" : "#c62828",
-                  border: ehOk ? "1px solid #c8e6c9" : "1px solid #ffcdd2",
+                  backgroundColor: ehOk
+                    ? "var(--smar-success-bg)"
+                    : "var(--smar-danger-bg)",
+                  color: ehOk
+                    ? "var(--smar-success-text)"
+                    : "var(--smar-danger-text)",
+                  border: ehOk
+                    ? "1px solid var(--smar-success-border)"
+                    : "1px solid var(--smar-danger-border)",
                   lineHeight: "1.2",
                 }}
               >
@@ -314,22 +304,20 @@ export function ResultadoPage({
         sortable: true,
         filter: true,
         cellStyle: (params) => ({
-          color: params.data?.status === "OK" ? "#546e7a" : "#b71c1c",
-          display: "flex",
-          alignItems: "center",
+          ...estiloBase,
+          color:
+            params.data?.status === "OK"
+              ? "var(--smar-text-secondary)"
+              : "var(--smar-danger-dark)",
         }),
       },
     ];
   }, []);
 
-  // ==========================================
-  // EXPORTAÇÃO PARA CSV
-  // ==========================================
   const exportarParaCsv = () => {
     if (!resultadoAuditoria) return;
 
     const linhas: string[] = [];
-
     linhas.push(`RELATÓRIO DE AUDITORIA - SMARrsvp`);
     linhas.push(`Arquivo Analisado;${nomeArquivo}`);
     linhas.push(`Layout Utilizado;${layoutUtilizado}`);
@@ -343,7 +331,6 @@ export function ResultadoPage({
     linhas.push(`Total de Documentos;${totalDocumentos}`);
     linhas.push(`Documentos Válidos;${documentosValidos}`);
     linhas.push(`Inconsistências Detectadas;${documentosInconsistentes}`);
-
     linhas.push(
       `Página;Campo;Valor Esperado (Banco);Valor Extraído (Arquivo);Status;Mensagem de Auditoria`,
     );
@@ -354,7 +341,6 @@ export function ResultadoPage({
       itensExibicao.forEach((item) => {
         const sanitizar = (txt: string) =>
           `"${(txt || "").replace(/"/g, '""')}"`;
-
         linhas.push(
           [
             sanitizar(item.pagina),
@@ -381,9 +367,6 @@ export function ResultadoPage({
     setMenuExportarAberto(false);
   };
 
-  // ==========================================
-  // EXPORTAÇÃO PARA EXCEL (.xls / SpreadsheetML)
-  // ==========================================
   const exportarParaExcel = () => {
     if (!resultadoAuditoria) return;
 
@@ -518,9 +501,6 @@ export function ResultadoPage({
     setMenuExportarAberto(false);
   };
 
-  // ==========================================
-  // EXPORTAÇÃO PARA PDF
-  // ==========================================
   const exportarParaPdf = () => {
     if (!resultadoAuditoria) return;
 
@@ -675,29 +655,33 @@ export function ResultadoPage({
     doc.save(`Resultado_Auditoria_${nomeBase}.pdf`);
   };
 
-  // Estado neutro: nenhum documento validado ainda
   if (!resultadoAuditoria) {
     return (
       <div
         id="resultado-vazio"
+        className="smar-card"
         style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid #cfd8dc",
-          borderRadius: "4px",
           padding: "48px 24px",
           textAlign: "center",
           maxWidth: "700px",
           margin: "40px auto",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         }}
       >
         <h2
-          style={{ fontSize: "1.2rem", color: "#37474f", marginBottom: "8px" }}
+          style={{
+            fontSize: "1.2rem",
+            color: "var(--smar-text-body)",
+            marginBottom: "8px",
+          }}
         >
           Nenhuma validação realizada
         </h2>
         <p
-          style={{ color: "#607d8b", fontSize: "0.9rem", marginBottom: "20px" }}
+          style={{
+            color: "var(--smar-text-secondary)",
+            fontSize: "0.9rem",
+            marginBottom: "20px",
+          }}
         >
           Importe e valide um arquivo na página de Validação para visualizar o
           relatório detalhado de inconsistências.
@@ -705,16 +689,8 @@ export function ResultadoPage({
         <button
           type="button"
           onClick={onIrParaValidacao}
-          style={{
-            backgroundColor: "#009688",
-            color: "#ffffff",
-            border: "none",
-            padding: "8px 20px",
-            borderRadius: "4px",
-            fontWeight: 700,
-            fontSize: "0.85rem",
-            cursor: "pointer",
-          }}
+          className="smar-btn smar-btn-primary"
+          style={{ height: "36px", padding: "8px 20px" }}
         >
           <span>Ir para Validação</span>
         </button>
@@ -722,38 +698,12 @@ export function ResultadoPage({
     );
   }
 
-  // Estado com auditoria concluída
   return (
     <div
       id="painel-resultado-auditoria"
-      style={{
-        backgroundColor: "#ffffff",
-        border: "1px solid #cfd8dc",
-        borderRadius: "4px",
-        padding: "20px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-      }}
+      className="smar-card"
+      style={{ padding: "20px" }}
     >
-      <style>
-        {`
-          @media print {
-            body {
-              background-color: #ffffff !important;
-            }
-            #cabecalho-principal-empresa,
-            #barra-navegacao-fitas,
-            .area-botoes-resultado {
-              display: none !important;
-            }
-            #painel-resultado-auditoria {
-              border: none !important;
-              box-shadow: none !important;
-              padding: 0 !important;
-            }
-          }
-        `}
-      </style>
-
       {/* CABEÇALHO DO RESULTADO E BOTÕES */}
       <div
         style={{
@@ -761,14 +711,20 @@ export function ResultadoPage({
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "16px",
-          borderBottom: "1px solid #eceff1",
+          borderBottom: "1px solid var(--smar-border-light)",
           paddingBottom: "12px",
           flexWrap: "wrap",
           gap: "12px",
         }}
       >
         <div>
-          <h2 style={{ margin: 0, fontSize: "1.15rem", color: "#00796b" }}>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "1.15rem",
+              color: "var(--smar-teal-dark)",
+            }}
+          >
             Resultado da Auditoria
           </h2>
           <div
@@ -777,7 +733,7 @@ export function ResultadoPage({
               flexDirection: "column",
               gap: "4px",
               fontSize: "0.8rem",
-              color: "#607d8b",
+              color: "var(--smar-text-secondary)",
               marginTop: "4px",
             }}
           >
@@ -803,108 +759,36 @@ export function ResultadoPage({
             flexWrap: "wrap",
           }}
         >
-          {/* MENU EXPORTAR */}
           <div
             style={{ position: "relative" }}
             onMouseEnter={() => setMenuExportarAberto(true)}
             onMouseLeave={() => setMenuExportarAberto(false)}
           >
-            <button
-              type="button"
-              style={{
-                backgroundColor: "#009688",
-                color: "#ffffff",
-                border: "none",
-                padding: "6px 16px",
-                borderRadius: "4px",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                height: "32px",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-              }}
-            >
+            <button type="button" className="smar-btn smar-btn-primary">
               <span>Exportar</span>
               <span style={{ fontSize: "0.65rem" }}>▼</span>
             </button>
 
             {menuExportarAberto && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #b0bec5",
-                  borderRadius: "4px",
-                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-                  zIndex: 50,
-                  width: "180px",
-                  overflow: "hidden",
-                }}
-              >
+              <div className="smar-dropdown-menu" style={{ width: "180px" }}>
                 <button
                   type="button"
                   onClick={exportarParaPdf}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "10px 14px",
-                    background: "none",
-                    border: "none",
-                    borderBottom: "1px solid #eceff1",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: "#37474f",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
+                  className="smar-dropdown-item"
                 >
                   <span>Exportar para PDF</span>
                 </button>
                 <button
                   type="button"
                   onClick={exportarParaCsv}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "10px 14px",
-                    background: "none",
-                    border: "none",
-                    borderBottom: "1px solid #eceff1",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: "#37474f",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
+                  className="smar-dropdown-item"
                 >
                   <span>Exportar para CSV</span>
                 </button>
                 <button
                   type="button"
                   onClick={exportarParaExcel}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "10px 14px",
-                    background: "none",
-                    border: "none",
-                    borderBottom: "1px solid #eceff1",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: "#37474f",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
+                  className="smar-dropdown-item"
                 >
                   <span>Exportar para Excel</span>
                 </button>
@@ -914,37 +798,21 @@ export function ResultadoPage({
         </div>
       </div>
 
-      {/* NOTA INFORMATIVA SOBRE O MÉTODO / AMOSTRAGEM E AVISO DE OCR/IA */}
+      {/* NOTA INFORMATIVA SOBRE O MÉTODO / AMOSTRAGEM */}
       <div
         id="nota-metodo-validacao"
+        className={`smar-alert ${ehIntegral ? "smar-alert-info" : "smar-alert-warning"}`}
         style={{
-          backgroundColor: ehIntegral ? "#e0f2f1" : "#fff8e1",
-          border: ehIntegral ? "1px solid #b2dfdb" : "1px solid #ffe082",
-          borderRadius: "4px",
-          padding: "10px 14px",
           marginBottom: "16px",
-          display: "flex",
           flexDirection: "column",
           gap: "6px",
         }}
       >
-        <span
-          style={{
-            fontSize: "0.75rem",
-            color: ehIntegral ? "#004d40" : "#6d4c41",
-            lineHeight: 1.35,
-          }}
-        >
+        <span>
           <strong>Observações:</strong>
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span
-            style={{
-              fontSize: "0.75rem",
-              color: ehIntegral ? "#004d40" : "#6d4c41",
-              lineHeight: 1.35,
-            }}
-          >
+          <span>
             {ehIntegral
               ? "- Validação Integral: 100% dos documentos do arquivo foram auditados."
               : `- Validação por Amostragem: Foram validados ${percentual}% dos documentos do arquivo.`}
@@ -954,19 +822,9 @@ export function ResultadoPage({
         {usouOcr && (
           <div
             id="nota-aviso-ocr-ia"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
+            style={{ display: "flex", alignItems: "center", gap: "8px" }}
           >
-            <span
-              style={{
-                fontSize: "0.75rem",
-                color: ehIntegral ? "#004d40" : "#6d4c41",
-                lineHeight: 1.35,
-              }}
-            >
+            <span>
               - Foi utilizada extração de dados via inteligência artificial
               (OCR). A IA pode cometer erros e, por isso, os dados podem não ter
               sido 100% extraídos corretamente.
@@ -975,7 +833,7 @@ export function ResultadoPage({
         )}
       </div>
 
-      {/* Indicadores Resumo */}
+      {/* INDICADORES RESUMO (KPIS) */}
       <div
         style={{
           display: "grid",
@@ -984,102 +842,29 @@ export function ResultadoPage({
           marginBottom: "20px",
         }}
       >
-        <div
-          style={{
-            backgroundColor: "#e0f2f1",
-            border: "1px solid #b2dfdb",
-            borderRadius: "4px",
-            padding: "12px",
-          }}
-        >
-          <span
-            style={{ fontSize: "0.75rem", color: "#004d40", fontWeight: 700 }}
-          >
-            TOTAL DE DOCUMENTOS
-          </span>
-          <p
-            style={{
-              margin: "4px 0 0 0",
-              fontSize: "1.4rem",
-              fontWeight: 700,
-              color: "#00796b",
-            }}
-          >
-            {totalDocumentos}
-          </p>
+        <div className="smar-kpi-card smar-kpi-card-teal">
+          <span className="smar-kpi-title">TOTAL DE DOCUMENTOS</span>
+          <p className="smar-kpi-value">{totalDocumentos}</p>
+        </div>
+
+        <div className="smar-kpi-card smar-kpi-card-green">
+          <span className="smar-kpi-title">DOCUMENTOS VÁLIDOS</span>
+          <p className="smar-kpi-value">{documentosValidos}</p>
         </div>
 
         <div
-          style={{
-            backgroundColor: "#e8f5e9",
-            border: "1px solid #c8e6c9",
-            borderRadius: "4px",
-            padding: "12px",
-          }}
+          className={`smar-kpi-card ${documentosInconsistentes > 0 ? "smar-kpi-card-red" : "smar-kpi-card-gray"}`}
         >
-          <span
-            style={{ fontSize: "0.75rem", color: "#1b5e20", fontWeight: 700 }}
-          >
-            DOCUMENTOS VÁLIDOS
-          </span>
-          <p
-            style={{
-              margin: "4px 0 0 0",
-              fontSize: "1.4rem",
-              fontWeight: 700,
-              color: "#2e7d32",
-            }}
-          >
-            {documentosValidos}
-          </p>
-        </div>
-
-        <div
-          style={{
-            backgroundColor:
-              documentosInconsistentes > 0 ? "#ffebee" : "#f5f5f5",
-            border:
-              documentosInconsistentes > 0
-                ? "1px solid #ffcdd2"
-                : "1px solid #e0e0e0",
-            borderRadius: "4px",
-            padding: "12px",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "0.75rem",
-              color: documentosInconsistentes > 0 ? "#b71c1c" : "#757575",
-              fontWeight: 700,
-            }}
-          >
-            INCONSISTÊNCIAS DETECTADAS
-          </span>
-          <p
-            style={{
-              margin: "4px 0 0 0",
-              fontSize: "1.4rem",
-              fontWeight: 700,
-              color: documentosInconsistentes > 0 ? "#c62828" : "#9e9e9e",
-            }}
-          >
-            {documentosInconsistentes}
-          </p>
+          <span className="smar-kpi-title">INCONSISTÊNCIAS DETECTADAS</span>
+          <p className="smar-kpi-value">{documentosInconsistentes}</p>
         </div>
       </div>
 
-      {/* Grid Dinâmico AG Grid */}
+      {/* GRID DINÂMICO AG GRID */}
       {itensExibicao.length === 0 ? (
         <div
-          style={{
-            padding: "20px",
-            backgroundColor: "#e8f5e9",
-            borderRadius: "4px",
-            border: "1px solid #c8e6c9",
-            textAlign: "center",
-            color: "#2e7d32",
-            fontWeight: 600,
-          }}
+          className="smar-alert smar-alert-success"
+          style={{ justifyContent: "center", padding: "20px", fontWeight: 600 }}
         >
           Nenhum dado de validação encontrado para exibição.
         </div>
@@ -1088,8 +873,8 @@ export function ResultadoPage({
           style={{
             width: "100%",
             height: "520px",
-            border: "1px solid #cfd8dc",
-            borderRadius: "4px",
+            border: "1px solid var(--smar-border-color)",
+            borderRadius: "var(--smar-radius)",
             overflow: "hidden",
           }}
         >

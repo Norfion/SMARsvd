@@ -23,13 +23,11 @@ export function ValidacaoPage({
   layoutsDisponiveis,
   onConcluirValidacao,
 }: ValidacaoPageProps) {
-  // Controle dos acordeões: 1. Conexão (fechado) | 2. Importar (aberto por padrão)
   const [acordeonConexaoAberto, setAcordeonConexaoAberto] =
     useState<boolean>(false);
   const [acordeonImportarAberto, setAcordeonImportarAberto] =
     useState<boolean>(true);
 
-  // Estados temporários de conexão com o banco de dados (não persistidos)
   const [dbProvedor, setDbProvedor] = useState<TipoProvedorBanco>("SQL Server");
   const [dbServidor, setDbServidor] = useState<string>("");
   const [dbPorta, setDbPorta] = useState<string>("1433");
@@ -41,25 +39,20 @@ export function ValidacaoPage({
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [processando, setProcessando] = useState<boolean>(false);
 
-  // Controle da etapa atual de processamento (0 = inativo, 1 = extração, 2 = banco, 3 = validação)
   const [etapaAtual, setEtapaAtual] = useState<number>(0);
 
-  // Textos descritivos para cada etapa de execução
   const descricoesEtapas: Record<number, string> = {
     1: "Extraindo dados do arquivo...",
     2: "Buscando informações no banco de dados...",
     3: "Aplicando regras para validação...",
   };
 
-  // Estados para validação integral vs amostragem
   const [validarIntegralmente, setValidarIntegralmente] =
     useState<boolean>(true);
   const [percentualAmostragem, setPercentualAmostragem] = useState<number>(100);
 
-  // Referência direta para focar e selecionar o input de amostragem
   const inputAmostragemRef = useRef<HTMLInputElement | null>(null);
 
-  // Alterna o botão Liga/Desliga
   const alternarModoValidacao = () => {
     const novoModoIntegral = !validarIntegralmente;
     setValidarIntegralmente(novoModoIntegral);
@@ -68,7 +61,6 @@ export function ValidacaoPage({
       setPercentualAmostragem(100);
     } else {
       setPercentualAmostragem(30);
-
       setTimeout(() => {
         if (inputAmostragemRef.current) {
           inputAmostragemRef.current.focus();
@@ -78,7 +70,6 @@ export function ValidacaoPage({
     }
   };
 
-  // Trata a alteração manual do percentual garantindo intervalo de 0 a 100
   const lidarComMudancaPercentual = (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -91,7 +82,6 @@ export function ValidacaoPage({
     }
   };
 
-  // Estado para controlar o Modal Informativo, de Confirmação e Senha
   const [modalInfo, setModalInfo] = useState<{
     aberto: boolean;
     tipo: TipoModalInformativo;
@@ -136,7 +126,6 @@ export function ValidacaoPage({
   };
 
   const executarValidacao = async () => {
-    // 1. Validação dos dados de conexão com o banco
     if (!dbServidor.trim()) {
       setAcordeonConexaoAberto(true);
       exibirMensagem(
@@ -167,7 +156,6 @@ export function ValidacaoPage({
       return;
     }
 
-    // 2. Validação dos dados do documento e layout
     if (!layoutSelecionadoId) {
       setAcordeonImportarAberto(true);
       exibirMensagem(
@@ -204,7 +192,6 @@ export function ValidacaoPage({
     setProcessando(true);
 
     try {
-      // ETAPA 1/3: Extrair dados do arquivo PDF
       setEtapaAtual(1);
       const respostaExtracao = await processamentoService.extrair(
         arquivo,
@@ -212,7 +199,6 @@ export function ValidacaoPage({
         percentualAmostragem ?? 100,
       );
 
-      // ETAPA 2/3: Buscar dados no banco de dados com credenciais temporárias
       setEtapaAtual(2);
       const configuracaoConexao: ConfiguracaoBanco = {
         provedor: dbProvedor,
@@ -230,7 +216,6 @@ export function ValidacaoPage({
         Boolean(respostaExtracao?.extracao?.usouOcr),
       );
 
-      // ETAPA 3/3: Aplicar regras de validação
       setEtapaAtual(3);
       const utilizouOcr = Boolean(respostaExtracao?.extracao?.usouOcr);
       const dadosApi = await processamentoService.validarRegras(
@@ -239,7 +224,6 @@ export function ValidacaoPage({
         utilizouOcr,
       );
 
-      // Normaliza a lista de inconsistências recebida do backend
       const listaRecebida =
         dadosApi.Inconsistencias ?? dadosApi.inconsistencias ?? [];
       const divergenciasNormalizadas: InconsistenciaItem[] = listaRecebida.map(
@@ -311,95 +295,19 @@ export function ValidacaoPage({
 
   return (
     <div id="container-validacao-pdf" style={{ position: "relative" }}>
-      <style>
-        {`
-          .accordion-content-wrapper {
-            transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
-            overflow: hidden;
-          }
-          .accordion-content-open {
-            max-height: 2000px;
-            opacity: 1;
-            padding: 16px;
-          }
-          .accordion-content-closed {
-            max-height: 0;
-            opacity: 0;
-            padding: 0 16px;
-          }
-          input[type="number"]::-webkit-inner-spin-button,
-          input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-          }
-          input[type="number"] {
-            -moz-appearance: textfield;
-            appearance: textfield;
-          }
-          @keyframes animacaoGiroSpinnerValidacao {
-            0% {
-              transform: rotate(0deg);
-            }
-            100% {
-              transform: rotate(360deg);
-            }
-          }
-        `}
-      </style>
-
-      {/* BLOQUEIO DE TELA / INDICADOR DA ETAPA EM EXECUÇÃO */}
+      {/* BLOQUEIO DE TELA / STATUS DA ETAPA EM EXECUÇÃO */}
       {processando && (
         <div
           id="overlay-bloqueio-processamento"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(255, 255, 255, 0.82)",
-            backdropFilter: "blur(2px)",
-            WebkitBackdropFilter: "blur(2px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            cursor: "wait",
-            userSelect: "none",
-          }}
+          className="smar-overlay-loading"
         >
-          <div
-            id="card-status-processamento"
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #cfd8dc",
-              borderRadius: "8px",
-              padding: "24px 32px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "16px",
-              boxShadow: "0 6px 20px rgba(0, 0, 0, 0.12)",
-              minWidth: "320px",
-              maxWidth: "400px",
-            }}
-          >
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                border: "4px solid #e0f2f1",
-                borderTop: "4px solid #00796b",
-                animation: "animacaoGiroSpinnerValidacao 0.85s linear infinite",
-              }}
-            ></div>
-
+          <div id="card-status-processamento" className="smar-status-card">
+            <div className="smar-spinner"></div>
             <div style={{ width: "100%", textAlign: "center" }}>
               <strong
                 style={{
                   display: "block",
-                  color: "#00796b",
+                  color: "var(--smar-teal-dark)",
                   fontSize: "1rem",
                   marginBottom: "10px",
                   fontWeight: 700,
@@ -411,11 +319,11 @@ export function ValidacaoPage({
               <div
                 id="etapa-corrente-processamento"
                 style={{
-                  backgroundColor: "#f8fafc",
+                  backgroundColor: "var(--smar-bg-subtle)",
                   padding: "10px 14px",
                   borderRadius: "6px",
-                  border: "1px solid #e2e8f0",
-                  color: "#263238",
+                  border: "1px solid var(--smar-border-color)",
+                  color: "var(--smar-text-primary)",
                   fontSize: "0.85rem",
                   fontWeight: 600,
                 }}
@@ -437,50 +345,24 @@ export function ValidacaoPage({
       {/* 1. ACORDEÃO: CONEXÃO COM O BANCO DE DADOS */}
       <section
         id="accordion-conexao-banco-validacao"
-        style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid #cfd8dc",
-          borderRadius: "4px",
-          overflow: "hidden",
-          marginBottom: "16px",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-        }}
+        className="smar-accordion"
       >
         <div
           onClick={() =>
             !processando && setAcordeonConexaoAberto((aberto) => !aberto)
           }
-          style={{
-            backgroundColor: acordeonConexaoAberto ? "#e0f2f1" : "#f8fafc",
-            padding: "10px 16px",
-            cursor: processando ? "not-allowed" : "pointer",
-            borderBottom: acordeonConexaoAberto ? "1px solid #b2dfdb" : "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            userSelect: "none",
-          }}
+          className={`smar-accordion-header ${acordeonConexaoAberto ? "aberto" : "fechado"}`}
+          style={{ cursor: processando ? "not-allowed" : "pointer" }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{
-                color: acordeonConexaoAberto ? "#00796b" : "#546e7a",
-                fontWeight: 700,
-                fontSize: "0.85rem",
-              }}
-            >
+          <div className="smar-accordion-title">
+            <span className="smar-accordion-icon">
               {acordeonConexaoAberto ? "▼" : "▶"}
             </span>
-            <strong
-              style={{
-                fontSize: "0.9rem",
-                color: acordeonConexaoAberto ? "#00796b" : "#263238",
-              }}
-            >
-              1. Conexão com o banco de dados
-            </strong>
+            <strong>1. Conexão com o banco de dados</strong>
           </div>
-          <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
+          <span
+            style={{ fontSize: "0.75rem", color: "var(--smar-text-secondary)" }}
+          >
             {dbServidor && dbNomeBanco
               ? `${dbProvedor}: ${dbServidor} / ${dbNomeBanco}`
               : "Informe as credenciais"}
@@ -488,30 +370,20 @@ export function ValidacaoPage({
         </div>
 
         <div
-          className={`accordion-content-wrapper ${
+          className={`smar-accordion-content-wrapper ${
             acordeonConexaoAberto
-              ? "accordion-content-open"
-              : "accordion-content-closed"
+              ? "smar-accordion-content-open"
+              : "smar-accordion-content-closed"
           }`}
         >
           {/* ALERTA DE SEGURANÇA */}
           <div
             id="alerta-seguranca-banco-validacao"
-            style={{
-              backgroundColor: "#fff8e1",
-              border: "1px solid #ffe082",
-              borderRadius: "4px",
-              padding: "12px 14px",
-              marginBottom: "16px",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "10px",
-            }}
+            className="smar-alert smar-alert-warning"
+            style={{ marginBottom: "16px" }}
           >
             <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>⚠️</span>
-            <div
-              style={{ fontSize: "0.8rem", color: "#6d4c41", lineHeight: 1.4 }}
-            >
+            <div style={{ lineHeight: 1.4 }}>
               <strong>Credenciais temporárias de execução:</strong>
               <p style={{ margin: "4px 0 0 0" }}>
                 As credenciais informadas aqui não serão salvas. Por motivos de
@@ -527,14 +399,7 @@ export function ValidacaoPage({
           <div style={{ marginBottom: "14px" }}>
             <label
               htmlFor="select-provedor-banco-validacao"
-              style={{
-                display: "block",
-                fontWeight: 700,
-                fontSize: "0.75rem",
-                color: "#455a64",
-                marginBottom: "4px",
-                textTransform: "uppercase",
-              }}
+              className="smar-label"
             >
               Banco de dados
             </label>
@@ -545,17 +410,8 @@ export function ValidacaoPage({
                 setDbProvedor(e.target.value as TipoProvedorBanco)
               }
               disabled={processando}
-              style={{
-                width: "100%",
-                maxWidth: "280px",
-                padding: "6px 10px",
-                borderRadius: "4px",
-                border: "1px solid #cfd8dc",
-                height: "34px",
-                backgroundColor: "#ffffff",
-                color: "#263238",
-                fontWeight: 600,
-              }}
+              className="smar-select"
+              style={{ maxWidth: "280px", fontWeight: 600 }}
             >
               <option value="SQL Server">SQL Server</option>
             </select>
@@ -573,14 +429,7 @@ export function ValidacaoPage({
             <div>
               <label
                 htmlFor="input-servidor-banco-validacao"
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
+                className="smar-label"
               >
                 Servidor
               </label>
@@ -591,26 +440,13 @@ export function ValidacaoPage({
                 onChange={(e) => setDbServidor(e.target.value)}
                 disabled={processando}
                 placeholder="Ex: PMTesteSQL2 ou 172.168.0.00"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
+                className="smar-input"
               ></input>
             </div>
             <div>
               <label
                 htmlFor="input-porta-banco-validacao"
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
+                className="smar-label"
               >
                 Porta
               </label>
@@ -621,30 +457,14 @@ export function ValidacaoPage({
                 onChange={(e) => setDbPorta(e.target.value)}
                 disabled={processando}
                 placeholder="1433"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
+                className="smar-input"
               ></input>
             </div>
           </div>
 
           {/* BASE DE DADOS */}
           <div style={{ marginBottom: "14px" }}>
-            <label
-              htmlFor="input-base-dados-validacao"
-              style={{
-                display: "block",
-                fontWeight: 700,
-                fontSize: "0.75rem",
-                color: "#455a64",
-                marginBottom: "4px",
-                textTransform: "uppercase",
-              }}
-            >
+            <label htmlFor="input-base-dados-validacao" className="smar-label">
               Base de dados
             </label>
             <input
@@ -654,13 +474,7 @@ export function ValidacaoPage({
               onChange={(e) => setDbNomeBanco(e.target.value)}
               disabled={processando}
               placeholder="Ex: SMARtb_Cliente1"
-              style={{
-                width: "100%",
-                padding: "6px 10px",
-                borderRadius: "4px",
-                border: "1px solid #cfd8dc",
-                height: "34px",
-              }}
+              className="smar-input"
             ></input>
           </div>
 
@@ -675,14 +489,7 @@ export function ValidacaoPage({
             <div>
               <label
                 htmlFor="input-usuario-banco-validacao"
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
+                className="smar-label"
               >
                 Usuário
               </label>
@@ -693,26 +500,13 @@ export function ValidacaoPage({
                 onChange={(e) => setDbUsuario(e.target.value)}
                 disabled={processando}
                 placeholder="Ex: smartbValidacao"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
+                className="smar-input"
               ></input>
             </div>
             <div>
               <label
                 htmlFor="input-senha-banco-validacao"
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
+                className="smar-label"
               >
                 Senha
               </label>
@@ -723,13 +517,7 @@ export function ValidacaoPage({
                 onChange={(e) => setDbSenha(e.target.value)}
                 disabled={processando}
                 placeholder="••••••••"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
+                className="smar-input"
               ></input>
             </div>
           </div>
@@ -739,62 +527,36 @@ export function ValidacaoPage({
       {/* 2. ACORDEÃO: IMPORTAR DOCUMENTOS */}
       <section
         id="accordion-importar-documentos-validacao"
-        style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid #cfd8dc",
-          borderRadius: "4px",
-          overflow: "hidden",
-          marginBottom: "16px",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-        }}
+        className="smar-accordion"
       >
         <div
           onClick={() =>
             !processando && setAcordeonImportarAberto((aberto) => !aberto)
           }
-          style={{
-            backgroundColor: acordeonImportarAberto ? "#e0f2f1" : "#f8fafc",
-            padding: "10px 16px",
-            cursor: processando ? "not-allowed" : "pointer",
-            borderBottom: acordeonImportarAberto ? "1px solid #b2dfdb" : "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            userSelect: "none",
-          }}
+          className={`smar-accordion-header ${acordeonImportarAberto ? "aberto" : "fechado"}`}
+          style={{ cursor: processando ? "not-allowed" : "pointer" }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{
-                color: acordeonImportarAberto ? "#00796b" : "#546e7a",
-                fontWeight: 700,
-                fontSize: "0.85rem",
-              }}
-            >
+          <div className="smar-accordion-title">
+            <span className="smar-accordion-icon">
               {acordeonImportarAberto ? "▼" : "▶"}
             </span>
-            <strong
-              style={{
-                fontSize: "0.9rem",
-                color: acordeonImportarAberto ? "#00796b" : "#263238",
-              }}
-            >
-              2. Importar documentos
-            </strong>
+            <strong>2. Importar documentos</strong>
           </div>
-          <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
+          <span
+            style={{ fontSize: "0.75rem", color: "var(--smar-text-secondary)" }}
+          >
             {arquivo ? arquivo.name : "Nenhum arquivo selecionado"}
           </span>
         </div>
 
         <div
-          className={`accordion-content-wrapper ${
+          className={`smar-accordion-content-wrapper ${
             acordeonImportarAberto
-              ? "accordion-content-open"
-              : "accordion-content-closed"
+              ? "smar-accordion-content-open"
+              : "smar-accordion-content-closed"
           }`}
         >
-          {/* Linha 1: Seleção de Layout e Upload de PDF */}
+          {/* Seleção de Layout e Upload de PDF */}
           <div
             style={{
               display: "grid",
@@ -804,19 +566,8 @@ export function ValidacaoPage({
               marginBottom: "16px",
             }}
           >
-            {/* Seletor do Layout */}
             <div>
-              <label
-                htmlFor="select-layout-aplicado"
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
+              <label htmlFor="select-layout-aplicado" className="smar-label">
                 Layout
               </label>
               <select
@@ -824,15 +575,7 @@ export function ValidacaoPage({
                 value={layoutSelecionadoId}
                 onChange={(e) => setLayoutSelecionadoId(e.target.value)}
                 disabled={processando}
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                  color: "#263238",
-                  backgroundColor: processando ? "#f5f5f5" : "#ffffff",
-                }}
+                className="smar-select"
               >
                 <option value="">(Selecione um layout)</option>
                 {layoutsDisponiveis.map((l) => (
@@ -843,19 +586,8 @@ export function ValidacaoPage({
               </select>
             </div>
 
-            {/* Upload do Arquivo PDF */}
             <div>
-              <span
-                id="label-arquivo-pdf"
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
+              <span id="label-arquivo-pdf" className="smar-label">
                 Arquivo para validação
               </span>
 
@@ -875,9 +607,13 @@ export function ValidacaoPage({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  backgroundColor: arquivo ? "#e8f5e9" : "#ffffff",
-                  border: arquivo ? "1px solid #81c784" : "1px solid #cfd8dc",
-                  borderRadius: "4px",
+                  backgroundColor: arquivo
+                    ? "var(--smar-success-bg)"
+                    : "#ffffff",
+                  border: arquivo
+                    ? "1px solid #81c784"
+                    : "1px solid var(--smar-border-color)",
+                  borderRadius: "var(--smar-radius)",
                   padding: "0 10px",
                   cursor: processando ? "not-allowed" : "pointer",
                   height: "34px",
@@ -898,7 +634,9 @@ export function ValidacaoPage({
                   <span
                     style={{
                       fontSize: "0.75rem",
-                      color: arquivo ? "#2e7d32" : "#78909c",
+                      color: arquivo
+                        ? "var(--smar-success-text)"
+                        : "var(--smar-text-muted)",
                       fontWeight: arquivo ? 700 : 400,
                       whiteSpace: "nowrap",
                       overflow: "hidden",
@@ -912,7 +650,7 @@ export function ValidacaoPage({
 
                 <span
                   style={{
-                    backgroundColor: "#009688",
+                    backgroundColor: "var(--smar-teal-primary)",
                     color: "#ffffff",
                     padding: "2px 8px",
                     borderRadius: "3px",
@@ -926,13 +664,13 @@ export function ValidacaoPage({
             </div>
           </div>
 
-          {/* Linha 2: Configuração de Amostragem / Integral */}
+          {/* Configuração de Amostragem / Integral */}
           <div
             id="painel-opcoes-amostragem"
             style={{
-              backgroundColor: "#f8fafc",
-              border: "1px solid #cfd8dc",
-              borderRadius: "4px",
+              backgroundColor: "var(--smar-bg-subtle)",
+              border: "1px solid var(--smar-border-color)",
+              borderRadius: "var(--smar-radius)",
               padding: "10px 14px",
               display: "flex",
               flexWrap: "wrap",
@@ -943,7 +681,6 @@ export function ValidacaoPage({
               boxSizing: "border-box",
             }}
           >
-            {/* Controles de Seleção */}
             <div
               style={{
                 display: "flex",
@@ -953,7 +690,7 @@ export function ValidacaoPage({
                 flexShrink: 0,
               }}
             >
-              {/* Botão Liga / Desliga (Switch) */}
+              {/* Switch Liga/Desliga */}
               <div
                 style={{
                   display: "flex",
@@ -967,40 +704,17 @@ export function ValidacaoPage({
                   id="btn-switch-modo-validacao"
                   onClick={alternarModoValidacao}
                   disabled={processando}
-                  style={{
-                    position: "relative",
-                    width: "44px",
-                    height: "24px",
-                    borderRadius: "12px",
-                    backgroundColor: validarIntegralmente
-                      ? "#00796b"
-                      : "#78909c",
-                    border: "none",
-                    cursor: processando ? "not-allowed" : "pointer",
-                    padding: "2px",
-                    transition: "background-color 0.2s ease",
-                    flexShrink: 0,
-                  }}
+                  className={`smar-switch ${validarIntegralmente ? "smar-switch-on" : "smar-switch-off"}`}
                 >
-                  <span
-                    style={{
-                      display: "block",
-                      width: "20px",
-                      height: "20px",
-                      borderRadius: "50%",
-                      backgroundColor: "#ffffff",
-                      transform: validarIntegralmente
-                        ? "translateX(20px)"
-                        : "translateX(0px)",
-                      transition: "transform 0.2s ease",
-                    }}
-                  ></span>
+                  <span className="smar-switch-thumb"></span>
                 </button>
                 <span
                   style={{
                     fontSize: "0.8rem",
                     fontWeight: 700,
-                    color: validarIntegralmente ? "#00796b" : "#455a64",
+                    color: validarIntegralmente
+                      ? "var(--smar-teal-dark)"
+                      : "var(--smar-text-label)",
                     userSelect: "none",
                   }}
                 >
@@ -1016,12 +730,8 @@ export function ValidacaoPage({
               >
                 <label
                   htmlFor="input-percentual-amostragem"
-                  style={{
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    color: "#455a64",
-                    textTransform: "uppercase",
-                  }}
+                  className="smar-label"
+                  style={{ marginBottom: 0 }}
                 >
                   Amostragem:
                 </label>
@@ -1035,25 +745,16 @@ export function ValidacaoPage({
                     value={percentualAmostragem}
                     onChange={lidarComMudancaPercentual}
                     disabled={validarIntegralmente || processando}
+                    className="smar-input"
                     style={{
-                      width: "100%",
                       padding: "4px 22px 4px 8px",
-                      borderRadius: "4px",
-                      border: "1px solid #cfd8dc",
                       height: "30px",
-                      fontSize: "0.85rem",
                       fontWeight: 700,
-                      color: validarIntegralmente ? "#78909c" : "#263238",
+                      textAlign: "right",
                       backgroundColor:
                         validarIntegralmente || processando
                           ? "#eceff1"
                           : "#ffffff",
-                      cursor:
-                        validarIntegralmente || processando
-                          ? "not-allowed"
-                          : "text",
-                      boxSizing: "border-box",
-                      textAlign: "right",
                     }}
                   ></input>
                   <span
@@ -1063,7 +764,9 @@ export function ValidacaoPage({
                       top: "6px",
                       fontSize: "0.75rem",
                       fontWeight: 700,
-                      color: validarIntegralmente ? "#90a4ae" : "#455a64",
+                      color: validarIntegralmente
+                        ? "var(--smar-border-dark)"
+                        : "var(--smar-text-label)",
                       pointerEvents: "none",
                     }}
                   >
@@ -1073,7 +776,7 @@ export function ValidacaoPage({
               </div>
             </div>
 
-            {/* Mensagens Informativas */}
+            {/* Mensagens Informativas de Amostragem */}
             <div
               style={{
                 flex: "1 1 360px",
@@ -1085,27 +788,15 @@ export function ValidacaoPage({
               {validarIntegralmente ? (
                 <div
                   id="aviso-validacao-integral"
+                  className="smar-alert smar-alert-info"
                   style={{
                     width: "100%",
                     minHeight: "44px",
-                    boxSizing: "border-box",
-                    backgroundColor: "#e0f2f1",
-                    border: "1px solid #b2dfdb",
-                    borderRadius: "4px",
-                    padding: "6px 12px",
-                    display: "flex",
                     alignItems: "center",
-                    gap: "8px",
                   }}
                 >
                   <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>🟢</span>
-                  <span
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#004d40",
-                      lineHeight: 1.25,
-                    }}
-                  >
+                  <span>
                     <strong>Validação Integral (100%):</strong> Todas as páginas
                     serão auditadas. Porém, a validação pode demorar.
                   </span>
@@ -1113,27 +804,15 @@ export function ValidacaoPage({
               ) : (
                 <div
                   id="aviso-validacao-amostragem"
+                  className="smar-alert smar-alert-warning"
                   style={{
                     width: "100%",
                     minHeight: "44px",
-                    boxSizing: "border-box",
-                    backgroundColor: "#fff8e1",
-                    border: "1px solid #ffe082",
-                    borderRadius: "4px",
-                    padding: "6px 12px",
-                    display: "flex",
                     alignItems: "center",
-                    gap: "8px",
                   }}
                 >
                   <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>🟡</span>
-                  <span
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#795548",
-                      lineHeight: 1.25,
-                    }}
-                  >
+                  <span>
                     <strong>Amostragem ({percentualAmostragem}%):</strong>{" "}
                     Auditoria por amostragem aleatória. Mais rápido, porém
                     inconsistências fora da amostra podem não ser detectadas.
@@ -1146,41 +825,18 @@ export function ValidacaoPage({
       </section>
 
       {/* RODAPÉ: BOTÃO DE DISPARO DA VALIDAÇÃO */}
-      <div
-        id="rodape-executar-validacao"
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginTop: "20px",
-          paddingTop: "16px",
-          borderTop: "2px solid #cfd8dc",
-        }}
-      >
+      <div id="rodape-executar-validacao" className="smar-footer-actions">
         <button
           type="button"
           id="btn-executar-validacao"
           onClick={executarValidacao}
           disabled={processando}
-          style={{
-            backgroundColor: processando ? "#b0bec5" : "#009688",
-            color: "#ffffff",
-            border: "none",
-            padding: "10px 24px",
-            borderRadius: "4px",
-            fontWeight: 700,
-            fontSize: "0.9rem",
-            cursor: processando ? "not-allowed" : "pointer",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
+          className="smar-btn smar-btn-save"
         >
           <span>{processando ? "Auditando..." : "Validar"}</span>
         </button>
       </div>
 
-      {/* Modal Informativo Centralizado */}
       <ModalInformativo
         aberto={modalInfo.aberto}
         tipo={modalInfo.tipo}
