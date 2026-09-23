@@ -167,7 +167,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
             {
                 bool temErroNoDoc = false;
 
-                // Localiza o documento correspondente no mock do banco
                 var docBanco = dadosBanco.FirstOrDefault(d =>
                     d.PaginaInicio == doc.PaginaInicio && d.PaginaFim == doc.PaginaFim);
 
@@ -197,13 +196,10 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
                             string nomeCampoRegra = regra.CampoCarne.Trim();
 
-                            // 1. Identifica no layout em qual página relativa do carnê este campo está configurado
                             var campoConfigurado = layout.Campos?.FirstOrDefault(c =>
                                 !string.IsNullOrWhiteSpace(c?.NomeCampo) &&
                                 c.NomeCampo.Trim().Equals(nomeCampoRegra, StringComparison.OrdinalIgnoreCase));
 
-                            // 2. Localiza o campo extraído no documento.
-                            // Se soubermos a página configurada, filtramos preferencialmente por ela.
                             CampoExtraidoDto? campoExt = null;
 
                             if (campoConfigurado != null && campoConfigurado.Pagina > 0)
@@ -215,12 +211,10 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                                     c.PaginaExtraido == paginaAbsolutaEsperada);
                             }
 
-                            // Fallback caso não ache pela página absoluta exata: busca pelo nome do campo
                             campoExt ??= doc.Campos?.FirstOrDefault(c =>
                                 !string.IsNullOrWhiteSpace(c?.Nome) &&
                                 c.Nome.Trim().Equals(nomeCampoRegra, StringComparison.OrdinalIgnoreCase));
 
-                            // 3. Determina a página real do campo para exibição
                             int paginaExata = campoExt?.PaginaExtraido > 0
                                 ? campoExt.PaginaExtraido
                                 : (campoConfigurado != null && campoConfigurado.Pagina > 0
@@ -229,7 +223,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
                             string extraido = campoExt?.ValorExtraido?.Trim() ?? string.Empty;
 
-                            // 4. Busca o valor esperado correspondente no mock do banco
                             string esperado = string.Empty;
                             if (docBanco.DadosRetornados != null && !string.IsNullOrWhiteSpace(regra.CampoRetornado))
                             {

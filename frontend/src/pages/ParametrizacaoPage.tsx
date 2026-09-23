@@ -11,7 +11,6 @@ import {
   type LayoutCliente,
   type QueryValidacao,
   type RegraValidacao,
-  type TipoProvedorBanco,
 } from "../types/layout";
 
 interface ParametrizacaoPageProps {
@@ -38,14 +37,8 @@ export function ParametrizacaoPage({
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [layoutId, setLayoutId] = useState<string | undefined>(undefined);
   const [etapaAberta, setEtapaAberta] = useState<
-    "layout" | "campos" | "validacoes" | "conexao" | null
+    "layout" | "campos" | "validacoes" | null
   >(null);
-
-  const [dbProvedor, setDbProvedor] = useState<TipoProvedorBanco>("SQL Server");
-  const [dbServidor, setDbServidor] = useState<string>("");
-  const [dbPorta, setDbPorta] = useState<string>("1433");
-  const [dbUsuario, setDbUsuario] = useState<string>("");
-  const [dbSenha, setDbSenha] = useState<string>("");
 
   const [modalNovoLayoutAberto, setModalNovoLayoutAberto] = useState(false);
   const [carregandoPdfModelo, setCarregandoPdfModelo] = useState(false);
@@ -64,9 +57,6 @@ export function ParametrizacaoPage({
     setQueries([]);
     setPaginasModelo([]);
     setNomeArquivoModelo("");
-    setDbServidor("");
-    setDbUsuario("");
-    setDbSenha("");
     setEtapaAberta(null);
     cancelarEdicaoCampo();
     cancelarEdicaoQuery();
@@ -112,9 +102,7 @@ export function ParametrizacaoPage({
     });
   };
 
-  const alternarEtapa = (
-    etapa: "layout" | "campos" | "validacoes" | "conexao",
-  ) => {
+  const alternarEtapa = (etapa: "layout" | "campos" | "validacoes") => {
     if (!layoutSelecionadoId) return;
     setEtapaAberta((etapaAtual) => (etapaAtual === etapa ? null : etapa));
   };
@@ -197,13 +185,6 @@ export function ParametrizacaoPage({
       campos,
       queriesValidacao: queries,
       paginasModeloBase64: paginasModelo,
-      conexaoBanco: {
-        provedor: dbProvedor,
-        servidor: dbServidor.trim(),
-        porta: dbPorta ? Number(dbPorta) : 1433,
-        usuario: dbUsuario.trim(),
-        senha: dbSenha,
-      },
     });
   };
 
@@ -232,11 +213,6 @@ export function ParametrizacaoPage({
     setQueries([]);
     setPaginasModelo([]);
     setNomeArquivoModelo("");
-    setDbProvedor("SQL Server");
-    setDbServidor("");
-    setDbPorta("1433");
-    setDbUsuario("");
-    setDbSenha("");
     setEtapaAberta("layout");
     cancelarEdicaoCampo();
     cancelarEdicaoQuery();
@@ -411,20 +387,6 @@ export function ParametrizacaoPage({
     setPaginasModelo(layout.paginasModeloBase64 || []);
     setNomeArquivoModelo(layout.nomeArquivoModelo || "");
 
-    const provedorBanco = layout.conexaoBanco?.provedor || "SQL Server";
-    const servidorBanco = layout.conexaoBanco?.servidor || "";
-    const portaBanco = layout.conexaoBanco?.porta
-      ? String(layout.conexaoBanco.porta)
-      : "1433";
-    const usuarioBanco = layout.conexaoBanco?.usuario || "";
-    const senhaBanco = layout.conexaoBanco?.senha || "";
-
-    setDbProvedor(provedorBanco);
-    setDbServidor(servidorBanco);
-    setDbPorta(portaBanco);
-    setDbUsuario(usuarioBanco);
-    setDbSenha(senhaBanco);
-
     setDadosOriginaisJson(
       JSON.stringify({
         cliente: layout.cliente,
@@ -434,13 +396,6 @@ export function ParametrizacaoPage({
         campos: camposCarregados,
         queriesValidacao: layout.queriesValidacao || [],
         paginasModeloBase64: layout.paginasModeloBase64 || [],
-        conexaoBanco: {
-          provedor: provedorBanco,
-          servidor: servidorBanco.trim(),
-          porta: portaBanco ? Number(portaBanco) : 1433,
-          usuario: usuarioBanco.trim(),
-          senha: senhaBanco,
-        },
       }),
     );
 
@@ -473,13 +428,6 @@ export function ParametrizacaoPage({
       queriesValidacao: queries,
       paginasModeloBase64: paginasModelo,
       nomeArquivoModelo,
-      conexaoBanco: {
-        provedor: dbProvedor,
-        servidor: dbServidor.trim(),
-        porta: dbPorta ? Number(dbPorta) : 1433,
-        usuario: dbUsuario.trim(),
-        senha: dbSenha,
-      },
     };
 
     const layoutJaExiste = layoutsSalvos.some(
@@ -638,7 +586,6 @@ export function ParametrizacaoPage({
     }
   };
 
-  // Identificadores de página disponíveis cadastrados no layout corrente
   const identificadoresDePaginaDisponiveis = Array.from(
     new Set(
       campos
@@ -704,7 +651,6 @@ export function ParametrizacaoPage({
         return;
       }
     } else {
-      // Campo Normal (Nenhum)
       if (identificadoresDePaginaDisponiveis.length === 0) {
         exibirMensagem(
           "aviso",
@@ -781,7 +727,6 @@ export function ParametrizacaoPage({
     setRegraCampoCarne("");
   };
 
-  // Função centralizada para analisar a query SQL e extrair parâmetros e retornos
   const executarAnaliseSQL = (
     textoSql: string,
     exibirAvisos = true,
@@ -856,7 +801,6 @@ export function ParametrizacaoPage({
       setRegraCampoRetornado(retsUnicos[0]);
     }
 
-    // Seleciona o primeiro campo normal (excluindo identificadores)
     if (camposNormaisDisponiveis.length > 0) {
       setRegraCampoCarne(camposNormaisDisponiveis[0].nomeCampo);
     }
@@ -940,10 +884,8 @@ export function ParametrizacaoPage({
     setSqlQuery(query.sql);
     setRegrasAtuais(query.regras || []);
 
-    // Executa a análise automaticamente ao abrir para edição
     const resultado = executarAnaliseSQL(query.sql, false);
 
-    // Se o parse automático encontrar retornos, utiliza-os; caso contrário, mantém os salvos
     if (resultado.sucesso) {
       if (resultado.retornos.length > 0) {
         setRegraCampoRetornado(resultado.retornos[0]);
@@ -1004,19 +946,6 @@ export function ParametrizacaoPage({
             flex: 1,
           }}
         >
-          <span
-            style={{
-              backgroundColor: "#e0f2f1",
-              color: "#00796b",
-              padding: "4px 8px",
-              borderRadius: "3px",
-              fontWeight: 700,
-              fontSize: "0.75rem",
-              border: "1px solid #b2dfdb",
-            }}
-          >
-            LAYOUT
-          </span>
           <div style={{ flex: 1, maxWidth: "420px" }}>
             <select
               id="select-layout-global"
@@ -1188,6 +1117,7 @@ export function ParametrizacaoPage({
         )}
       </div>
 
+      {/* 1. CONFIGURAÇÕES DO DOCUMENTO */}
       <div
         id="accordion-layout"
         style={{
@@ -1386,6 +1316,7 @@ export function ParametrizacaoPage({
         </div>
       </div>
 
+      {/* 2. MAPEAMENTO DOS CAMPOS */}
       <div
         id="accordion-campos"
         style={{
@@ -2376,6 +2307,7 @@ export function ParametrizacaoPage({
         </div>
       </div>
 
+      {/* 3. REGRAS DE VALIDAÇÃO */}
       <div
         id="accordion-validacoes"
         style={{
@@ -2989,266 +2921,6 @@ export function ParametrizacaoPage({
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        id="accordion-conexao-banco"
-        style={{
-          marginBottom: "12px",
-          backgroundColor: "#ffffff",
-          border: "1px solid #cfd8dc",
-          borderRadius: "4px",
-          overflow: "hidden",
-          opacity:
-            semLayoutSelecionado || (emModoEdicao && etapaAberta !== "conexao")
-              ? 0.65
-              : 1,
-        }}
-      >
-        <div
-          onClick={() => {
-            if (!semLayoutSelecionado && !emModoEdicao) {
-              alternarEtapa("conexao");
-            }
-          }}
-          style={{
-            backgroundColor: etapaAberta === "conexao" ? "#e0f2f1" : "#f8fafc",
-            padding: "10px 16px",
-            cursor:
-              !semLayoutSelecionado && !emModoEdicao
-                ? "pointer"
-                : "not-allowed",
-            borderBottom:
-              etapaAberta === "conexao" ? "1px solid #b2dfdb" : "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            userSelect: "none",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span
-              style={{
-                color: etapaAberta === "conexao" ? "#00796b" : "#546e7a",
-                fontWeight: 700,
-                fontSize: "0.85rem",
-              }}
-            >
-              {etapaAberta === "conexao" ? "▼" : "▶"}
-            </span>
-            <strong
-              style={{
-                fontSize: "0.9rem",
-                color: etapaAberta === "conexao" ? "#00796b" : "#263238",
-              }}
-            >
-              4. Conexão com banco de dados
-            </strong>
-          </div>
-          <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
-            {semLayoutSelecionado
-              ? "(Layout não selecionado)"
-              : emModoEdicao
-                ? "(Bloqueado durante edição)"
-                : dbServidor
-                  ? `${dbProvedor}: ${dbServidor}`
-                  : "Não configurado"}
-          </span>
-        </div>
-        <div
-          className={`accordion-content-wrapper ${etapaAberta === "conexao" && !semLayoutSelecionado ? "accordion-content-open" : "accordion-content-closed"}`}
-        >
-          <div
-            id="alerta-seguranca-banco"
-            style={{
-              backgroundColor: "#fff8e1",
-              border: "1px solid #ffe082",
-              borderRadius: "4px",
-              padding: "12px 14px",
-              marginBottom: "16px",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "10px",
-            }}
-          >
-            <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>⚠️</span>
-            <div
-              style={{ fontSize: "0.8rem", color: "#6d4c41", lineHeight: 1.4 }}
-            >
-              <strong>Atenção às permissões de acesso:</strong>
-              <p style={{ margin: "4px 0 0 0" }}>
-                Por motivos de segurança e integridade das informações
-                corporativas, utilize exclusivamente credenciais de um usuário
-                com{" "}
-                <strong>permissão restrita de leitura (db_datareader)</strong>{" "}
-                no banco de dados.
-              </p>
-              <p style={{ margin: "4px 0 0 0" }}>
-                Caso não possua um usuário apenas com permissão de leitura,
-                solicite ao DBA ou crie um usuário dedicado com acesso restrito
-                antes de prosseguir.
-              </p>
-            </div>
-          </div>
-          <div style={{ marginBottom: "14px" }}>
-            <label
-              style={{
-                display: "block",
-                fontWeight: 700,
-                fontSize: "0.75rem",
-                color: "#455a64",
-                marginBottom: "4px",
-                textTransform: "uppercase",
-              }}
-            >
-              Banco de dados
-            </label>
-            <select
-              value={dbProvedor}
-              onChange={(e) =>
-                setDbProvedor(e.target.value as TipoProvedorBanco)
-              }
-              style={{
-                width: "100%",
-                maxWidth: "280px",
-                padding: "6px 10px",
-                borderRadius: "4px",
-                border: "1px solid #cfd8dc",
-                height: "34px",
-                backgroundColor: "#ffffff",
-                color: "#263238",
-                fontWeight: 600,
-              }}
-            >
-              <option value="SQL Server">SQL Server</option>
-            </select>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "2fr 1fr",
-              gap: "14px",
-              marginBottom: "14px",
-            }}
-          >
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Servidor
-              </label>
-              <input
-                type="text"
-                value={dbServidor}
-                onChange={(e) => setDbServidor(e.target.value)}
-                placeholder="Ex: PMTesteSQL2 ou 172.168.0.00"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
-              ></input>
-            </div>
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Porta
-              </label>
-              <input
-                type="number"
-                value={dbPorta}
-                onChange={(e) => setDbPorta(e.target.value)}
-                placeholder="1433"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
-              ></input>
-            </div>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "14px",
-            }}
-          >
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Usuário
-              </label>
-              <input
-                type="text"
-                value={dbUsuario}
-                onChange={(e) => setDbUsuario(e.target.value)}
-                placeholder="Ex: smartbValidacao"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
-              ></input>
-            </div>
-            <div>
-              <label
-                style={{
-                  display: "block",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#455a64",
-                  marginBottom: "4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Senha
-              </label>
-              <input
-                type="password"
-                value={dbSenha}
-                onChange={(e) => setDbSenha(e.target.value)}
-                placeholder="••••••••"
-                style={{
-                  width: "100%",
-                  padding: "6px 10px",
-                  borderRadius: "4px",
-                  border: "1px solid #cfd8dc",
-                  height: "34px",
-                }}
-              ></input>
             </div>
           </div>
         </div>

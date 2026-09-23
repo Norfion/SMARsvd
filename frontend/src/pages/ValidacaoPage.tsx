@@ -4,7 +4,11 @@ import {
   type TipoModalInformativo,
 } from "../components/ModalInformativo";
 import { useState, useRef } from "react";
-import type { LayoutCliente } from "../types/layout";
+import type {
+  LayoutCliente,
+  TipoProvedorBanco,
+  ConfiguracaoBanco,
+} from "../types/layout";
 import type {
   InconsistenciaItem,
   ResultadoValidacaoLote,
@@ -19,6 +23,20 @@ export function ValidacaoPage({
   layoutsDisponiveis,
   onConcluirValidacao,
 }: ValidacaoPageProps) {
+  // Controle dos acordeões: 1. Conexão (fechado) | 2. Importar (aberto por padrão)
+  const [acordeonConexaoAberto, setAcordeonConexaoAberto] =
+    useState<boolean>(false);
+  const [acordeonImportarAberto, setAcordeonImportarAberto] =
+    useState<boolean>(true);
+
+  // Estados temporários de conexão com o banco de dados (não persistidos)
+  const [dbProvedor, setDbProvedor] = useState<TipoProvedorBanco>("SQL Server");
+  const [dbServidor, setDbServidor] = useState<string>("");
+  const [dbPorta, setDbPorta] = useState<string>("1433");
+  const [dbNomeBanco, setDbNomeBanco] = useState<string>("");
+  const [dbUsuario, setDbUsuario] = useState<string>("");
+  const [dbSenha, setDbSenha] = useState<string>("");
+
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [processando, setProcessando] = useState<boolean>(false);
@@ -118,7 +136,40 @@ export function ValidacaoPage({
   };
 
   const executarValidacao = async () => {
+    // 1. Validação dos dados de conexão com o banco
+    if (!dbServidor.trim()) {
+      setAcordeonConexaoAberto(true);
+      exibirMensagem(
+        "aviso",
+        "Servidor Obrigatório",
+        "Informe o endereço do Servidor de banco de dados na seção de Conexão.",
+      );
+      return;
+    }
+
+    if (!dbNomeBanco.trim()) {
+      setAcordeonConexaoAberto(true);
+      exibirMensagem(
+        "aviso",
+        "Base de Dados Obrigatória",
+        "Informe o nome da Base de dados na seção de Conexão.",
+      );
+      return;
+    }
+
+    if (!dbUsuario.trim()) {
+      setAcordeonConexaoAberto(true);
+      exibirMensagem(
+        "aviso",
+        "Usuário Obrigatório",
+        "Informe o Usuário de acesso ao banco de dados na seção de Conexão.",
+      );
+      return;
+    }
+
+    // 2. Validação dos dados do documento e layout
     if (!layoutSelecionadoId) {
+      setAcordeonImportarAberto(true);
       exibirMensagem(
         "aviso",
         "Layout Obrigatório",
@@ -126,7 +177,9 @@ export function ValidacaoPage({
       );
       return;
     }
+
     if (!arquivo) {
+      setAcordeonImportarAberto(true);
       exibirMensagem(
         "aviso",
         "Documento Pendente",
@@ -135,7 +188,6 @@ export function ValidacaoPage({
       return;
     }
 
-    // Identifica o ID real (GUID) do layout selecionado no select
     const layoutEncontrado = layoutsDisponiveis.find(
       (l) => l.nomeModelo === layoutSelecionadoId,
     );
@@ -160,9 +212,23 @@ export function ValidacaoPage({
         percentualAmostragem ?? 100,
       );
 
-      // ETAPA 2/3: Buscar dados no banco de dados
+      // ETAPA 2/3: Buscar dados no banco de dados com credenciais temporárias
       setEtapaAtual(2);
-      await processamentoService.buscarBanco(layoutEncontrado.id);
+      const configuracaoConexao: ConfiguracaoBanco = {
+        provedor: dbProvedor,
+        servidor: dbServidor.trim(),
+        porta: Number(dbPorta) || 1433,
+        baseDados: dbNomeBanco.trim(),
+        usuario: dbUsuario.trim(),
+        senha: dbSenha,
+      };
+
+      await processamentoService.buscarBanco(
+        layoutEncontrado.id,
+        configuracaoConexao,
+        arquivo.name,
+        Boolean(respostaExtracao?.extracao?.usouOcr),
+      );
 
       // ETAPA 3/3: Aplicar regras de validação
       setEtapaAtual(3);
@@ -173,7 +239,7 @@ export function ValidacaoPage({
         utilizouOcr,
       );
 
-      // Normaliza a lista de inconsistências recebida do backend suportando os novos nomes
+      // Normaliza a lista de inconsistências recebida do backend
       const listaRecebida =
         dadosApi.Inconsistencias ?? dadosApi.inconsistencias ?? [];
       const divergenciasNormalizadas: InconsistenciaItem[] = listaRecebida.map(
@@ -193,7 +259,6 @@ export function ValidacaoPage({
         }),
       );
 
-      // Captura com segurança os totalizadores da auditoria (suporte aos novos nomes e aos legados)
       const totalDocs =
         dadosApi.TotalDocumentosAnalisados ??
         dadosApi.totalDocumentosAnalisados ??
@@ -209,7 +274,6 @@ export function ValidacaoPage({
         dadosApi.documentosValidos ??
         Math.max(0, totalDocs - documentosInconsistentes);
 
-      // Monta o objeto completo compatível com a tela de resultado
       const resultadoConsolidado: ResultadoValidacaoLote = {
         nomeArquivo:
           dadosApi.NomeArquivo ?? dadosApi.nomeArquivo ?? arquivo.name,
@@ -217,6 +281,7 @@ export function ValidacaoPage({
           dadosApi.LayoutUtilizado ??
           dadosApi.layoutUtilizado ??
           layoutEncontrado.nomeModelo,
+        baseDados: dbNomeBanco.trim(),
         totalDocumentosAnalisados: totalDocs,
         documentosValidos: documentosValidos,
         documentosComInconsistencia: documentosInconsistentes,
@@ -230,14 +295,13 @@ export function ValidacaoPage({
         usouOcr: dadosApi.UsouOcr ?? dadosApi.usouOcr ?? utilizouOcr,
       };
 
-      // Notifica e redireciona para a aba "Resultado"
       onConcluirValidacao(resultadoConsolidado);
     } catch (erro: unknown) {
       console.error("Erro ao validar o lote de documentos:", erro);
       exibirMensagem(
         "erro",
         "Falha na Validação",
-        "Ocorreu um erro ao processar as etapas no backend. Verifique se o servidor está ativo.",
+        "Ocorreu um erro ao processar as etapas no backend. Verifique se o servidor está ativo e as credenciais estão corretas.",
       );
     } finally {
       setProcessando(false);
@@ -247,9 +311,22 @@ export function ValidacaoPage({
 
   return (
     <div id="container-validacao-pdf" style={{ position: "relative" }}>
-      {/* Remove os controles de spin do number e define a animação de rotação */}
       <style>
         {`
+          .accordion-content-wrapper {
+            transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
+            overflow: hidden;
+          }
+          .accordion-content-open {
+            max-height: 2000px;
+            opacity: 1;
+            padding: 16px;
+          }
+          .accordion-content-closed {
+            max-height: 0;
+            opacity: 0;
+            padding: 0 16px;
+          }
           input[type="number"]::-webkit-inner-spin-button,
           input[type="number"]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -307,7 +384,6 @@ export function ValidacaoPage({
               maxWidth: "400px",
             }}
           >
-            {/* Spinner animado */}
             <div
               style={{
                 width: "40px",
@@ -332,7 +408,6 @@ export function ValidacaoPage({
                 Validando Documentos
               </strong>
 
-              {/* Indicador individual da etapa em andamento */}
               <div
                 id="etapa-corrente-processamento"
                 style={{
@@ -359,9 +434,9 @@ export function ValidacaoPage({
         </div>
       )}
 
-      {/* CARD DE IMPORTAÇÃO */}
+      {/* 1. ACORDEÃO: CONEXÃO COM O BANCO DE DADOS */}
       <section
-        id="card-upload-parametrizacao"
+        id="accordion-conexao-banco-validacao"
         style={{
           backgroundColor: "#ffffff",
           border: "1px solid #cfd8dc",
@@ -372,25 +447,358 @@ export function ValidacaoPage({
         }}
       >
         <div
+          onClick={() =>
+            !processando && setAcordeonConexaoAberto((aberto) => !aberto)
+          }
           style={{
-            backgroundColor: "#e0f2f1",
-            padding: "8px 14px",
-            borderBottom: "1px solid #b2dfdb",
-            fontWeight: 700,
-            fontSize: "0.8rem",
-            color: "#00796b",
-            textTransform: "uppercase",
+            backgroundColor: acordeonConexaoAberto ? "#e0f2f1" : "#f8fafc",
+            padding: "10px 16px",
+            cursor: processando ? "not-allowed" : "pointer",
+            borderBottom: acordeonConexaoAberto ? "1px solid #b2dfdb" : "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            userSelect: "none",
           }}
         >
-          Importar documentos
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              style={{
+                color: acordeonConexaoAberto ? "#00796b" : "#546e7a",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+              }}
+            >
+              {acordeonConexaoAberto ? "▼" : "▶"}
+            </span>
+            <strong
+              style={{
+                fontSize: "0.9rem",
+                color: acordeonConexaoAberto ? "#00796b" : "#263238",
+              }}
+            >
+              1. Conexão com o banco de dados
+            </strong>
+          </div>
+          <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
+            {dbServidor && dbNomeBanco
+              ? `${dbProvedor}: ${dbServidor} / ${dbNomeBanco}`
+              : "Informe as credenciais"}
+          </span>
         </div>
 
-        <div style={{ padding: "14px" }}>
-          {/* Linha 1: Seleção de Layout, Upload de PDF e Botão Validar */}
+        <div
+          className={`accordion-content-wrapper ${
+            acordeonConexaoAberto
+              ? "accordion-content-open"
+              : "accordion-content-closed"
+          }`}
+        >
+          {/* ALERTA DE SEGURANÇA */}
+          <div
+            id="alerta-seguranca-banco-validacao"
+            style={{
+              backgroundColor: "#fff8e1",
+              border: "1px solid #ffe082",
+              borderRadius: "4px",
+              padding: "12px 14px",
+              marginBottom: "16px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+            }}
+          >
+            <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>⚠️</span>
+            <div
+              style={{ fontSize: "0.8rem", color: "#6d4c41", lineHeight: 1.4 }}
+            >
+              <strong>Credenciais temporárias de execução:</strong>
+              <p style={{ margin: "4px 0 0 0" }}>
+                As credenciais informadas aqui não serão salvas. Por motivos de
+                segurança, utilize preferencialmente credenciais de um usuário
+                com{" "}
+                <strong>permissão de somente leitura (db_datareader)</strong> no
+                banco de dados.
+              </p>
+            </div>
+          </div>
+
+          {/* PROVEDOR DO BANCO */}
+          <div style={{ marginBottom: "14px" }}>
+            <label
+              htmlFor="select-provedor-banco-validacao"
+              style={{
+                display: "block",
+                fontWeight: 700,
+                fontSize: "0.75rem",
+                color: "#455a64",
+                marginBottom: "4px",
+                textTransform: "uppercase",
+              }}
+            >
+              Banco de dados
+            </label>
+            <select
+              id="select-provedor-banco-validacao"
+              value={dbProvedor}
+              onChange={(e) =>
+                setDbProvedor(e.target.value as TipoProvedorBanco)
+              }
+              disabled={processando}
+              style={{
+                width: "100%",
+                maxWidth: "280px",
+                padding: "6px 10px",
+                borderRadius: "4px",
+                border: "1px solid #cfd8dc",
+                height: "34px",
+                backgroundColor: "#ffffff",
+                color: "#263238",
+                fontWeight: 600,
+              }}
+            >
+              <option value="SQL Server">SQL Server</option>
+            </select>
+          </div>
+
+          {/* SERVIDOR E PORTA */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr auto",
+              gridTemplateColumns: "2fr 1fr",
+              gap: "14px",
+              marginBottom: "14px",
+            }}
+          >
+            <div>
+              <label
+                htmlFor="input-servidor-banco-validacao"
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Servidor
+              </label>
+              <input
+                id="input-servidor-banco-validacao"
+                type="text"
+                value={dbServidor}
+                onChange={(e) => setDbServidor(e.target.value)}
+                disabled={processando}
+                placeholder="Ex: PMTesteSQL2 ou 172.168.0.00"
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                }}
+              ></input>
+            </div>
+            <div>
+              <label
+                htmlFor="input-porta-banco-validacao"
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Porta
+              </label>
+              <input
+                id="input-porta-banco-validacao"
+                type="number"
+                value={dbPorta}
+                onChange={(e) => setDbPorta(e.target.value)}
+                disabled={processando}
+                placeholder="1433"
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                }}
+              ></input>
+            </div>
+          </div>
+
+          {/* BASE DE DADOS */}
+          <div style={{ marginBottom: "14px" }}>
+            <label
+              htmlFor="input-base-dados-validacao"
+              style={{
+                display: "block",
+                fontWeight: 700,
+                fontSize: "0.75rem",
+                color: "#455a64",
+                marginBottom: "4px",
+                textTransform: "uppercase",
+              }}
+            >
+              Base de dados
+            </label>
+            <input
+              id="input-base-dados-validacao"
+              type="text"
+              value={dbNomeBanco}
+              onChange={(e) => setDbNomeBanco(e.target.value)}
+              disabled={processando}
+              placeholder="Ex: SMARtb_Cliente1"
+              style={{
+                width: "100%",
+                padding: "6px 10px",
+                borderRadius: "4px",
+                border: "1px solid #cfd8dc",
+                height: "34px",
+              }}
+            ></input>
+          </div>
+
+          {/* USUÁRIO E SENHA */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "14px",
+            }}
+          >
+            <div>
+              <label
+                htmlFor="input-usuario-banco-validacao"
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Usuário
+              </label>
+              <input
+                id="input-usuario-banco-validacao"
+                type="text"
+                value={dbUsuario}
+                onChange={(e) => setDbUsuario(e.target.value)}
+                disabled={processando}
+                placeholder="Ex: smartbValidacao"
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                }}
+              ></input>
+            </div>
+            <div>
+              <label
+                htmlFor="input-senha-banco-validacao"
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#455a64",
+                  marginBottom: "4px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Senha
+              </label>
+              <input
+                id="input-senha-banco-validacao"
+                type="password"
+                value={dbSenha}
+                onChange={(e) => setDbSenha(e.target.value)}
+                disabled={processando}
+                placeholder="••••••••"
+                style={{
+                  width: "100%",
+                  padding: "6px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid #cfd8dc",
+                  height: "34px",
+                }}
+              ></input>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. ACORDEÃO: IMPORTAR DOCUMENTOS */}
+      <section
+        id="accordion-importar-documentos-validacao"
+        style={{
+          backgroundColor: "#ffffff",
+          border: "1px solid #cfd8dc",
+          borderRadius: "4px",
+          overflow: "hidden",
+          marginBottom: "16px",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+        }}
+      >
+        <div
+          onClick={() =>
+            !processando && setAcordeonImportarAberto((aberto) => !aberto)
+          }
+          style={{
+            backgroundColor: acordeonImportarAberto ? "#e0f2f1" : "#f8fafc",
+            padding: "10px 16px",
+            cursor: processando ? "not-allowed" : "pointer",
+            borderBottom: acordeonImportarAberto ? "1px solid #b2dfdb" : "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            userSelect: "none",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              style={{
+                color: acordeonImportarAberto ? "#00796b" : "#546e7a",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+              }}
+            >
+              {acordeonImportarAberto ? "▼" : "▶"}
+            </span>
+            <strong
+              style={{
+                fontSize: "0.9rem",
+                color: acordeonImportarAberto ? "#00796b" : "#263238",
+              }}
+            >
+              2. Importar documentos
+            </strong>
+          </div>
+          <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
+            {arquivo ? arquivo.name : "Nenhum arquivo selecionado"}
+          </span>
+        </div>
+
+        <div
+          className={`accordion-content-wrapper ${
+            acordeonImportarAberto
+              ? "accordion-content-open"
+              : "accordion-content-closed"
+          }`}
+        >
+          {/* Linha 1: Seleção de Layout e Upload de PDF */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
               gap: "14px",
               alignItems: "flex-end",
               marginBottom: "16px",
@@ -516,26 +924,6 @@ export function ValidacaoPage({
                 </span>
               </label>
             </div>
-
-            {/* Botão de Disparo */}
-            <button
-              id="btn-executar-validacao"
-              onClick={executarValidacao}
-              disabled={processando}
-              style={{
-                backgroundColor: processando ? "#b0bec5" : "#009688",
-                color: "#ffffff",
-                border: "none",
-                padding: "0 20px",
-                borderRadius: "4px",
-                fontWeight: 700,
-                cursor: processando ? "not-allowed" : "pointer",
-                height: "34px",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-              }}
-            >
-              {processando ? "Auditando..." : "Validar"}
-            </button>
           </div>
 
           {/* Linha 2: Configuração de Amostragem / Integral */}
@@ -756,6 +1144,41 @@ export function ValidacaoPage({
           </div>
         </div>
       </section>
+
+      {/* RODAPÉ: BOTÃO DE DISPARO DA VALIDAÇÃO */}
+      <div
+        id="rodape-executar-validacao"
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginTop: "20px",
+          paddingTop: "16px",
+          borderTop: "2px solid #cfd8dc",
+        }}
+      >
+        <button
+          type="button"
+          id="btn-executar-validacao"
+          onClick={executarValidacao}
+          disabled={processando}
+          style={{
+            backgroundColor: processando ? "#b0bec5" : "#009688",
+            color: "#ffffff",
+            border: "none",
+            padding: "10px 24px",
+            borderRadius: "4px",
+            fontWeight: 700,
+            fontSize: "0.9rem",
+            cursor: processando ? "not-allowed" : "pointer",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
+          <span>{processando ? "Auditando..." : "Validar"}</span>
+        </button>
+      </div>
 
       {/* Modal Informativo Centralizado */}
       <ModalInformativo

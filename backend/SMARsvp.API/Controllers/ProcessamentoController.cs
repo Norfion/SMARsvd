@@ -5,17 +5,27 @@ using SMARsvp.Application.DTOs.Layout;
 using SMARsvp.Application.DTOs.Processamento;
 using SMARsvp.Application.Interfaces;
 using SMARsvp.Application.Services;
-using SMARsvp.Domain.Enums;
 using SMARsvp.Infrastructure.Data;
 using System.Text.Json;
 
 namespace SMARsvp.API.Controllers;
+
+public class ConfiguracaoBancoDto
+{
+    public string Provedor { get; set; } = "SQL Server";
+    public string Servidor { get; set; } = string.Empty;
+    public int Porta { get; set; } = 1433;
+    public string BaseDados { get; set; } = string.Empty;
+    public string Usuario { get; set; } = string.Empty;
+    public string? Senha { get; set; }
+}
 
 public class EtapaProcessamentoRequest
 {
     public Guid LayoutId { get; set; }
     public string NomeArquivo { get; set; } = string.Empty;
     public bool UsouOcr { get; set; }
+    public ConfiguracaoBancoDto? ConexaoBanco { get; set; }
 }
 
 [ApiController]
@@ -142,7 +152,7 @@ public class ProcessamentoController : ControllerBase
         }
     }
 
-    // Etapa 2 - Montagem e Execução das Consultas
+    // Etapa 2 - Montagem e Execução das Consultas (recebe as credenciais temporárias)
     [HttpPost("buscar-banco")]
     public async Task<IActionResult> ConstruirQueriesEBuscar([FromBody] EtapaProcessamentoRequest request)
     {

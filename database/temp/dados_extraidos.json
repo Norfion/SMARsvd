@@ -1,27 +1,9 @@
 {
-  "PercentualAmostragem": 100,
+  "PercentualAmostragem": 50,
   "TotalDocumentos": 2,
-  "DocumentosProcessados": 2,
+  "DocumentosProcessados": 1,
   "UsouOcr": false,
   "Documentos": [
-    {
-      "PaginaInicio": 1,
-      "PaginaFim": 2,
-      "Campos": [
-        {
-          "Nome": "CRC",
-          "ValorExtraido": "650",
-          "PaginaExtraido": 1,
-          "ExtracaoMetodo": "Digital"
-        },
-        {
-          "Nome": "Nro Parcelamento",
-          "ValorExtraido": "27480056",
-          "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
-        }
-      ]
-    },
     {
       "PaginaInicio": 3,
       "PaginaFim": 4,

@@ -10,10 +10,7 @@ public class LayoutCliente
     public decimal AlturaPaginaMm { get; set; }
     public string? NomeArquivoModelo { get; set; }
 
-    // Relação 1:1 com as credenciais de banco do município
-    public ConexaoBancoLayout? ConexaoBanco { get; set; }
-
-    // Coleções filhas
+    // Coleções filhas persistidas
     public ICollection<RegiaoCampo> Campos { get; set; } = new List<RegiaoCampo>();
     public ICollection<QueryValidacao> QueriesValidacao { get; set; } = new List<QueryValidacao>();
     public ICollection<PaginaModeloImagem> PaginasModelo { get; set; } = new List<PaginaModeloImagem>();

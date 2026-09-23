@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SMARsvp.Application.DTOs.Layout;
 using SMARsvp.Domain.Entities;
-using SMARsvp.Domain.Enums;
 using SMARsvp.Infrastructure.Data;
 
 namespace SMARsvp.API.Controllers;
@@ -22,7 +21,6 @@ public class LayoutsController : ControllerBase
     public async Task<ActionResult<IEnumerable<LayoutClienteDto>>> ListarTodos()
     {
         var layouts = await _context.Layouts
-            .Include(l => l.ConexaoBanco)
             .Include(l => l.Campos)
             .Include(l => l.QueriesValidacao)
                 .ThenInclude(q => q.Regras)
@@ -40,14 +38,6 @@ public class LayoutsController : ControllerBase
             LarguraPaginaMm = l.LarguraPaginaMm,
             AlturaPaginaMm = l.AlturaPaginaMm,
             NomeArquivoModelo = l.NomeArquivoModelo,
-            ConexaoBanco = l.ConexaoBanco == null ? null : new ConexaoBancoLayoutDto
-            {
-                Provedor = l.ConexaoBanco.Provedor,
-                Servidor = l.ConexaoBanco.Servidor,
-                Porta = l.ConexaoBanco.Porta,
-                Usuario = l.ConexaoBanco.Usuario,
-                Senha = l.ConexaoBanco.Senha
-            },
             Campos = l.Campos.Select(c => new RegiaoCampoDto
             {
                 Id = c.Id,
@@ -99,7 +89,6 @@ public class LayoutsController : ControllerBase
         if (dto.Id.HasValue && dto.Id.Value != Guid.Empty)
         {
             entidadeLayout = await _context.Layouts
-                .Include(l => l.ConexaoBanco)
                 .FirstOrDefaultAsync(l => l.Id == dto.Id.Value);
         }
 
@@ -109,7 +98,6 @@ public class LayoutsController : ControllerBase
             var clienteBusca = dto.Cliente.Trim().ToLower();
 
             entidadeLayout = await _context.Layouts
-                .Include(l => l.ConexaoBanco)
                 .FirstOrDefaultAsync(l => l.NomeModelo.ToLower() == nomeBusca && l.Cliente.ToLower() == clienteBusca);
         }
 
@@ -154,36 +142,6 @@ public class LayoutsController : ControllerBase
         entidadeLayout.LarguraPaginaMm = dto.LarguraPaginaMm;
         entidadeLayout.AlturaPaginaMm = dto.AlturaPaginaMm;
         entidadeLayout.NomeArquivoModelo = dto.NomeArquivoModelo;
-
-        if (dto.ConexaoBanco != null && !string.IsNullOrWhiteSpace(dto.ConexaoBanco.Servidor))
-        {
-            if (entidadeLayout.ConexaoBanco != null)
-            {
-                entidadeLayout.ConexaoBanco.Provedor = dto.ConexaoBanco.Provedor ?? "SQL Server";
-                entidadeLayout.ConexaoBanco.Servidor = dto.ConexaoBanco.Servidor.Trim();
-                entidadeLayout.ConexaoBanco.Porta = dto.ConexaoBanco.Porta;
-                entidadeLayout.ConexaoBanco.Usuario = dto.ConexaoBanco.Usuario.Trim();
-                entidadeLayout.ConexaoBanco.Senha = dto.ConexaoBanco.Senha;
-            }
-            else
-            {
-                entidadeLayout.ConexaoBanco = new ConexaoBancoLayout
-                {
-                    Id = Guid.NewGuid(),
-                    LayoutClienteId = entidadeLayout.Id,
-                    Provedor = dto.ConexaoBanco.Provedor ?? "SQL Server",
-                    Servidor = dto.ConexaoBanco.Servidor.Trim(),
-                    Porta = dto.ConexaoBanco.Porta,
-                    Usuario = dto.ConexaoBanco.Usuario.Trim(),
-                    Senha = dto.ConexaoBanco.Senha
-                };
-            }
-        }
-        else if (entidadeLayout.ConexaoBanco != null)
-        {
-            _context.ConexoesBanco.Remove(entidadeLayout.ConexaoBanco);
-            entidadeLayout.ConexaoBanco = null;
-        }
 
         if (dto.Campos != null && dto.Campos.Any())
         {

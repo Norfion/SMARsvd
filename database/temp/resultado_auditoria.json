@@ -1,10 +1,10 @@
 {
   "NomeArquivo": "Lote de Testes - Digital.pdf",
   "LayoutUtilizado": "Carnê de Parcelamento",
-  "TotalDocumentosAnalisados": 2,
-  "DocumentosValidos": 1,
+  "TotalDocumentosAnalisados": 1,
+  "DocumentosValidos": 0,
   "DocumentosComInconsistencia": 1,
-  "Amostragem": 100,
+  "Amostragem": 50,
   "UsouOcr": false,
   "Inconsistencias": [
     {
@@ -23,28 +23,6 @@
     }
   ],
   "Validacoes": [
-    {
-      "PaginaExtraido": 1,
-      "NomeQuery": "Contribuinte",
-      "CampoLayout": "CRC",
-      "CampoBanco": "CRC",
-      "RegraAplicada": "=",
-      "ValorExtraido": "650",
-      "ValorBanco": "650",
-      "Status": "OK",
-      "MensagemAuditoria": "Valor validado com sucesso."
-    },
-    {
-      "PaginaExtraido": 2,
-      "NomeQuery": "Contribuinte",
-      "CampoLayout": "Nro Parcelamento",
-      "CampoBanco": "NroParcelamento",
-      "RegraAplicada": "=",
-      "ValorExtraido": "27480056",
-      "ValorBanco": "27480056",
-      "Status": "OK",
-      "MensagemAuditoria": "Valor validado com sucesso."
-    },
     {
       "PaginaExtraido": 3,
       "NomeQuery": "Contribuinte",

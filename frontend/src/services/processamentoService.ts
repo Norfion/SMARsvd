@@ -1,4 +1,5 @@
 import type { ResultadoValidacaoLote } from "../types/validacao";
+import type { ConfiguracaoBanco } from "../types/layout";
 import { api } from "./api";
 
 export interface RespostaExtracaoApi {
@@ -44,6 +45,7 @@ export const processamentoService = {
 
   buscarBanco: async (
     layoutId: string,
+    conexaoBanco: ConfiguracaoBanco,
     nomeArquivo: string = "",
     usouOcr: boolean = false,
   ): Promise<void> => {
@@ -51,6 +53,7 @@ export const processamentoService = {
       layoutId,
       nomeArquivo: nomeArquivo || "arquivo_importado.pdf",
       usouOcr,
+      conexaoBanco,
     });
   },
 

@@ -1,19 +1,5 @@
 [
   {
-    "PaginaInicio": 1,
-    "PaginaFim": 2,
-    "Queries": [
-      {
-        "NomeQuery": "Contribuinte",
-        "SqlOriginal": "SELECT C.CRC AS CRC,\n       C.NroParcelamento AS NroParcelamento\n  FROM Contribuintes C\n WHERE C.CRC = $CRC",
-        "SqlRenderizado": "SELECT C.CRC AS CRC,\n       C.NroParcelamento AS NroParcelamento\n  FROM Contribuintes C\n WHERE C.CRC = 650",
-        "Parametros": {
-          "$CRC": "650"
-        }
-      }
-    ]
-  },
-  {
     "PaginaInicio": 3,
     "PaginaFim": 4,
     "Queries": [

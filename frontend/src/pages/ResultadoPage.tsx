@@ -97,6 +97,10 @@ export function ResultadoPage({
     resultadoAuditoria?.LayoutUtilizado ??
     resultadoAuditoria?.layoutUtilizado ??
     "Padrão";
+  const baseDados =
+    resultadoAuditoria?.BaseDados ??
+    resultadoAuditoria?.baseDados ??
+    "Não informada";
 
   const totalDocumentos =
     resultadoAuditoria?.TotalDocumentosAnalisados ??
@@ -216,7 +220,7 @@ export function ResultadoPage({
         field: "pagina",
         width: 130,
         sortable: true,
-        sort: "asc", // Ordenação padrão crescente
+        sort: "asc",
         comparator: (valorA: string, valorB: string) => {
           const numA = parseInt(valorA, 10);
           const numB = parseInt(valorB, 10);
@@ -329,6 +333,7 @@ export function ResultadoPage({
     linhas.push(`RELATÓRIO DE AUDITORIA - SMARrsvp`);
     linhas.push(`Arquivo Analisado;${nomeArquivo}`);
     linhas.push(`Layout Utilizado;${layoutUtilizado}`);
+    linhas.push(`Base de Dados;${baseDados}`);
     linhas.push(`Método de Validação;${textoAmostragem}`);
     if (usouOcr) {
       linhas.push(
@@ -402,6 +407,10 @@ export function ResultadoPage({
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Layout Utilizado:</Data></Cell>
         <Cell><Data ss:Type="String">${escaparXml(layoutUtilizado)}</Data></Cell>
+      </Row>
+      <Row>
+        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Base de Dados:</Data></Cell>
+        <Cell><Data ss:Type="String">${escaparXml(baseDados)}</Data></Cell>
       </Row>
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Método de Validação:</Data></Cell>
@@ -535,18 +544,19 @@ export function ResultadoPage({
     doc.setTextColor(55, 71, 79);
     doc.text(`Arquivo Analisado: ${nomeArquivo}`, 14, 25);
     doc.text(`Layout Utilizado: ${layoutUtilizado}`, 14, 30);
-    doc.text(`Método: ${textoAmostragem}`, 14, 35);
+    doc.text(`Base de Dados: ${baseDados}`, 14, 35);
+    doc.text(`Método: ${textoAmostragem}`, 14, 40);
 
-    let posicaoYCards = 40;
+    let posicaoYCards = 45;
     if (usouOcr) {
       doc.setFontSize(7.5);
       doc.setTextColor(198, 40, 40);
       doc.text(
         "Nota: Foi usada extração de dados via IA. A IA pode cometer erros.",
         14,
-        39,
+        44,
       );
-      posicaoYCards = 43;
+      posicaoYCards = 48;
     }
 
     doc.setFillColor(224, 242, 241);
@@ -761,10 +771,26 @@ export function ResultadoPage({
           <h2 style={{ margin: 0, fontSize: "1.15rem", color: "#00796b" }}>
             Resultado da Auditoria
           </h2>
-          <span style={{ fontSize: "0.8rem", color: "#607d8b" }}>
-            Arquivo: <strong>{nomeArquivo}</strong> • Layout:{" "}
-            <strong>{layoutUtilizado}</strong>
-          </span>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              fontSize: "0.8rem",
+              color: "#607d8b",
+              marginTop: "4px",
+            }}
+          >
+            <span>
+              Arquivo: <strong>{nomeArquivo}</strong>
+            </span>
+            <span>
+              Layout: <strong>{layoutUtilizado}</strong>
+            </span>
+            <span>
+              Base de Dados: <strong>{baseDados}</strong>
+            </span>
+          </div>
         </div>
 
         {/* ÁREA DE AÇÕES: EXPORTAR */}

@@ -81,6 +81,9 @@ export interface ResultadoValidacaoLote {
   layoutUtilizado?: string;
   LayoutUtilizado?: string;
 
+  baseDados?: string;
+  BaseDados?: string;
+
   totalDocumentosAnalisados?: number;
   TotalDocumentosAnalisados?: number;
   totalGuiasAnalisadas?: number;

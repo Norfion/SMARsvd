@@ -12,7 +12,6 @@ public class SMARsvpDbContext : DbContext
     public DbSet<QueryValidacao> QueriesValidacao { get; set; } = null!;
     public DbSet<RegraValidacao> RegrasValidacao { get; set; } = null!;
     public DbSet<PaginaModeloImagem> PaginasModelo { get; set; } = null!;
-    public DbSet<ConexaoBancoLayout> ConexoesBanco { get; set; } = null!;
     public DbSet<LogSistema> Logs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -26,11 +25,6 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.NomeModelo).IsRequired().HasMaxLength(150);
             entity.Property(e => e.LarguraPaginaMm).HasPrecision(10, 2);
             entity.Property(e => e.AlturaPaginaMm).HasPrecision(10, 2);
-
-            entity.HasOne(e => e.ConexaoBanco)
-                  .WithOne(e => e.LayoutCliente)
-                  .HasForeignKey<ConexaoBancoLayout>(e => e.LayoutClienteId)
-                  .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(e => e.Campos)
                   .WithOne(e => e.LayoutCliente)
@@ -62,15 +56,6 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.TextoEsperadoPagina).HasMaxLength(250);
             entity.Property(e => e.IdentificadorPagina).HasMaxLength(100);
             entity.Property(e => e.IdentificadorAnterior).HasMaxLength(150);
-        });
-
-        modelBuilder.Entity<ConexaoBancoLayout>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Provedor).HasMaxLength(50);
-            entity.Property(e => e.Servidor).IsRequired().HasMaxLength(250);
-            entity.Property(e => e.Usuario).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Senha).HasMaxLength(250);
         });
 
         modelBuilder.Entity<QueryValidacao>(entity =>

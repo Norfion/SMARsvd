@@ -48,10 +48,12 @@ export interface QueryValidacao {
   regras: RegraValidacao[];
 }
 
-export interface ConexaoBancoLayout {
-  provedor?: TipoProvedorBanco;
+// Configuração temporária preenchida apenas no momento da validação
+export interface ConfiguracaoBanco {
+  provedor: TipoProvedorBanco;
   servidor: string;
-  porta?: number;
+  porta: number;
+  baseDados: string;
   usuario: string;
   senha?: string;
 }
@@ -67,5 +69,4 @@ export interface LayoutCliente {
   queriesValidacao?: QueryValidacao[];
   paginasModeloBase64?: string[];
   nomeArquivoModelo?: string;
-  conexaoBanco?: ConexaoBancoLayout;
 }
