@@ -1,3 +1,5 @@
+using SMARsvp.Domain.Enums;
+
 namespace SMARsvp.Application.DTOs.Layout;
 
 public class RegiaoCampoDto
@@ -10,13 +12,12 @@ public class RegiaoCampoDto
     public decimal AlturaMm { get; set; }
     public int Pagina { get; set; } = 1;
 
-    public bool EhIdentificadorInicio { get; set; }
-    public string? TextoEsperadoInicio { get; set; }
+    // Classificação única do campo
+    public TipoClassificacaoCampo TipoClassificacao { get; set; } = TipoClassificacaoCampo.Nenhum;
 
-    public string IdentificadorPagina { get; set; } = string.Empty;
-    public bool EhIdentificadorPagina { get; set; }
+    public string? TextoEsperadoDocumento { get; set; }
     public string? TextoEsperadoPagina { get; set; }
-
+    public string? IdentificadorPagina { get; set; }
     public string? IdentificadorAnterior { get; set; }
     public string? ConsultaSql { get; set; }
 

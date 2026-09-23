@@ -1,5 +1,11 @@
 export type TipoProvedorBanco = "SQL Server";
 
+export enum TipoClassificacaoCampo {
+  Nenhum = 0,
+  IdentificadorDocumento = 1,
+  IdentificadorPagina = 2,
+}
+
 export interface RegiaoCampo {
   id: string;
   nomeCampo: string;
@@ -9,17 +15,19 @@ export interface RegiaoCampo {
   alturaMm: number;
   pagina?: number;
 
-  // Identificador de início do documento (renomeado)
-  ehIdentificadorInicio?: boolean;
-  textoEsperadoInicio?: string;
+  // Classificação única e mutuamente exclusiva
+  tipoClassificacao: TipoClassificacaoCampo;
 
-  // Associação à estrutura lógica da página (novo - obrigatório)
-  identificadorPagina: string;
+  // Identificador de documento (delimita início/fim do documento no lote)
+  textoEsperadoDocumento?: string;
 
-  // Marcador que define a estrutura da página (novo)
-  ehIdentificadorPagina?: boolean;
+  // Identificador de página (classifica o tipo/estrutura da página)
   textoEsperadoPagina?: string;
 
+  // Vínculo para campo normal: nome do identificador de página
+  identificadorPagina?: string;
+
+  // Identificador anterior (somente para campo normal)
   identificadorAnterior?: string;
   consultaSql?: string;
 }

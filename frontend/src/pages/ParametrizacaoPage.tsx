@@ -5,12 +5,13 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { SqlCodeEditor } from "../components/SqlCodeEditor";
 import { processarArquivoPdfModelo } from "../utils/pdfModelReader";
-import type {
-  RegiaoCampo,
-  LayoutCliente,
-  QueryValidacao,
-  RegraValidacao,
-  TipoProvedorBanco,
+import {
+  TipoClassificacaoCampo,
+  type RegiaoCampo,
+  type LayoutCliente,
+  type QueryValidacao,
+  type RegraValidacao,
+  type TipoProvedorBanco,
 } from "../types/layout";
 
 interface ParametrizacaoPageProps {
@@ -137,18 +138,25 @@ export function ParametrizacaoPage({
 
   const [campos, setCampos] = useState<RegiaoCampo[]>([]);
 
+  // Filtra apenas campos normais (exclui identificador de documento e identificador de página)
+  const camposNormaisDisponiveis = campos.filter(
+    (c) =>
+      c.tipoClassificacao === TipoClassificacaoCampo.Nenhum ||
+      c.tipoClassificacao === undefined,
+  );
+
   const [campoEmEdicaoId, setCampoEmEdicaoId] = useState<string | null>(null);
   const [nomeCampo, setNomeCampo] = useState("");
   const [paginaCampo, setPaginaCampo] = useState<number>(1);
   const [paginaAtivaCanvas, setPaginaAtivaCanvas] = useState<number>(1);
-  const [identificadorAnterior, setIdentificadorAnterior] = useState("");
 
-  // NOVOS ESTADOS ESTRUTURAIS
-  const [identificadorPagina, setIdentificadorPagina] = useState("");
-  const [ehIdentificadorInicio, setEhIdentificadorInicio] = useState(false);
-  const [textoEsperadoInicio, setTextoEsperadoInicio] = useState("");
-  const [ehIdentificadorPagina, setEhIdentificadorPagina] = useState(false);
+  // Estados dos novos identificadores
+  const [tipoClassificacao, setTipoClassificacao] =
+    useState<TipoClassificacaoCampo>(TipoClassificacaoCampo.Nenhum);
+  const [textoEsperadoDocumento, setTextoEsperadoDocumento] = useState("");
   const [textoEsperadoPagina, setTextoEsperadoPagina] = useState("");
+  const [identificadorPagina, setIdentificadorPagina] = useState("");
+  const [identificadorAnterior, setIdentificadorAnterior] = useState("");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -371,11 +379,32 @@ export function ParametrizacaoPage({
     setLarguraMm(layout.larguraPaginaMm);
     setAlturaMm(layout.alturaPaginaMm);
 
-    // Tratativa de compatibilidade de legados: se o identificadorPagina não existir, define "GERAL"
-    const camposCarregados = (layout.campos || []).map((c) => ({
-      ...c,
-      identificadorPagina: c.identificadorPagina || "GERAL",
-    }));
+    // Compatibilidade com cadastros legados
+    const camposCarregados: RegiaoCampo[] = (layout.campos || []).map((c) => {
+      let classif = c.tipoClassificacao;
+      if (classif === undefined) {
+        const cAny = c as unknown as Record<string, unknown>;
+        if (cAny.ehIdentificadorInicio) {
+          classif = TipoClassificacaoCampo.IdentificadorDocumento;
+        } else if (cAny.ehIdentificadorPagina) {
+          classif = TipoClassificacaoCampo.IdentificadorPagina;
+        } else {
+          classif = TipoClassificacaoCampo.Nenhum;
+        }
+      }
+
+      const cAny = c as unknown as Record<string, unknown>;
+      return {
+        ...c,
+        tipoClassificacao: classif,
+        textoEsperadoDocumento:
+          c.textoEsperadoDocumento ||
+          (cAny.textoEsperadoInicio as string | undefined) ||
+          "",
+        textoEsperadoPagina: c.textoEsperadoPagina || "",
+        identificadorPagina: c.identificadorPagina || "",
+      };
+    });
 
     setCampos(camposCarregados);
     setQueries(layout.queriesValidacao || []);
@@ -549,22 +578,34 @@ export function ParametrizacaoPage({
   };
 
   const iniciarEdicaoCampo = (campo: RegiaoCampo) => {
-    const ehIdInicio = !!campo.ehIdentificadorInicio;
-    const ehIdPagina = !!campo.ehIdentificadorPagina;
-    const paginaDoCampo = ehIdInicio || ehIdPagina ? 1 : campo.pagina || 1;
+    const paginaDoCampo = campo.pagina || 1;
 
+    let classif = campo.tipoClassificacao;
+    if (classif === undefined) {
+      const cAny = campo as unknown as Record<string, unknown>;
+      if (cAny.ehIdentificadorInicio) {
+        classif = TipoClassificacaoCampo.IdentificadorDocumento;
+      } else if (cAny.ehIdentificadorPagina) {
+        classif = TipoClassificacaoCampo.IdentificadorPagina;
+      } else {
+        classif = TipoClassificacaoCampo.Nenhum;
+      }
+    }
+
+    const cAny = campo as unknown as Record<string, unknown>;
     setCampoEmEdicaoId(campo.id);
     setNomeCampo(campo.nomeCampo);
     setPaginaCampo(paginaDoCampo);
     setPaginaAtivaCanvas(paginaDoCampo);
-    setIdentificadorAnterior(campo.identificadorAnterior || "");
-    setIdentificadorPagina(campo.identificadorPagina || "");
-
-    setEhIdentificadorInicio(ehIdInicio);
-    setTextoEsperadoInicio(campo.textoEsperadoInicio || "");
-
-    setEhIdentificadorPagina(ehIdPagina);
+    setTipoClassificacao(classif);
+    setTextoEsperadoDocumento(
+      campo.textoEsperadoDocumento ||
+        (cAny.textoEsperadoInicio as string | undefined) ||
+        "",
+    );
     setTextoEsperadoPagina(campo.textoEsperadoPagina || "");
+    setIdentificadorPagina(campo.identificadorPagina || "");
+    setIdentificadorAnterior(campo.identificadorAnterior || "");
 
     setRetanguloAtualMm({
       xMm: campo.xMm,
@@ -578,14 +619,37 @@ export function ParametrizacaoPage({
     setCampoEmEdicaoId(null);
     setNomeCampo("");
     setPaginaCampo(paginaAtivaCanvas);
-    setIdentificadorAnterior("");
-    setIdentificadorPagina("");
-    setEhIdentificadorInicio(false);
-    setTextoEsperadoInicio("");
-    setEhIdentificadorPagina(false);
+    setTipoClassificacao(TipoClassificacaoCampo.Nenhum);
+    setTextoEsperadoDocumento("");
     setTextoEsperadoPagina("");
+    setIdentificadorPagina("");
+    setIdentificadorAnterior("");
     setRetanguloAtualMm(null);
   };
+
+  const mudarClassificacao = (novoTipo: TipoClassificacaoCampo) => {
+    setTipoClassificacao(novoTipo);
+    if (novoTipo === TipoClassificacaoCampo.IdentificadorDocumento) {
+      setIdentificadorAnterior("");
+      setIdentificadorPagina("");
+    } else if (novoTipo === TipoClassificacaoCampo.IdentificadorPagina) {
+      setIdentificadorAnterior("");
+      setIdentificadorPagina("");
+    }
+  };
+
+  // Identificadores de página disponíveis cadastrados no layout corrente
+  const identificadoresDePaginaDisponiveis = Array.from(
+    new Set(
+      campos
+        .filter(
+          (c) =>
+            c.tipoClassificacao === TipoClassificacaoCampo.IdentificadorPagina,
+        )
+        .map((c) => c.nomeCampo.trim())
+        .filter((nome) => Boolean(nome)),
+    ),
+  );
 
   const salvarRegiaoCampo = () => {
     if (
@@ -604,14 +668,6 @@ export function ParametrizacaoPage({
       exibirMensagem("aviso", "Campo Obrigatório", "Informe o nome do campo.");
       return;
     }
-    if (!identificadorPagina.trim()) {
-      exibirMensagem(
-        "aviso",
-        "Campo Obrigatório",
-        "O Identificador de página (Estrutura) é obrigatório.",
-      );
-      return;
-    }
     if (
       campos.some(
         (c) =>
@@ -627,6 +683,46 @@ export function ParametrizacaoPage({
       return;
     }
 
+    if (tipoClassificacao === TipoClassificacaoCampo.IdentificadorDocumento) {
+      if (!textoEsperadoDocumento.trim()) {
+        exibirMensagem(
+          "aviso",
+          "Texto Obrigatório",
+          "Informe o texto esperado para o Identificador de Documento.",
+        );
+        return;
+      }
+    } else if (
+      tipoClassificacao === TipoClassificacaoCampo.IdentificadorPagina
+    ) {
+      if (!textoEsperadoPagina.trim()) {
+        exibirMensagem(
+          "aviso",
+          "Texto Obrigatório",
+          "Informe o texto esperado para o Identificador de Página.",
+        );
+        return;
+      }
+    } else {
+      // Campo Normal (Nenhum)
+      if (identificadoresDePaginaDisponiveis.length === 0) {
+        exibirMensagem(
+          "aviso",
+          "Identificador de Página Ausente",
+          "Cadastre primeiro um 'Identificador de página' no layout (ex: Identificação, Débitos, Resumo) antes de cadastrar campos normais.",
+        );
+        return;
+      }
+      if (!identificadorPagina.trim()) {
+        exibirMensagem(
+          "aviso",
+          "Campo Obrigatório",
+          "Selecione a qual Identificador de página este campo pertence.",
+        );
+        return;
+      }
+    }
+
     const payloadCampo: RegiaoCampo = {
       id: campoEmEdicaoId || crypto.randomUUID(),
       nomeCampo: nomeCampo.trim(),
@@ -635,22 +731,21 @@ export function ParametrizacaoPage({
       yMm: retanguloAtualMm.yMm,
       larguraMm: retanguloAtualMm.larguraMm,
       alturaMm: retanguloAtualMm.alturaMm,
-
-      identificadorPagina: identificadorPagina.trim(),
-
-      ehIdentificadorInicio,
-      textoEsperadoInicio: ehIdentificadorInicio
-        ? textoEsperadoInicio.trim()
-        : undefined,
-
-      ehIdentificadorPagina,
-      textoEsperadoPagina: ehIdentificadorPagina
-        ? textoEsperadoPagina.trim()
-        : undefined,
-
+      tipoClassificacao,
+      textoEsperadoDocumento:
+        tipoClassificacao === TipoClassificacaoCampo.IdentificadorDocumento
+          ? textoEsperadoDocumento.trim()
+          : undefined,
+      textoEsperadoPagina:
+        tipoClassificacao === TipoClassificacaoCampo.IdentificadorPagina
+          ? textoEsperadoPagina.trim()
+          : undefined,
+      identificadorPagina:
+        tipoClassificacao === TipoClassificacaoCampo.Nenhum
+          ? identificadorPagina.trim()
+          : undefined,
       identificadorAnterior:
-        !ehIdentificadorInicio &&
-        !ehIdentificadorPagina &&
+        tipoClassificacao === TipoClassificacaoCampo.Nenhum &&
         identificadorAnterior.trim()
           ? identificadorAnterior.trim()
           : undefined,
@@ -686,22 +781,30 @@ export function ParametrizacaoPage({
     setRegraCampoCarne("");
   };
 
-  const analisarQuerySQL = () => {
-    const texto = sqlQuery.trim();
+  // Função centralizada para analisar a query SQL e extrair parâmetros e retornos
+  const executarAnaliseSQL = (
+    textoSql: string,
+    exibirAvisos = true,
+  ): { sucesso: boolean; params: string[]; retornos: string[] } => {
+    const texto = textoSql.trim();
     if (!texto) {
-      exibirMensagem("aviso", "SQL vazio", "Informe a instrução SQL.");
-      return;
+      if (exibirAvisos) {
+        exibirMensagem("aviso", "SQL vazio", "Informe a instrução SQL.");
+      }
+      return { sucesso: false, params: [], retornos: [] };
     }
 
     const comandosBloqueados =
       /\b(UPDATE|DELETE|INSERT|EXEC|EXECUTE|DROP|ALTER|CREATE|TRUNCATE|MERGE)\b/i;
     if (comandosBloqueados.test(texto)) {
-      exibirMensagem(
-        "aviso",
-        "Bloqueio de Segurança",
-        "São permitidas apenas consultas somente leitura (SELECT).",
-      );
-      return;
+      if (exibirAvisos) {
+        exibirMensagem(
+          "aviso",
+          "Bloqueio de Segurança",
+          "São permitidas apenas consultas somente leitura (SELECT).",
+        );
+      }
+      return { sucesso: false, params: [], retornos: [] };
     }
 
     const regexParam = /\$([a-zA-Z0-9_]+)/g;
@@ -717,12 +820,14 @@ export function ParametrizacaoPage({
       (p) => !nomesDosCampos.includes(p),
     );
     if (parametrosInvalidos.length > 0) {
-      exibirMensagem(
-        "aviso",
-        "Parâmetros inválidos",
-        `Os seguintes parâmetros não existem nos campos do layout: ${parametrosInvalidos.join(", ")}`,
-      );
-      return;
+      if (exibirAvisos) {
+        exibirMensagem(
+          "aviso",
+          "Parâmetros inválidos",
+          `Os seguintes parâmetros não existem nos campos do layout: ${parametrosInvalidos.join(", ")}`,
+        );
+      }
+      return { sucesso: false, params: [], retornos: [] };
     }
 
     const regexRetorno = /\bAS\s+([a-zA-Z0-9_]+)/gi;
@@ -733,19 +838,34 @@ export function ParametrizacaoPage({
     const retsUnicos = [...new Set(rets)];
 
     if (retsUnicos.length === 0) {
-      exibirMensagem(
-        "aviso",
-        "Campo inválido",
-        "Não foi possível identificar os campos de retorno. Utilize 'AS NomeVariavel' na query para especificar as colunas.",
-      );
-      return;
+      if (exibirAvisos) {
+        exibirMensagem(
+          "aviso",
+          "Campo inválido",
+          "Não foi possível identificar os campos de retorno. Utilize 'AS NomeVariavel' na query para especificar as colunas.",
+        );
+      }
+      return { sucesso: false, params: [], retornos: [] };
     }
 
     setParametrosEncontrados(paramsUnicos);
     setCamposRetornados(retsUnicos);
     setSqlAnalisado(true);
-    if (retsUnicos.length > 0) setRegraCampoRetornado(retsUnicos[0]);
-    if (campos.length > 0) setRegraCampoCarne(campos[0].nomeCampo);
+
+    if (retsUnicos.length > 0) {
+      setRegraCampoRetornado(retsUnicos[0]);
+    }
+
+    // Seleciona o primeiro campo normal (excluindo identificadores)
+    if (camposNormaisDisponiveis.length > 0) {
+      setRegraCampoCarne(camposNormaisDisponiveis[0].nomeCampo);
+    }
+
+    return { sucesso: true, params: paramsUnicos, retornos: retsUnicos };
+  };
+
+  const analisarQuerySQL = () => {
+    executarAnaliseSQL(sqlQuery, true);
   };
 
   const adicionarRegraValidacao = () => {
@@ -815,29 +935,32 @@ export function ParametrizacaoPage({
   };
 
   const editarQuery = (query: QueryValidacao) => {
-    const params = query.parametrosEncontrados ?? [];
-    const retornos = query.camposRetornados ?? [];
-
     setQueryEmEdicaoId(query.id);
     setNomeQuery(query.nome);
     setSqlQuery(query.sql);
-    setParametrosEncontrados(params);
-    setCamposRetornados(retornos);
-    setRegrasAtuais(query.regras);
-    setSqlAnalisado(true);
+    setRegrasAtuais(query.regras || []);
 
-    if (retornos.length > 0) setRegraCampoRetornado(retornos[0]);
-    if (campos.length > 0) setRegraCampoCarne(campos[0].nomeCampo);
+    // Executa a análise automaticamente ao abrir para edição
+    const resultado = executarAnaliseSQL(query.sql, false);
+
+    // Se o parse automático encontrar retornos, utiliza-os; caso contrário, mantém os salvos
+    if (resultado.sucesso) {
+      if (resultado.retornos.length > 0) {
+        setRegraCampoRetornado(resultado.retornos[0]);
+      }
+    } else {
+      const params = query.parametrosEncontrados ?? [];
+      const retornos = query.camposRetornados ?? [];
+      setParametrosEncontrados(params);
+      setCamposRetornados(retornos);
+      setSqlAnalisado(true);
+      if (retornos.length > 0) setRegraCampoRetornado(retornos[0]);
+    }
+
+    if (camposNormaisDisponiveis.length > 0) {
+      setRegraCampoCarne(camposNormaisDisponiveis[0].nomeCampo);
+    }
   };
-
-  // Obtém a lista única dos identificadores de página já cadastrados no layout
-  const identificadoresExistentes = Array.from(
-    new Set(
-      campos
-        .map((c) => c.identificadorPagina?.trim().toUpperCase())
-        .filter((id): id is string => Boolean(id)),
-    ),
-  );
 
   return (
     <div id="container-parametrizacao">
@@ -1445,14 +1568,11 @@ export function ParametrizacaoPage({
                 <div style={{ display: "flex", gap: "4px" }}>
                   {Array.from(
                     {
-                      length:
-                        ehIdentificadorInicio || ehIdentificadorPagina
-                          ? 1
-                          : Math.max(
-                              paginasModelo.length || 1,
-                              paginaCampo,
-                              ...campos.map((c) => c.pagina || 1),
-                            ),
+                      length: Math.max(
+                        paginasModelo.length || 1,
+                        paginaCampo,
+                        ...campos.map((c) => c.pagina || 1),
+                      ),
                     },
                     (_, i) => i + 1,
                   ).map((numPagina) => {
@@ -1584,8 +1704,12 @@ export function ParametrizacaoPage({
                     )
                     .map((campo) => {
                       const ativo = campo.id === campoEmEdicaoId;
-                      const ehAnchor = campo.ehIdentificadorInicio;
-                      const ehMarker = campo.ehIdentificadorPagina;
+                      const ehDocId =
+                        campo.tipoClassificacao ===
+                        TipoClassificacaoCampo.IdentificadorDocumento;
+                      const ehPagId =
+                        campo.tipoClassificacao ===
+                        TipoClassificacaoCampo.IdentificadorPagina;
 
                       return (
                         <div
@@ -1599,23 +1723,23 @@ export function ParametrizacaoPage({
                             height: `${campo.alturaMm * escalaPxPorMm}px`,
                             border: ativo
                               ? "2px solid #f57c00"
-                              : ehAnchor
+                              : ehDocId
                                 ? "2px solid #3f51b5"
-                                : ehMarker
+                                : ehPagId
                                   ? "2px solid #8e24aa"
                                   : "2px solid #009688",
                             backgroundColor: ativo
                               ? "rgba(245, 124, 0, 0.25)"
-                              : ehAnchor
+                              : ehDocId
                                 ? "rgba(63, 81, 181, 0.2)"
-                                : ehMarker
+                                : ehPagId
                                   ? "rgba(142, 36, 170, 0.2)"
                                   : "rgba(0, 150, 136, 0.2)",
                             color: ativo
                               ? "#e65100"
-                              : ehAnchor
+                              : ehDocId
                                 ? "#1a237e"
-                                : ehMarker
+                                : ehPagId
                                   ? "#4a148c"
                                   : "#004d40",
                             fontSize: "0.7rem",
@@ -1625,10 +1749,10 @@ export function ParametrizacaoPage({
                             boxSizing: "border-box",
                           }}
                         >
-                          {ehAnchor
-                            ? `🚩 ${campo.nomeCampo}`
-                            : ehMarker
-                              ? `📌 ${campo.nomeCampo}`
+                          {ehDocId
+                            ? `🚩 [DOC] ${campo.nomeCampo}`
+                            : ehPagId
+                              ? `📌 [PÁG] ${campo.nomeCampo}`
                               : campo.nomeCampo}
                         </div>
                       );
@@ -1702,6 +1826,132 @@ export function ParametrizacaoPage({
                 </div>
 
                 <div style={{ padding: "12px" }}>
+                  <div style={{ marginBottom: "12px" }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        color: "#455a64",
+                        marginBottom: "6px",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Classificação do Campo
+                    </label>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                        backgroundColor: "#f5f7f8",
+                        padding: "8px 10px",
+                        borderRadius: "4px",
+                        border: "1px solid #cfd8dc",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          cursor: "pointer",
+                          fontSize: "0.8rem",
+                          fontWeight:
+                            tipoClassificacao ===
+                            TipoClassificacaoCampo.IdentificadorDocumento
+                              ? 700
+                              : 500,
+                          color:
+                            tipoClassificacao ===
+                            TipoClassificacaoCampo.IdentificadorDocumento
+                              ? "#1a237e"
+                              : "#37474f",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="classificacaoCampo"
+                          checked={
+                            tipoClassificacao ===
+                            TipoClassificacaoCampo.IdentificadorDocumento
+                          }
+                          onChange={() =>
+                            mudarClassificacao(
+                              TipoClassificacaoCampo.IdentificadorDocumento,
+                            )
+                          }
+                        ></input>
+                        <span>Identificador de documento</span>
+                      </label>
+
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          cursor: "pointer",
+                          fontSize: "0.8rem",
+                          fontWeight:
+                            tipoClassificacao ===
+                            TipoClassificacaoCampo.IdentificadorPagina
+                              ? 700
+                              : 500,
+                          color:
+                            tipoClassificacao ===
+                            TipoClassificacaoCampo.IdentificadorPagina
+                              ? "#4a148c"
+                              : "#37474f",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="classificacaoCampo"
+                          checked={
+                            tipoClassificacao ===
+                            TipoClassificacaoCampo.IdentificadorPagina
+                          }
+                          onChange={() =>
+                            mudarClassificacao(
+                              TipoClassificacaoCampo.IdentificadorPagina,
+                            )
+                          }
+                        ></input>
+                        <span>Identificador de página</span>
+                      </label>
+
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          cursor: "pointer",
+                          fontSize: "0.8rem",
+                          fontWeight:
+                            tipoClassificacao === TipoClassificacaoCampo.Nenhum
+                              ? 700
+                              : 500,
+                          color:
+                            tipoClassificacao === TipoClassificacaoCampo.Nenhum
+                              ? "#004d40"
+                              : "#37474f",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="classificacaoCampo"
+                          checked={
+                            tipoClassificacao === TipoClassificacaoCampo.Nenhum
+                          }
+                          onChange={() =>
+                            mudarClassificacao(TipoClassificacaoCampo.Nenhum)
+                          }
+                        ></input>
+                        <span>Campo comum</span>
+                      </label>
+                    </div>
+                  </div>
+
                   <div style={{ marginBottom: "10px" }}>
                     <label
                       style={{
@@ -1719,38 +1969,12 @@ export function ParametrizacaoPage({
                       type="text"
                       value={nomeCampo}
                       onChange={(e) => setNomeCampo(e.target.value)}
-                      placeholder="Ex: Rua, Bairro, Contribuinte"
-                      style={{
-                        width: "100%",
-                        padding: "6px 10px",
-                        borderRadius: "4px",
-                        border: "1px solid #cfd8dc",
-                        height: "32px",
-                      }}
-                    ></input>
-                  </div>
-
-                  <div style={{ marginBottom: "10px" }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "0.75rem",
-                        fontWeight: 700,
-                        color: "#455a64",
-                        marginBottom: "4px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Identificador de página (Obrigatório)
-                    </label>
-                    <input
-                      type="text"
-                      list="lista-identificadores-pagina"
-                      value={identificadorPagina}
-                      onChange={(e) =>
-                        setIdentificadorPagina(e.target.value.toUpperCase())
+                      placeholder={
+                        tipoClassificacao ===
+                        TipoClassificacaoCampo.IdentificadorPagina
+                          ? "Ex: Débitos, Identificação, Resumo"
+                          : "Ex: Total, Contribuinte, Inscrição"
                       }
-                      placeholder="Selecione ou digite (Ex: ENDERECO, DEBITOS)"
                       style={{
                         width: "100%",
                         padding: "6px 10px",
@@ -1759,66 +1983,205 @@ export function ParametrizacaoPage({
                         height: "32px",
                       }}
                     ></input>
-                    <datalist id="lista-identificadores-pagina">
-                      {identificadoresExistentes.map((opcao) => (
-                        <option key={opcao} value={opcao}>
-                          {opcao}
-                        </option>
-                      ))}
-                    </datalist>
-                    <span
-                      style={{
-                        fontSize: "0.68rem",
-                        color: "#78909c",
-                        marginTop: "2px",
-                        display: "block",
-                      }}
-                    >
-                      Selecione uma estrutura existente ou digite o nome de uma
-                      nova.
-                    </span>
                   </div>
 
-                  {!ehIdentificadorInicio && !ehIdentificadorPagina && (
-                    <div style={{ marginBottom: "10px" }}>
+                  {tipoClassificacao ===
+                    TipoClassificacaoCampo.IdentificadorDocumento && (
+                    <div
+                      style={{
+                        marginBottom: "10px",
+                        backgroundColor: "#e8eaf6",
+                        padding: "8px",
+                        borderRadius: "4px",
+                        border: "1px solid #c5cae9",
+                      }}
+                    >
                       <label
                         style={{
                           display: "block",
-                          fontSize: "0.75rem",
+                          fontSize: "0.7rem",
                           fontWeight: 700,
-                          color: "#455a64",
+                          color: "#1a237e",
                           marginBottom: "4px",
                           textTransform: "uppercase",
                         }}
                       >
-                        Identificador anterior (opcional)
+                        Texto esperado no documento
                       </label>
                       <input
                         type="text"
-                        value={identificadorAnterior}
+                        value={textoEsperadoDocumento}
                         onChange={(e) =>
-                          setIdentificadorAnterior(e.target.value)
+                          setTextoEsperadoDocumento(e.target.value)
                         }
-                        placeholder="Ex: RUA:, BAIRRO:, CPF:"
+                        placeholder="Ex: PREFEITURA MUNICIPAL"
                         style={{
                           width: "100%",
-                          padding: "6px 10px",
-                          borderRadius: "4px",
-                          border: "1px solid #cfd8dc",
-                          height: "32px",
+                          padding: "6px 8px",
+                          borderRadius: "3px",
+                          border: "1px solid #9fa8da",
+                          fontSize: "0.75rem",
+                          height: "30px",
                         }}
                       ></input>
                       <span
                         style={{
                           fontSize: "0.68rem",
-                          color: "#78909c",
+                          color: "#3949ab",
                           marginTop: "2px",
                           display: "block",
                         }}
                       >
-                        Texto que precede o valor dentro da área.
+                        Texto que identifica onde o carnê começa/termina no PDF.
                       </span>
                     </div>
+                  )}
+
+                  {tipoClassificacao ===
+                    TipoClassificacaoCampo.IdentificadorPagina && (
+                    <div
+                      style={{
+                        marginBottom: "10px",
+                        backgroundColor: "#f3e5f5",
+                        padding: "8px",
+                        borderRadius: "4px",
+                        border: "1px solid #e1bee7",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "0.7rem",
+                          fontWeight: 700,
+                          color: "#4a148c",
+                          marginBottom: "4px",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Texto esperado na página
+                      </label>
+                      <input
+                        type="text"
+                        value={textoEsperadoPagina}
+                        onChange={(e) => setTextoEsperadoPagina(e.target.value)}
+                        placeholder="Ex: DEMONSTRATIVO DE DÉBITOS"
+                        style={{
+                          width: "100%",
+                          padding: "6px 8px",
+                          borderRadius: "3px",
+                          border: "1px solid #ba68c8",
+                          fontSize: "0.75rem",
+                          height: "30px",
+                        }}
+                      ></input>
+                      <span
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#6a1b9a",
+                          marginTop: "2px",
+                          display: "block",
+                        }}
+                      >
+                        Texto que comprova que a página é deste tipo.
+                      </span>
+                    </div>
+                  )}
+
+                  {tipoClassificacao === TipoClassificacaoCampo.Nenhum && (
+                    <>
+                      <div style={{ marginBottom: "10px" }}>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            color: "#455a64",
+                            marginBottom: "4px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Identificador de página
+                        </label>
+                        <select
+                          value={identificadorPagina}
+                          onChange={(e) =>
+                            setIdentificadorPagina(e.target.value)
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "6px 10px",
+                            borderRadius: "4px",
+                            border: "1px solid #cfd8dc",
+                            height: "32px",
+                            backgroundColor: "#ffffff",
+                            color: "#263238",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <option value="">
+                            (Selecione o Identificador de página)
+                          </option>
+                          {identificadoresDePaginaDisponiveis.map((idPag) => (
+                            <option key={idPag} value={idPag}>
+                              {idPag}
+                            </option>
+                          ))}
+                        </select>
+                        {identificadoresDePaginaDisponiveis.length === 0 && (
+                          <span
+                            style={{
+                              fontSize: "0.68rem",
+                              color: "#c62828",
+                              marginTop: "2px",
+                              display: "block",
+                            }}
+                          >
+                            Nenhum identificador de página cadastrado. Cadastre
+                            um primeiro marcando a opção acima.
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ marginBottom: "10px" }}>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            color: "#455a64",
+                            marginBottom: "4px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Identificador anterior (opcional)
+                        </label>
+                        <input
+                          type="text"
+                          value={identificadorAnterior}
+                          onChange={(e) =>
+                            setIdentificadorAnterior(e.target.value)
+                          }
+                          placeholder="Ex: TOTAL:, VALOR:"
+                          style={{
+                            width: "100%",
+                            padding: "6px 10px",
+                            borderRadius: "4px",
+                            border: "1px solid #cfd8dc",
+                            height: "32px",
+                          }}
+                        ></input>
+                        <span
+                          style={{
+                            fontSize: "0.68rem",
+                            color: "#78909c",
+                            marginTop: "2px",
+                            display: "block",
+                          }}
+                        >
+                          Texto que precede o valor dentro da área.
+                        </span>
+                      </div>
+                    </>
                   )}
 
                   {retanguloAtualMm && (
@@ -1840,237 +2203,6 @@ export function ParametrizacaoPage({
                       {retanguloAtualMm.alturaMm.toFixed(1)}
                     </div>
                   )}
-
-                  <div
-                    style={{
-                      backgroundColor: "#f5f7f8",
-                      padding: "8px 10px",
-                      borderRadius: "4px",
-                      border: "1px solid #eceff1",
-                      marginBottom: "12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                    }}
-                  >
-                    {/* Identificador de Início */}
-                    <div
-                      style={{
-                        padding: "6px",
-                        backgroundColor: ehIdentificadorInicio
-                          ? "#e8eaf6"
-                          : "transparent",
-                        borderRadius: "4px",
-                        border: ehIdentificadorInicio
-                          ? "1px solid #c5cae9"
-                          : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                            color: ehIdentificadorInicio
-                              ? "#3f51b5"
-                              : "#455a64",
-                          }}
-                        >
-                          Identificador de início
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEhIdentificadorInicio(!ehIdentificadorInicio);
-                            if (!ehIdentificadorInicio) {
-                              setEhIdentificadorPagina(false);
-                              setPaginaCampo(1);
-                              setPaginaAtivaCanvas(1);
-                              setRetanguloAtualMm(null);
-                            }
-                          }}
-                          style={{
-                            position: "relative",
-                            width: "40px",
-                            height: "22px",
-                            borderRadius: "11px",
-                            backgroundColor: ehIdentificadorInicio
-                              ? "#5c6bc0"
-                              : "#b0bec5",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: "2px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: "block",
-                              width: "18px",
-                              height: "18px",
-                              borderRadius: "50%",
-                              backgroundColor: "#ffffff",
-                              transform: ehIdentificadorInicio
-                                ? "translateX(18px)"
-                                : "translateX(0px)",
-                              transition: "transform 0.2s",
-                            }}
-                          ></span>
-                        </button>
-                      </div>
-                      {ehIdentificadorInicio && (
-                        <div
-                          style={{
-                            marginTop: "8px",
-                            paddingTop: "8px",
-                            borderTop: "1px dashed #c5cae9",
-                          }}
-                        >
-                          <label
-                            style={{
-                              display: "block",
-                              fontSize: "0.7rem",
-                              fontWeight: 700,
-                              color: "#3f51b5",
-                              marginBottom: "3px",
-                            }}
-                          >
-                            Texto exato esperado na quebra de documento:
-                          </label>
-                          <input
-                            type="text"
-                            value={textoEsperadoInicio}
-                            onChange={(e) =>
-                              setTextoEsperadoInicio(e.target.value)
-                            }
-                            placeholder="Ex: PREFEITURA MUNICIPAL"
-                            style={{
-                              width: "100%",
-                              padding: "5px 8px",
-                              borderRadius: "3px",
-                              border: "1px solid #9fa8da",
-                              fontSize: "0.75rem",
-                              height: "28px",
-                            }}
-                          ></input>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Marcador de Página/Estrutura */}
-                    <div
-                      style={{
-                        padding: "6px",
-                        backgroundColor: ehIdentificadorPagina
-                          ? "#f3e5f5"
-                          : "transparent",
-                        borderRadius: "4px",
-                        border: ehIdentificadorPagina
-                          ? "1px solid #e1bee7"
-                          : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                            color: ehIdentificadorPagina
-                              ? "#6a1b9a"
-                              : "#455a64",
-                          }}
-                        >
-                          É o marcador desta estrutura?
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEhIdentificadorPagina(!ehIdentificadorPagina);
-                            if (!ehIdentificadorPagina) {
-                              setEhIdentificadorInicio(false);
-                              setPaginaCampo(1);
-                              setPaginaAtivaCanvas(1);
-                              setRetanguloAtualMm(null);
-                            }
-                          }}
-                          style={{
-                            position: "relative",
-                            width: "40px",
-                            height: "22px",
-                            borderRadius: "11px",
-                            backgroundColor: ehIdentificadorPagina
-                              ? "#8e24aa"
-                              : "#b0bec5",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: "2px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: "block",
-                              width: "18px",
-                              height: "18px",
-                              borderRadius: "50%",
-                              backgroundColor: "#ffffff",
-                              transform: ehIdentificadorPagina
-                                ? "translateX(18px)"
-                                : "translateX(0px)",
-                              transition: "transform 0.2s",
-                            }}
-                          ></span>
-                        </button>
-                      </div>
-                      {ehIdentificadorPagina && (
-                        <div
-                          style={{
-                            marginTop: "8px",
-                            paddingTop: "8px",
-                            borderTop: "1px dashed #e1bee7",
-                          }}
-                        >
-                          <label
-                            style={{
-                              display: "block",
-                              fontSize: "0.7rem",
-                              fontWeight: 700,
-                              color: "#6a1b9a",
-                              marginBottom: "3px",
-                            }}
-                          >
-                            Texto exato que comprova a estrutura nesta página:
-                          </label>
-                          <input
-                            type="text"
-                            value={textoEsperadoPagina}
-                            onChange={(e) =>
-                              setTextoEsperadoPagina(e.target.value)
-                            }
-                            placeholder={`Ex: ${identificadorPagina || "DEBITOS"}`}
-                            style={{
-                              width: "100%",
-                              padding: "5px 8px",
-                              borderRadius: "3px",
-                              border: "1px solid #ba68c8",
-                              fontSize: "0.75rem",
-                              height: "28px",
-                            }}
-                          ></input>
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
                   <button
                     onClick={salvarRegiaoCampo}
@@ -2140,84 +2272,101 @@ export function ParametrizacaoPage({
                         gap: "6px",
                       }}
                     >
-                      {campos.map((c) => (
-                        <li
-                          key={c.id}
-                          style={{
-                            border: "1px solid #eceff1",
-                            backgroundColor: "#fafafa",
-                            borderRadius: "3px",
-                            padding: "6px 8px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <div>
-                            <strong
-                              style={{
-                                display: "block",
-                                fontSize: "0.8rem",
-                                color: c.ehIdentificadorInicio
-                                  ? "#3f51b5"
-                                  : c.ehIdentificadorPagina
-                                    ? "#8e24aa"
-                                    : "#263238",
-                              }}
-                            >
-                              {c.ehIdentificadorInicio
-                                ? `🚩 [INÍCIO] ${c.nomeCampo}`
-                                : c.ehIdentificadorPagina
-                                  ? `📌 [${c.identificadorPagina}] ${c.nomeCampo}`
-                                  : c.nomeCampo}
-                            </strong>
-                            <span
-                              style={{ fontSize: "0.65rem", color: "#78909c" }}
-                            >
-                              Estrutura: {c.identificadorPagina} • Pg:{" "}
-                              {c.pagina} • {c.larguraMm}x{c.alturaMm}mm
-                              {c.identificadorAnterior &&
-                                ` • [Pré: "${c.identificadorAnterior}"]`}
-                            </span>
-                          </div>
-                          <div style={{ display: "flex", gap: "4px" }}>
-                            <button
-                              onClick={() => iniciarEdicaoCampo(c)}
-                              title="Editar"
-                              style={{
-                                border: "1px solid #cfd8dc",
-                                background: "#ffffff",
-                                color: "#00796b",
-                                padding: "3px 6px",
-                                borderRadius: "3px",
-                                cursor: "pointer",
-                                fontSize: "0.7rem",
-                                fontWeight: 700,
-                              }}
-                            >
-                              ✎
-                            </button>
-                            <button
-                              onClick={() =>
-                                removerRegiaoCampo(c.id, c.nomeCampo)
-                              }
-                              title="Remover"
-                              style={{
-                                border: "1px solid #ffcdd2",
-                                background: "#ffebee",
-                                color: "#c62828",
-                                padding: "3px 6px",
-                                borderRadius: "3px",
-                                cursor: "pointer",
-                                fontSize: "0.7rem",
-                                fontWeight: 700,
-                              }}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </li>
-                      ))}
+                      {campos.map((c) => {
+                        const ehDocId =
+                          c.tipoClassificacao ===
+                          TipoClassificacaoCampo.IdentificadorDocumento;
+                        const ehPagId =
+                          c.tipoClassificacao ===
+                          TipoClassificacaoCampo.IdentificadorPagina;
+
+                        return (
+                          <li
+                            key={c.id}
+                            style={{
+                              border: "1px solid #eceff1",
+                              backgroundColor: "#fafafa",
+                              borderRadius: "3px",
+                              padding: "6px 8px",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <div>
+                              <strong
+                                style={{
+                                  display: "block",
+                                  fontSize: "0.8rem",
+                                  color: ehDocId
+                                    ? "#3f51b5"
+                                    : ehPagId
+                                      ? "#8e24aa"
+                                      : "#263238",
+                                }}
+                              >
+                                {ehDocId
+                                  ? `🚩 [DOC] ${c.nomeCampo}`
+                                  : ehPagId
+                                    ? `📌 [PÁG] ${c.nomeCampo}`
+                                    : c.nomeCampo}
+                              </strong>
+                              <span
+                                style={{
+                                  fontSize: "0.65rem",
+                                  color: "#78909c",
+                                }}
+                              >
+                                {ehDocId &&
+                                  `Identificador de Documento • "${c.textoEsperadoDocumento}"`}
+                                {ehPagId &&
+                                  `Identificador de Página • "${c.textoEsperadoPagina}"`}
+                                {!ehDocId &&
+                                  !ehPagId &&
+                                  `Estrutura: ${c.identificadorPagina || "Sem vínculo"} • Pg ref: ${c.pagina} • ${c.larguraMm}x${c.alturaMm}mm`}
+                                {c.identificadorAnterior &&
+                                  ` • [Pré: "${c.identificadorAnterior}"]`}
+                              </span>
+                            </div>
+                            <div style={{ display: "flex", gap: "4px" }}>
+                              <button
+                                onClick={() => iniciarEdicaoCampo(c)}
+                                title="Editar"
+                                style={{
+                                  border: "1px solid #cfd8dc",
+                                  background: "#ffffff",
+                                  color: "#00796b",
+                                  padding: "3px 6px",
+                                  borderRadius: "3px",
+                                  cursor: "pointer",
+                                  fontSize: "0.7rem",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ✎
+                              </button>
+                              <button
+                                onClick={() =>
+                                  removerRegiaoCampo(c.id, c.nomeCampo)
+                                }
+                                title="Remover"
+                                style={{
+                                  border: "1px solid #ffcdd2",
+                                  background: "#ffebee",
+                                  color: "#c62828",
+                                  padding: "3px 6px",
+                                  borderRadius: "3px",
+                                  cursor: "pointer",
+                                  fontSize: "0.7rem",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>
@@ -2571,7 +2720,7 @@ export function ParametrizacaoPage({
                           height: "28px",
                         }}
                       >
-                        {campos.map((c) => (
+                        {camposNormaisDisponiveis.map((c) => (
                           <option key={c.id} value={c.nomeCampo}>
                             {c.nomeCampo}
                           </option>

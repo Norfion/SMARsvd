@@ -87,8 +87,6 @@ export function ResultadoPage({
   onIrParaValidacao,
 }: ResultadoPageProps) {
   const [menuExportarAberto, setMenuExportarAberto] = useState(false);
-  // Botão liga/desliga: ligado por padrão (exibe apenas divergências)
-  const [apenasDivergencias, setApenasDivergencias] = useState<boolean>(true);
 
   // Normalizadores defensivos para aceitar PascalCase e camelCase
   const nomeArquivo =
@@ -141,45 +139,16 @@ export function ResultadoPage({
     ? `${textoAmostragemBase} [Extração via OCR/IA]`
     : textoAmostragemBase;
 
-  // Unifica e normaliza os itens da tabela para exibição e exportação
+  // Unifica e normaliza todos os itens da auditoria para o grid
   const itensExibicao = useMemo<ItemTabelaExibicao[]>(() => {
-    // Se estiver ligado "Exibir apenas divergências"
-    if (apenasDivergencias) {
-      return listaInconsistencias.map((item, idx) => {
-        const numPagina = item.PaginaExtraido ?? item.paginaExtraido;
-        const ident = item.IdentificadorGuia ?? item.identificadorGuia;
-        const localizacao =
-          numPagina !== undefined && numPagina !== null && numPagina > 0
-            ? `Página ${numPagina}`
-            : ident
-              ? ident
-              : `Item #${idx + 1}`;
-
-        return {
-          pagina: localizacao,
-          campo: item.Campo ?? item.campo ?? "—",
-          valorEsperado:
-            item.ValorEsperadoBanco ?? item.valorEsperadoBanco ?? "—",
-          valorExtraido: item.ValorExtraidoPdf ?? item.valorExtraidoPdf ?? "—",
-          status: "DIVERGÊNCIA",
-          mensagem:
-            item.MensagemAuditoria ??
-            item.mensagemAuditoria ??
-            item.Mensagem ??
-            item.mensagem ??
-            "Divergência detectada",
-        };
-      });
-    }
-
-    // Se estiver desligado, mostra todas as validações (corretas e divergentes)
+    // Se houver lista de validações detalhadas (sucessos e divergências)
     if (listaValidacoesCompletas.length > 0) {
       return listaValidacoesCompletas.map((val, idx) => {
         const numPagina = val.PaginaExtraido ?? val.paginaExtraido;
         const ident = val.IdentificadorGuia ?? val.identificadorGuia;
         const localizacao =
           numPagina !== undefined && numPagina !== null && numPagina > 0
-            ? `Página ${numPagina}`
+            ? `${numPagina}`
             : ident
               ? ident
               : `Item #${idx + 1}`;
@@ -211,13 +180,13 @@ export function ResultadoPage({
       });
     }
 
-    // Fallback: se não houver array de validações completas na resposta, exibe as inconsistências
+    // Fallback: se apenas houver inconsistências retornadas
     return listaInconsistencias.map((item, idx) => {
       const numPagina = item.PaginaExtraido ?? item.paginaExtraido;
       const ident = item.IdentificadorGuia ?? item.identificadorGuia;
       const localizacao =
         numPagina !== undefined && numPagina !== null && numPagina > 0
-          ? `Página ${numPagina}`
+          ? `${numPagina}`
           : ident
             ? ident
             : `Item #${idx + 1}`;
@@ -237,7 +206,7 @@ export function ResultadoPage({
           "Divergência detectada",
       };
     });
-  }, [apenasDivergencias, listaInconsistencias, listaValidacoesCompletas]);
+  }, [listaInconsistencias, listaValidacoesCompletas]);
 
   // Definição das colunas dinâmicas para o AG Grid
   const definicoesColunas = useMemo<ColDef<ItemTabelaExibicao>[]>(() => {
@@ -247,6 +216,15 @@ export function ResultadoPage({
         field: "pagina",
         width: 130,
         sortable: true,
+        sort: "asc", // Ordenação padrão crescente
+        comparator: (valorA: string, valorB: string) => {
+          const numA = parseInt(valorA, 10);
+          const numB = parseInt(valorB, 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+          }
+          return valorA.localeCompare(valorB);
+        },
         filter: true,
         cellStyle: { fontWeight: "700", display: "flex", alignItems: "center" },
       },
@@ -294,7 +272,7 @@ export function ResultadoPage({
         field: "status",
         width: 140,
         sortable: true,
-        filter: true,
+        filter: "agTextColumnFilter",
         cellRenderer: (params: ICellRendererParams<ItemTabelaExibicao>) => {
           const ehOk = params.value === "OK";
           return (
@@ -352,9 +330,6 @@ export function ResultadoPage({
     linhas.push(`Arquivo Analisado;${nomeArquivo}`);
     linhas.push(`Layout Utilizado;${layoutUtilizado}`);
     linhas.push(`Método de Validação;${textoAmostragem}`);
-    linhas.push(
-      `Modo de Exibição;${apenasDivergencias ? "Apenas Divergências" : "Todas as Validações"}`,
-    );
     if (usouOcr) {
       linhas.push(
         `Nota Informativa;Foi utilizada extração de dados via inteligência artificial (OCR). Ela pode cometer erros e pode não ter sido 100% extraída corretamente.`,
@@ -431,10 +406,6 @@ export function ResultadoPage({
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Método de Validação:</Data></Cell>
         <Cell><Data ss:Type="String">${escaparXml(textoAmostragem)}</Data></Cell>
-      </Row>
-      <Row>
-        <Cell ss:StyleID="Negrito"><Data ss:Type="String">Modo de Exibição:</Data></Cell>
-        <Cell><Data ss:Type="String">${apenasDivergencias ? "Apenas Divergências" : "Todas as Validações"}</Data></Cell>
       </Row>`;
 
     if (usouOcr) {
@@ -564,11 +535,7 @@ export function ResultadoPage({
     doc.setTextColor(55, 71, 79);
     doc.text(`Arquivo Analisado: ${nomeArquivo}`, 14, 25);
     doc.text(`Layout Utilizado: ${layoutUtilizado}`, 14, 30);
-    doc.text(
-      `Método: ${textoAmostragem} | Modo: ${apenasDivergencias ? "Apenas Divergências" : "Todas as Validações"}`,
-      14,
-      35,
-    );
+    doc.text(`Método: ${textoAmostragem}`, 14, 35);
 
     let posicaoYCards = 40;
     if (usouOcr) {
@@ -777,7 +744,7 @@ export function ResultadoPage({
         `}
       </style>
 
-      {/* CABEÇALHO DO RESULTADO COM TOGGLE E BOTÕES */}
+      {/* CABEÇALHO DO RESULTADO E BOTÕES */}
       <div
         style={{
           display: "flex",
@@ -800,7 +767,7 @@ export function ResultadoPage({
           </span>
         </div>
 
-        {/* ÁREA DE AÇÕES: BOTÃO LIGA/DESLIGA + EXPORTAR */}
+        {/* ÁREA DE AÇÕES: EXPORTAR */}
         <div
           className="area-botoes-resultado"
           style={{
@@ -810,71 +777,6 @@ export function ResultadoPage({
             flexWrap: "wrap",
           }}
         >
-          {/* BOTÃO LIGA / DESLIGA: "Exibir apenas divergências" */}
-          <div
-            id="controle-filtro-divergencias"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "#f8fafc",
-              padding: "4px 10px",
-              borderRadius: "4px",
-              border: "1px solid #cfd8dc",
-            }}
-          >
-            <button
-              type="button"
-              id="btn-switch-apenas-divergencias"
-              onClick={() => setApenasDivergencias((anterior) => !anterior)}
-              style={{
-                position: "relative",
-                width: "38px",
-                height: "20px",
-                borderRadius: "10px",
-                backgroundColor: apenasDivergencias ? "#00796b" : "#90a4ae",
-                border: "none",
-                cursor: "pointer",
-                padding: "2px",
-                transition: "background-color 0.2s ease",
-                display: "inline-flex",
-                alignItems: "center",
-              }}
-              title={
-                apenasDivergencias
-                  ? "Clique para exibir todas as validações"
-                  : "Clique para exibir apenas as divergências"
-              }
-            >
-              <span
-                style={{
-                  display: "block",
-                  width: "16px",
-                  height: "16px",
-                  borderRadius: "50%",
-                  backgroundColor: "#ffffff",
-                  transform: apenasDivergencias
-                    ? "translateX(18px)"
-                    : "translateX(0px)",
-                  transition: "transform 0.2s ease",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
-                }}
-              ></span>
-            </button>
-            <label
-              htmlFor="btn-switch-apenas-divergencias"
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: 700,
-                color: apenasDivergencias ? "#00796b" : "#455a64",
-                cursor: "pointer",
-                userSelect: "none",
-              }}
-            >
-              Exibir apenas divergências
-            </label>
-          </div>
-
           {/* MENU EXPORTAR */}
           <div
             style={{ position: "relative" }}
@@ -1153,9 +1055,7 @@ export function ResultadoPage({
             fontWeight: 600,
           }}
         >
-          {apenasDivergencias
-            ? "Nenhuma inconsistência encontrada. Todas as regras de validação foram atendidas perfeitamente!"
-            : "Nenhum dado de validação encontrado para exibição."}
+          Nenhum dado de validação encontrado para exibição.
         </div>
       ) : (
         <div
@@ -1173,6 +1073,17 @@ export function ResultadoPage({
             pagination={true}
             paginationPageSize={20}
             paginationPageSizeSelector={[10, 20, 50, 100]}
+            initialState={{
+              filter: {
+                filterModel: {
+                  status: {
+                    filterType: "text",
+                    type: "equals",
+                    filter: "DIVERGÊNCIA",
+                  },
+                },
+              },
+            }}
             defaultColDef={{
               resizable: true,
               sortable: true,

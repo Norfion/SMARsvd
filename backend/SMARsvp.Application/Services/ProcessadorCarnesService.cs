@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using SMARsvp.Application.DTOs.Layout;
 using SMARsvp.Application.DTOs.Processamento;
 using SMARsvp.Application.Interfaces;
+using SMARsvp.Domain.Enums;
 
 namespace SMARsvp.Application.Services;
 
@@ -24,20 +25,21 @@ public class ProcessadorCarnesService
 
     public async Task<ResultadoProcessamentoDto> ProcessarLoteAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem)
     {
-        var regiaoId = layout.Campos.FirstOrDefault(c => c.EhIdentificadorInicio);
-        if (regiaoId == null)
-            throw new Exception("O layout não possui um campo configurado como 'Identificador de início de carnê'.");
+        // 1. Localiza a região do Identificador de Documento
+        var regiaoIdDocumento = layout.Campos.FirstOrDefault(c => c.TipoClassificacao == TipoClassificacaoCampo.IdentificadorDocumento);
+        if (regiaoIdDocumento == null)
+            throw new Exception("O layout não possui um campo configurado como 'Identificador de documento'.");
 
         int totalPaginas = await _extratorPdf.ObterTotalPaginasAsync(caminhoPdf);
         var estrutura = new List<DocumentoEstruturaDto>();
 
-        // 1. Identificação Incremental dos Documentos
+        // 2. Identificação e Delimitação dos Documentos no Lote
         int? inicioDocAtual = null;
-        string textoEsperadoNormalizado = NormalizarTextoParaComparacao(regiaoId.TextoEsperadoInicio ?? string.Empty);
+        string textoEsperadoDocNormalizado = NormalizarTextoParaComparacao(regiaoIdDocumento.TextoEsperadoDocumento ?? string.Empty);
 
         for (int pagina = 1; pagina <= totalPaginas; pagina++)
         {
-            var textoExt = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, pagina, regiaoId);
+            var textoExt = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, pagina, regiaoIdDocumento);
             string metodoUtilizado = "Digital";
 
             if (string.IsNullOrWhiteSpace(textoExt))
@@ -45,18 +47,18 @@ public class ProcessadorCarnesService
                 textoExt = await _ocrService.ExtrairTextoPorOcrAsync(
                     caminhoPdf,
                     pagina,
-                    regiaoId.XMm,
-                    regiaoId.YMm,
-                    regiaoId.LarguraMm,
-                    regiaoId.AlturaMm);
+                    regiaoIdDocumento.XMm,
+                    regiaoIdDocumento.YMm,
+                    regiaoIdDocumento.LarguraMm,
+                    regiaoIdDocumento.AlturaMm);
                 metodoUtilizado = "OCR";
             }
 
             string textoLidoNormalizado = NormalizarTextoParaComparacao(textoExt ?? string.Empty);
-            bool ehInicio = !string.IsNullOrWhiteSpace(textoEsperadoNormalizado) &&
-                           textoLidoNormalizado.Contains(textoEsperadoNormalizado, StringComparison.OrdinalIgnoreCase);
+            bool ehInicio = !string.IsNullOrWhiteSpace(textoEsperadoDocNormalizado) &&
+                           textoLidoNormalizado.Contains(textoEsperadoDocNormalizado, StringComparison.OrdinalIgnoreCase);
 
-            Console.WriteLine($"[Página {pagina}] Identificador Início ({metodoUtilizado}): '{textoExt}' | Esperado: '{regiaoId.TextoEsperadoInicio}' | Detectado: {ehInicio}");
+            Console.WriteLine($"[Página {pagina}] Identificador de Documento ({metodoUtilizado}): '{textoExt}' | Esperado: '{regiaoIdDocumento.TextoEsperadoDocumento}' | Detectado: {ehInicio}");
 
             if (ehInicio)
             {
@@ -81,7 +83,7 @@ public class ProcessadorCarnesService
             });
         }
 
-        // 2. Salvar estrutura temporária
+        // 3. Salvar estrutura temporária
         string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
         if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
         {
@@ -98,7 +100,7 @@ public class ProcessadorCarnesService
         string caminhoEstruturaJson = Path.Combine(pastaTemp, "documentos_estrutura.json");
         await File.WriteAllTextAsync(caminhoEstruturaJson, JsonSerializer.Serialize(estrutura, opcoesJson));
 
-        // 3. Aplicação da Amostragem
+        // 4. Amostragem
         int qtdAmostra = (int)Math.Ceiling(estrutura.Count * (amostragem / 100m));
         var documentosSorteados = amostragem == 0
             ? new List<DocumentoEstruturaDto>()
@@ -111,74 +113,83 @@ public class ProcessadorCarnesService
         }).ToList();
 
         bool utilizouOcr = false;
-        var marcadoresEstrutura = layout.Campos.Where(c => c.EhIdentificadorPagina).ToList();
-        bool usaClassificacaoDinamica = marcadoresEstrutura.Any();
 
-        // 4. Mapeamento e Extração da amostra selecionada
+        // Marcadores de estrutura da página (Identificadores de Página)
+        var marcadoresPagina = layout.Campos
+            .Where(c => c.TipoClassificacao == TipoClassificacaoCampo.IdentificadorPagina)
+            .ToList();
+        bool usaClassificacaoDinamica = marcadoresPagina.Any();
+
+        // Campos de dados normais (que serão validados)
+        var camposNormais = layout.Campos
+            .Where(c => c.TipoClassificacao == TipoClassificacaoCampo.Nenhum)
+            .ToList();
+
+        // 5. Mapeamento Estrutural e Extração
         foreach (var doc in documentosExtracao)
         {
-            var classificacaoPaginas = new Dictionary<int, string>();
+            var classificacaoPaginas = new Dictionary<int, List<string>>();
 
-            // 4.1 Classificação das páginas do documento
+            // 5.1 Classificação das páginas do documento corrente
             if (usaClassificacaoDinamica)
             {
                 for (int p = doc.PaginaInicio; p <= doc.PaginaFim; p++)
                 {
-                    string? estruturaEncontrada = null;
-                    foreach (var marcador in marcadoresEstrutura)
+                    classificacaoPaginas[p] = new List<string>();
+
+                    foreach (var marcador in marcadoresPagina)
                     {
                         var textoExt = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, p, marcador);
                         if (string.IsNullOrWhiteSpace(textoExt))
                         {
-                            textoExt = await _ocrService.ExtrairTextoPorOcrAsync(caminhoPdf, p, marcador.XMm, marcador.YMm, marcador.LarguraMm, marcador.AlturaMm);
+                            textoExt = await _ocrService.ExtrairTextoPorOcrAsync(
+                                caminhoPdf,
+                                p,
+                                marcador.XMm,
+                                marcador.YMm,
+                                marcador.LarguraMm,
+                                marcador.AlturaMm);
                         }
 
-                        string textoLidoNormalizado = NormalizarTextoParaComparacao(textoExt ?? "");
-                        string textoEsperado = NormalizarTextoParaComparacao(marcador.TextoEsperadoPagina ?? "");
+                        string textoLidoNormalizado = NormalizarTextoParaComparacao(textoExt ?? string.Empty);
+                        string textoEsperado = NormalizarTextoParaComparacao(marcador.TextoEsperadoPagina ?? string.Empty);
 
                         if (!string.IsNullOrWhiteSpace(textoEsperado) && textoLidoNormalizado.Contains(textoEsperado, StringComparison.OrdinalIgnoreCase))
                         {
-                            estruturaEncontrada = marcador.IdentificadorPagina;
-                            break;
+                            classificacaoPaginas[p].Add(marcador.NomeCampo.Trim());
+                            Console.WriteLine($"[Processador] Documento ({doc.PaginaInicio}-{doc.PaginaFim}) - Página {p} classificada como '{marcador.NomeCampo}'.");
                         }
-                    }
-
-                    if (estruturaEncontrada != null)
-                    {
-                        classificacaoPaginas[p] = estruturaEncontrada;
-                        Console.WriteLine($"[Processador] Página Real {p} classificada como estrutura '{estruturaEncontrada}'.");
                     }
                 }
             }
 
-            // 4.2 Iteração dos campos para extração nos locais exatos
-            foreach (var campo in layout.Campos)
+            // 5.2 Extração exclusiva dos campos normais
+            foreach (var campo in camposNormais)
             {
                 List<int> paginasAlvo = new List<int>();
 
                 if (usaClassificacaoDinamica)
                 {
-                    // Obtém apenas as páginas que foram classificadas com o identificador do campo
+                    // Localiza todas as páginas físicas deste documento que possuem o identificador do campo
                     paginasAlvo = classificacaoPaginas
-                        .Where(kv => string.Equals(kv.Value, campo.IdentificadorPagina, StringComparison.OrdinalIgnoreCase))
+                        .Where(kv => kv.Value.Any(nomeId => string.Equals(nomeId, campo.IdentificadorPagina?.Trim(), StringComparison.OrdinalIgnoreCase)))
                         .Select(kv => kv.Key)
                         .ToList();
 
                     if (!paginasAlvo.Any())
                     {
-                        // Não encontrada a estrutura no documento, registra erro explicativo para evitar falso-ausente por página avulsa
                         doc.Campos.Add(new CampoExtraidoDto
                         {
                             Nome = campo.NomeCampo,
                             PaginaExtraido = 0,
-                            ExtracaoMetodo = $"Estrutura '{campo.IdentificadorPagina}' não localizada no documento."
+                            ExtracaoMetodo = $"Identificador de página '{campo.IdentificadorPagina}' não localizado no documento."
                         });
                         continue;
                     }
                 }
                 else
                 {
-                    // Fallback de compatibilidade (Legado): Não há marcadores dinâmicos, extrai pela página relativa.
+                    // Fallback legado caso o layout não possua nenhum identificador de página configurado
                     int paginaReal = doc.PaginaInicio + (campo.Pagina - 1);
                     if (paginaReal <= doc.PaginaFim)
                     {
@@ -196,7 +207,7 @@ public class ProcessadorCarnesService
                     }
                 }
 
-                // Efetua a leitura de todas as páginas identificadas
+                // Extração em todas as páginas identificadas para o campo
                 foreach (var paginaReal in paginasAlvo)
                 {
                     try
@@ -262,16 +273,30 @@ public class ProcessadorCarnesService
             }
         }
 
+        // Ordena os campos de cada documento em ordem crescente de página física e nome
+        foreach (var doc in documentosExtracao)
+        {
+            doc.Campos = doc.Campos
+                .OrderBy(c => c.PaginaExtraido)
+                .ThenBy(c => c.Nome)
+                .ToList();
+        }
+
+        // Ordena a lista de documentos em ordem crescente de início da página
+        var documentosOrdenados = documentosExtracao
+            .OrderBy(d => d.PaginaInicio)
+            .ToList();
+
         var resultadoFinal = new ResultadoProcessamentoDto
         {
             PercentualAmostragem = amostragem,
             TotalDocumentos = estrutura.Count,
-            DocumentosProcessados = documentosExtracao.Count,
+            DocumentosProcessados = documentosOrdenados.Count,
             UsouOcr = utilizouOcr,
-            Documentos = documentosExtracao
+            Documentos = documentosOrdenados
         };
 
-        // 5. Salvar resultado final em dados_extraidos.json
+        // 6. Salvar dados_extraidos.json
         string caminhoResultadoJson = Path.Combine(pastaTemp, "dados_extraidos.json");
         await File.WriteAllTextAsync(
             caminhoResultadoJson,
@@ -280,7 +305,7 @@ public class ProcessadorCarnesService
 
         Console.WriteLine($"[ProcessadorCarnes] Arquivo de resultado gerado: {caminhoResultadoJson}");
 
-        // 6. Limpeza do arquivo temporário documentos_estrutura.json
+        // 7. Limpeza do temporário
         if (File.Exists(caminhoEstruturaJson))
         {
             try

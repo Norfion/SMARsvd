@@ -57,10 +57,10 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.LarguraMm).HasPrecision(10, 2);
             entity.Property(e => e.AlturaMm).HasPrecision(10, 2);
 
-            entity.Property(e => e.TextoEsperadoInicio).HasMaxLength(250);
-            entity.Property(e => e.IdentificadorPagina).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.TipoClassificacao).IsRequired();
+            entity.Property(e => e.TextoEsperadoDocumento).HasMaxLength(250);
             entity.Property(e => e.TextoEsperadoPagina).HasMaxLength(250);
-
+            entity.Property(e => e.IdentificadorPagina).HasMaxLength(100);
             entity.Property(e => e.IdentificadorAnterior).HasMaxLength(150);
         });
 

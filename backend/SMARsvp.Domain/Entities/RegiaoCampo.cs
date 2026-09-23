@@ -1,3 +1,5 @@
+using SMARsvp.Domain.Enums;
+
 namespace SMARsvp.Domain.Entities;
 
 public class RegiaoCampo
@@ -11,18 +13,21 @@ public class RegiaoCampo
     public decimal AlturaMm { get; set; }
     public int Pagina { get; set; } = 1;
 
-    // Identificador de Limite do Documento (Início/Fim do PDF)
-    public bool EhIdentificadorInicio { get; set; }
-    public string? TextoEsperadoInicio { get; set; }
+    // Classificação única e mutuamente exclusiva
+    public TipoClassificacaoCampo TipoClassificacao { get; set; } = TipoClassificacaoCampo.Nenhum;
 
-    // ASSOCIAÇÃO: Informa a qual estrutura lógica a área pertence (Ex: "ENDERECO", "DEBITOS")
-    public string IdentificadorPagina { get; set; } = string.Empty;
+    // Identificador de Limite do Documento (Início/Fim do lote no PDF)
+    public string? TextoEsperadoDocumento { get; set; }
 
-    // MARCADOR (Assinatura): Define se esta região física tem como finalidade classificar a página
-    public bool EhIdentificadorPagina { get; set; }
+    // Identificador de Página: texto esperado que valida a estrutura/tipo da página
     public string? TextoEsperadoPagina { get; set; }
 
+    // Vínculo para campo normal (Nenhum): nome do Identificador de Página ao qual este campo pertence
+    public string? IdentificadorPagina { get; set; }
+
+    // Campo normal: texto que precede o valor dentro da área demarcada
     public string? IdentificadorAnterior { get; set; }
+
     public string? ConsultaSql { get; set; }
 
     public LayoutCliente? LayoutCliente { get; set; }

@@ -5,6 +5,7 @@ using SMARsvp.Application.DTOs.Layout;
 using SMARsvp.Application.DTOs.Processamento;
 using SMARsvp.Application.Interfaces;
 using SMARsvp.Application.Services;
+using SMARsvp.Domain.Enums;
 using SMARsvp.Infrastructure.Data;
 using System.Text.Json;
 
@@ -57,12 +58,12 @@ public class ProcessamentoController : ControllerBase
             Cliente = layout.Cliente,
             Campos = layout.Campos.Select(c => new RegiaoCampoDto
             {
+                Id = c.Id,
                 NomeCampo = c.NomeCampo,
-                EhIdentificadorInicio = c.EhIdentificadorInicio,
-                TextoEsperadoInicio = c.TextoEsperadoInicio,
-                IdentificadorPagina = c.IdentificadorPagina ?? "GERAL",
-                EhIdentificadorPagina = c.EhIdentificadorPagina,
+                TipoClassificacao = c.TipoClassificacao,
+                TextoEsperadoDocumento = c.TextoEsperadoDocumento,
                 TextoEsperadoPagina = c.TextoEsperadoPagina,
+                IdentificadorPagina = c.IdentificadorPagina,
                 IdentificadorAnterior = c.IdentificadorAnterior,
                 Pagina = c.Pagina,
                 XMm = c.XMm,
