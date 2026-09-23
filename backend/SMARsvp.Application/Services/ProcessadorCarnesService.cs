@@ -24,16 +24,16 @@ public class ProcessadorCarnesService
 
     public async Task<ResultadoProcessamentoDto> ProcessarLoteAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem)
     {
-        var regiaoId = layout.Campos.FirstOrDefault(c => c.EhIdentificadorPrimeiraPagina);
+        var regiaoId = layout.Campos.FirstOrDefault(c => c.EhIdentificadorInicio);
         if (regiaoId == null)
-            throw new Exception("O layout não possui um campo configurado como 'Identificador de página'.");
+            throw new Exception("O layout não possui um campo configurado como 'Identificador de início de carnê'.");
 
         int totalPaginas = await _extratorPdf.ObterTotalPaginasAsync(caminhoPdf);
         var estrutura = new List<DocumentoEstruturaDto>();
 
         // 1. Identificação Incremental dos Documentos
         int? inicioDocAtual = null;
-        string textoEsperadoNormalizado = NormalizarTextoParaComparacao(regiaoId.TextoEsperadoIdentificador ?? string.Empty);
+        string textoEsperadoNormalizado = NormalizarTextoParaComparacao(regiaoId.TextoEsperadoInicio ?? string.Empty);
 
         for (int pagina = 1; pagina <= totalPaginas; pagina++)
         {
@@ -56,7 +56,7 @@ public class ProcessadorCarnesService
             bool ehInicio = !string.IsNullOrWhiteSpace(textoEsperadoNormalizado) &&
                            textoLidoNormalizado.Contains(textoEsperadoNormalizado, StringComparison.OrdinalIgnoreCase);
 
-            Console.WriteLine($"[Página {pagina}] Identificador ({metodoUtilizado}): '{textoExt}' | Esperado: '{regiaoId.TextoEsperadoIdentificador}' | Início detectado: {ehInicio}");
+            Console.WriteLine($"[Página {pagina}] Identificador Início ({metodoUtilizado}): '{textoExt}' | Esperado: '{regiaoId.TextoEsperadoInicio}' | Detectado: {ehInicio}");
 
             if (ehInicio)
             {
@@ -111,70 +111,153 @@ public class ProcessadorCarnesService
         }).ToList();
 
         bool utilizouOcr = false;
+        var marcadoresEstrutura = layout.Campos.Where(c => c.EhIdentificadorPagina).ToList();
+        bool usaClassificacaoDinamica = marcadoresEstrutura.Any();
 
-        // 4. Extração da amostra selecionada
+        // 4. Mapeamento e Extração da amostra selecionada
         foreach (var doc in documentosExtracao)
         {
+            var classificacaoPaginas = new Dictionary<int, string>();
+
+            // 4.1 Classificação das páginas do documento
+            if (usaClassificacaoDinamica)
+            {
+                for (int p = doc.PaginaInicio; p <= doc.PaginaFim; p++)
+                {
+                    string? estruturaEncontrada = null;
+                    foreach (var marcador in marcadoresEstrutura)
+                    {
+                        var textoExt = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, p, marcador);
+                        if (string.IsNullOrWhiteSpace(textoExt))
+                        {
+                            textoExt = await _ocrService.ExtrairTextoPorOcrAsync(caminhoPdf, p, marcador.XMm, marcador.YMm, marcador.LarguraMm, marcador.AlturaMm);
+                        }
+
+                        string textoLidoNormalizado = NormalizarTextoParaComparacao(textoExt ?? "");
+                        string textoEsperado = NormalizarTextoParaComparacao(marcador.TextoEsperadoPagina ?? "");
+
+                        if (!string.IsNullOrWhiteSpace(textoEsperado) && textoLidoNormalizado.Contains(textoEsperado, StringComparison.OrdinalIgnoreCase))
+                        {
+                            estruturaEncontrada = marcador.IdentificadorPagina;
+                            break;
+                        }
+                    }
+
+                    if (estruturaEncontrada != null)
+                    {
+                        classificacaoPaginas[p] = estruturaEncontrada;
+                        Console.WriteLine($"[Processador] Página Real {p} classificada como estrutura '{estruturaEncontrada}'.");
+                    }
+                }
+            }
+
+            // 4.2 Iteração dos campos para extração nos locais exatos
             foreach (var campo in layout.Campos)
             {
-                int paginaReal = doc.PaginaInicio + (campo.Pagina - 1);
+                List<int> paginasAlvo = new List<int>();
 
-                if (paginaReal > doc.PaginaFim)
+                if (usaClassificacaoDinamica)
                 {
-                    doc.Campos.Add(new CampoExtraidoDto
-                    {
-                        Nome = campo.NomeCampo,
-                        PaginaExtraido = paginaReal,
-                        ExtracaoMetodo = "Erro: Página configurada excede o tamanho do documento."
-                    });
-                    continue;
-                }
+                    // Obtém apenas as páginas que foram classificadas com o identificador do campo
+                    paginasAlvo = classificacaoPaginas
+                        .Where(kv => string.Equals(kv.Value, campo.IdentificadorPagina, StringComparison.OrdinalIgnoreCase))
+                        .Select(kv => kv.Key)
+                        .ToList();
 
-                try
-                {
-                    var valorExtraido = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, paginaReal, campo);
-
-                    if (!string.IsNullOrWhiteSpace(valorExtraido))
+                    if (!paginasAlvo.Any())
                     {
-                        valorExtraido = AplicarIdentificadorAnterior(valorExtraido, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
+                        // Não encontrada a estrutura no documento, registra erro explicativo para evitar falso-ausente por página avulsa
                         doc.Campos.Add(new CampoExtraidoDto
                         {
                             Nome = campo.NomeCampo,
-                            ValorExtraido = valorExtraido,
-                            PaginaExtraido = paginaReal,
-                            ExtracaoMetodo = "Digital"
+                            PaginaExtraido = 0,
+                            ExtracaoMetodo = $"Estrutura '{campo.IdentificadorPagina}' não localizada no documento."
                         });
+                        continue;
+                    }
+                }
+                else
+                {
+                    // Fallback de compatibilidade (Legado): Não há marcadores dinâmicos, extrai pela página relativa.
+                    int paginaReal = doc.PaginaInicio + (campo.Pagina - 1);
+                    if (paginaReal <= doc.PaginaFim)
+                    {
+                        paginasAlvo.Add(paginaReal);
                     }
                     else
                     {
-                        var valorOcr = await _ocrService.ExtrairTextoPorOcrAsync(
-                            caminhoPdf,
-                            paginaReal,
-                            campo.XMm,
-                            campo.YMm,
-                            campo.LarguraMm,
-                            campo.AlturaMm);
-
-                        valorOcr = AplicarIdentificadorAnterior(valorOcr, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
-                        utilizouOcr = true;
-
                         doc.Campos.Add(new CampoExtraidoDto
                         {
                             Nome = campo.NomeCampo,
-                            ValorExtraido = valorOcr,
                             PaginaExtraido = paginaReal,
-                            ExtracaoMetodo = "OCR"
+                            ExtracaoMetodo = "Erro: Página configurada excede o tamanho do documento."
                         });
+                        continue;
                     }
                 }
-                catch (Exception ex)
+
+                // Efetua a leitura de todas as páginas identificadas
+                foreach (var paginaReal in paginasAlvo)
                 {
-                    doc.Campos.Add(new CampoExtraidoDto
+                    try
                     {
-                        Nome = campo.NomeCampo,
-                        PaginaExtraido = paginaReal,
-                        ExtracaoMetodo = $"Erro inesperado: {ex.Message}"
-                    });
+                        var valorExtraido = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, paginaReal, campo);
+
+                        if (!string.IsNullOrWhiteSpace(valorExtraido))
+                        {
+                            valorExtraido = AplicarIdentificadorAnterior(valorExtraido, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
+                            doc.Campos.Add(new CampoExtraidoDto
+                            {
+                                Nome = campo.NomeCampo,
+                                ValorExtraido = valorExtraido,
+                                PaginaExtraido = paginaReal,
+                                ExtracaoMetodo = "Digital"
+                            });
+                        }
+                        else
+                        {
+                            var valorOcr = await _ocrService.ExtrairTextoPorOcrAsync(
+                                caminhoPdf,
+                                paginaReal,
+                                campo.XMm,
+                                campo.YMm,
+                                campo.LarguraMm,
+                                campo.AlturaMm);
+
+                            if (!string.IsNullOrWhiteSpace(valorOcr))
+                            {
+                                valorOcr = AplicarIdentificadorAnterior(valorOcr, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
+                                utilizouOcr = true;
+
+                                doc.Campos.Add(new CampoExtraidoDto
+                                {
+                                    Nome = campo.NomeCampo,
+                                    ValorExtraido = valorOcr,
+                                    PaginaExtraido = paginaReal,
+                                    ExtracaoMetodo = "OCR"
+                                });
+                            }
+                            else
+                            {
+                                doc.Campos.Add(new CampoExtraidoDto
+                                {
+                                    Nome = campo.NomeCampo,
+                                    ValorExtraido = string.Empty,
+                                    PaginaExtraido = paginaReal,
+                                    ExtracaoMetodo = "Não encontrado"
+                                });
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        doc.Campos.Add(new CampoExtraidoDto
+                        {
+                            Nome = campo.NomeCampo,
+                            PaginaExtraido = paginaReal,
+                            ExtracaoMetodo = $"Erro inesperado: {ex.Message}"
+                        });
+                    }
                 }
             }
         }
@@ -203,12 +286,8 @@ public class ProcessadorCarnesService
             try
             {
                 File.Delete(caminhoEstruturaJson);
-                Console.WriteLine($"[ProcessadorCarnes] Arquivo temporário removido com sucesso: {caminhoEstruturaJson}");
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ProcessadorCarnes] Aviso: Não foi possível apagar {caminhoEstruturaJson}: {ex.Message}");
-            }
+            catch { }
         }
 
         return resultadoFinal;

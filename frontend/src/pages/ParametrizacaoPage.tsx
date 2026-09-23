@@ -34,23 +34,18 @@ export function ParametrizacaoPage({
     "Outro",
   ];
 
-  // ==========================================
-  // ESTADOS DO FLUXO GERAL E ACCORDIONS
-  // ==========================================
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [layoutId, setLayoutId] = useState<string | undefined>(undefined);
   const [etapaAberta, setEtapaAberta] = useState<
     "layout" | "campos" | "validacoes" | "conexao" | null
   >(null);
 
-  // Estados de conexão com o banco de dados
   const [dbProvedor, setDbProvedor] = useState<TipoProvedorBanco>("SQL Server");
   const [dbServidor, setDbServidor] = useState<string>("");
   const [dbPorta, setDbPorta] = useState<string>("1433");
   const [dbUsuario, setDbUsuario] = useState<string>("");
   const [dbSenha, setDbSenha] = useState<string>("");
 
-  // Estados de Criação de Layout (Menu de Opções)
   const [modalNovoLayoutAberto, setModalNovoLayoutAberto] = useState(false);
   const [carregandoPdfModelo, setCarregandoPdfModelo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -123,20 +118,13 @@ export function ParametrizacaoPage({
     setEtapaAberta((etapaAtual) => (etapaAtual === etapa ? null : etapa));
   };
 
-  // ==========================================
-  // ESTADOS: ETAPA 1 - LAYOUT
-  // ==========================================
   const [cliente, setCliente] = useState<string>("PM Sertãozinho - SP");
   const [nomeModelo, setNomeModelo] = useState<string>("");
   const [larguraMm, setLarguraMm] = useState<number>(70);
   const [alturaMm, setAlturaMm] = useState<number>(30);
-
   const [paginasModelo, setPaginasModelo] = useState<string[]>([]);
   const [nomeArquivoModelo, setNomeArquivoModelo] = useState<string>("");
 
-  // ==========================================
-  // ESTADOS: ETAPA 2 - CAMPOS & VISUALIZAÇÃO
-  // ==========================================
   const [opacidadeModelo, setOpacidadeModelo] = useState<number>(45);
   const [zoomNivel, setZoomNivel] = useState<number>(100);
 
@@ -153,9 +141,14 @@ export function ParametrizacaoPage({
   const [nomeCampo, setNomeCampo] = useState("");
   const [paginaCampo, setPaginaCampo] = useState<number>(1);
   const [paginaAtivaCanvas, setPaginaAtivaCanvas] = useState<number>(1);
-  const [ehIdentificador, setEhIdentificador] = useState(false);
-  const [textoEsperado, setTextoEsperado] = useState("");
   const [identificadorAnterior, setIdentificadorAnterior] = useState("");
+
+  // NOVOS ESTADOS ESTRUTURAIS
+  const [identificadorPagina, setIdentificadorPagina] = useState("");
+  const [ehIdentificadorInicio, setEhIdentificadorInicio] = useState(false);
+  const [textoEsperadoInicio, setTextoEsperadoInicio] = useState("");
+  const [ehIdentificadorPagina, setEhIdentificadorPagina] = useState(false);
+  const [textoEsperadoPagina, setTextoEsperadoPagina] = useState("");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -170,21 +163,16 @@ export function ParametrizacaoPage({
     }
   };
 
-  // ==========================================
-  // ESTADOS: ETAPA 3 - VALIDAÇÕES (SQL)
-  // ==========================================
   const [queries, setQueries] = useState<QueryValidacao[]>([]);
   const [queryEmEdicaoId, setQueryEmEdicaoId] = useState<string | null>(null);
   const [nomeQuery, setNomeQuery] = useState("");
   const [sqlQuery, setSqlQuery] = useState("");
-
   const [sqlAnalisado, setSqlAnalisado] = useState(false);
   const [parametrosEncontrados, setParametrosEncontrados] = useState<string[]>(
     [],
   );
   const [camposRetornados, setCamposRetornados] = useState<string[]>([]);
   const [regrasAtuais, setRegrasAtuais] = useState<RegraValidacao[]>([]);
-
   const [regraCampoRetornado, setRegraCampoRetornado] = useState<string>("");
   const [regraOperador, setRegraOperador] = useState<string>("=");
   const [regraCampoCarne, setRegraCampoCarne] = useState<string>("");
@@ -216,16 +204,12 @@ export function ParametrizacaoPage({
     (Boolean(dadosOriginaisJson) &&
       obterSnapshotAtual() !== dadosOriginaisJson);
 
-  // Notifica o componente pai (App.tsx) se existem alterações pendentes
   useEffect(() => {
     if (onHouveAlteracaoChange) {
       onHouveAlteracaoChange(houveAlteracao);
     }
   }, [houveAlteracao, onHouveAlteracaoChange]);
 
-  // ==========================================
-  // GESTÃO DE LAYOUT E IMPORTAÇÃO DE MODELO
-  // ==========================================
   const iniciarCriacaoManual = () => {
     const nomePadrao = "Novo Layout";
     setModalNovoLayoutAberto(false);
@@ -245,7 +229,6 @@ export function ParametrizacaoPage({
     setDbPorta("1433");
     setDbUsuario("");
     setDbSenha("");
-
     setEtapaAberta("layout");
     cancelarEdicaoCampo();
     cancelarEdicaoQuery();
@@ -321,13 +304,11 @@ export function ParametrizacaoPage({
       );
       return;
     }
-
     exibirMensagem(
       "sucesso",
       "Layout Removido",
       `O layout "${layoutSelecionadoId}" foi removido com sucesso!`,
     );
-
     setLayoutSelecionadoId("");
     setLayoutId(undefined);
     setCampos([]);
@@ -348,7 +329,6 @@ export function ParametrizacaoPage({
       );
       return;
     }
-
     setModalInfo({
       aberto: true,
       tipo: "confirmacao",
@@ -390,7 +370,14 @@ export function ParametrizacaoPage({
     setNomeModelo(layout.nomeModelo);
     setLarguraMm(layout.larguraPaginaMm);
     setAlturaMm(layout.alturaPaginaMm);
-    setCampos(layout.campos || []);
+
+    // Tratativa de compatibilidade de legados: se o identificadorPagina não existir, define "GERAL"
+    const camposCarregados = (layout.campos || []).map((c) => ({
+      ...c,
+      identificadorPagina: c.identificadorPagina || "GERAL",
+    }));
+
+    setCampos(camposCarregados);
     setQueries(layout.queriesValidacao || []);
     setPaginasModelo(layout.paginasModeloBase64 || []);
     setNomeArquivoModelo(layout.nomeArquivoModelo || "");
@@ -415,7 +402,7 @@ export function ParametrizacaoPage({
         nomeModelo: layout.nomeModelo.trim(),
         larguraPaginaMm: layout.larguraPaginaMm,
         alturaPaginaMm: layout.alturaPaginaMm,
-        campos: layout.campos || [],
+        campos: camposCarregados,
         queriesValidacao: layout.queriesValidacao || [],
         paginasModeloBase64: layout.paginasModeloBase64 || [],
         conexaoBanco: {
@@ -480,7 +467,6 @@ export function ParametrizacaoPage({
       const nomeDuplicado = layoutsSalvos.some(
         (l) => l.nomeModelo.toLowerCase() === nomeNormalizado.toLowerCase(),
       );
-
       if (nomeDuplicado) {
         onSalvarLayouts(
           layoutsSalvos.map((l) =>
@@ -497,7 +483,6 @@ export function ParametrizacaoPage({
     setLayoutSelecionadoId(layoutFinal.nomeModelo);
     setCriandoNovoLayout(false);
     setDadosOriginaisJson(obterSnapshotAtual());
-
     exibirMensagem(
       "sucesso",
       "Layout Salvo",
@@ -505,9 +490,6 @@ export function ParametrizacaoPage({
     );
   };
 
-  // ==========================================
-  // FUNÇÕES DA ETAPA 2 (CAMPOS CARTESIANOS)
-  // ==========================================
   const [desenhando, setDesenhando] = useState(false);
   const [inicioPosMm, setInicioPosMm] = useState<{ xMm: number; yMm: number }>({
     xMm: 0,
@@ -525,10 +507,8 @@ export function ParametrizacaoPage({
     const rect = containerRef.current.getBoundingClientRect();
     const xPx = Math.max(0, e.clientX - rect.left);
     const yPx = Math.max(0, e.clientY - rect.top);
-
     const xMm = Number((xPx / escalaPxPorMm).toFixed(2));
     const yMm = Number((yPx / escalaPxPorMm).toFixed(2));
-
     setInicioPosMm({ xMm, yMm });
     setRetanguloAtualMm({ xMm, yMm, larguraMm: 0, alturaMm: 0 });
     setDesenhando(true);
@@ -545,10 +525,8 @@ export function ParametrizacaoPage({
       0,
       Math.min(alturaVisualPx, e.clientY - rect.top),
     );
-
     const cursorXMm = cursorXPx / escalaPxPorMm;
     const cursorYMm = cursorYPx / escalaPxPorMm;
-
     const xMm = Number(Math.min(inicioPosMm.xMm, cursorXMm).toFixed(2));
     const yMm = Number(Math.min(inicioPosMm.yMm, cursorYMm).toFixed(2));
     const larguraMmRegiao = Number(
@@ -571,15 +549,23 @@ export function ParametrizacaoPage({
   };
 
   const iniciarEdicaoCampo = (campo: RegiaoCampo) => {
-    const ehId = !!campo.ehIdentificadorPrimeiraPagina;
-    const paginaDoCampo = ehId ? 1 : campo.pagina || 1;
+    const ehIdInicio = !!campo.ehIdentificadorInicio;
+    const ehIdPagina = !!campo.ehIdentificadorPagina;
+    const paginaDoCampo = ehIdInicio || ehIdPagina ? 1 : campo.pagina || 1;
+
     setCampoEmEdicaoId(campo.id);
     setNomeCampo(campo.nomeCampo);
     setPaginaCampo(paginaDoCampo);
     setPaginaAtivaCanvas(paginaDoCampo);
-    setEhIdentificador(ehId);
-    setTextoEsperado(campo.textoEsperadoIdentificador || "");
     setIdentificadorAnterior(campo.identificadorAnterior || "");
+    setIdentificadorPagina(campo.identificadorPagina || "");
+
+    setEhIdentificadorInicio(ehIdInicio);
+    setTextoEsperadoInicio(campo.textoEsperadoInicio || "");
+
+    setEhIdentificadorPagina(ehIdPagina);
+    setTextoEsperadoPagina(campo.textoEsperadoPagina || "");
+
     setRetanguloAtualMm({
       xMm: campo.xMm,
       yMm: campo.yMm,
@@ -592,9 +578,12 @@ export function ParametrizacaoPage({
     setCampoEmEdicaoId(null);
     setNomeCampo("");
     setPaginaCampo(paginaAtivaCanvas);
-    setEhIdentificador(false);
-    setTextoEsperado("");
     setIdentificadorAnterior("");
+    setIdentificadorPagina("");
+    setEhIdentificadorInicio(false);
+    setTextoEsperadoInicio("");
+    setEhIdentificadorPagina(false);
+    setTextoEsperadoPagina("");
     setRetanguloAtualMm(null);
   };
 
@@ -613,6 +602,14 @@ export function ParametrizacaoPage({
     }
     if (!nomeCampo.trim()) {
       exibirMensagem("aviso", "Campo Obrigatório", "Informe o nome do campo.");
+      return;
+    }
+    if (!identificadorPagina.trim()) {
+      exibirMensagem(
+        "aviso",
+        "Campo Obrigatório",
+        "O Identificador de página (Estrutura) é obrigatório.",
+      );
       return;
     }
     if (
@@ -638,12 +635,23 @@ export function ParametrizacaoPage({
       yMm: retanguloAtualMm.yMm,
       larguraMm: retanguloAtualMm.larguraMm,
       alturaMm: retanguloAtualMm.alturaMm,
-      ehIdentificadorPrimeiraPagina: ehIdentificador,
-      textoEsperadoIdentificador: ehIdentificador
-        ? textoEsperado.trim()
+
+      identificadorPagina: identificadorPagina.trim(),
+
+      ehIdentificadorInicio,
+      textoEsperadoInicio: ehIdentificadorInicio
+        ? textoEsperadoInicio.trim()
         : undefined,
+
+      ehIdentificadorPagina,
+      textoEsperadoPagina: ehIdentificadorPagina
+        ? textoEsperadoPagina.trim()
+        : undefined,
+
       identificadorAnterior:
-        !ehIdentificador && identificadorAnterior.trim()
+        !ehIdentificadorInicio &&
+        !ehIdentificadorPagina &&
+        identificadorAnterior.trim()
           ? identificadorAnterior.trim()
           : undefined,
     };
@@ -651,7 +659,6 @@ export function ParametrizacaoPage({
     const novosCampos = campoEmEdicaoId
       ? campos.map((c) => (c.id === campoEmEdicaoId ? payloadCampo : c))
       : [...campos, payloadCampo];
-
     setCampos(novosCampos);
     cancelarEdicaoCampo();
   };
@@ -667,9 +674,6 @@ export function ParametrizacaoPage({
     );
   };
 
-  // ==========================================
-  // FUNÇÕES DA ETAPA 3 (VALIDAÇÕES SQL)
-  // ==========================================
   const cancelarEdicaoQuery = () => {
     setQueryEmEdicaoId(null);
     setNomeQuery("");
@@ -700,34 +704,23 @@ export function ParametrizacaoPage({
       return;
     }
 
-    // Suporte flexível para ${Nome com espaços} ou $NomeSimples
-    const regexParam = /\$\{([^}]+)\}|\$([a-zA-Z0-9_]+)/g;
+    const regexParam = /\$([a-zA-Z0-9_]+)/g;
     const params: string[] = [];
     let match;
     while ((match = regexParam.exec(texto)) !== null) {
-      const capturado = match[1] || match[2];
-      if (capturado && capturado.trim()) {
-        params.push(capturado.trim());
-      }
+      params.push(match[1]);
     }
     const paramsUnicos = [...new Set(params)];
 
-    // Validação dos parâmetros contra a lista de campos do layout (comparação sem diferenciar maiúsculas/minúsculas)
+    const nomesDosCampos = campos.map((c) => c.nomeCampo);
     const parametrosInvalidos = paramsUnicos.filter(
-      (param) =>
-        !campos.some(
-          (c) =>
-            c.nomeCampo.trim().toLowerCase() === param.trim().toLowerCase(),
-        ),
+      (p) => !nomesDosCampos.includes(p),
     );
-
     if (parametrosInvalidos.length > 0) {
       exibirMensagem(
         "aviso",
         "Parâmetros inválidos",
-        `Os seguintes parâmetros não existem nos campos do layout: ${parametrosInvalidos.join(
-          ", ",
-        )}`,
+        `Os seguintes parâmetros não existem nos campos do layout: ${parametrosInvalidos.join(", ")}`,
       );
       return;
     }
@@ -807,7 +800,6 @@ export function ParametrizacaoPage({
     const novas = queryEmEdicaoId
       ? queries.map((q) => (q.id === queryEmEdicaoId ? payload : q))
       : [...queries, payload];
-
     setQueries(novas);
     cancelarEdicaoQuery();
   };
@@ -834,42 +826,28 @@ export function ParametrizacaoPage({
     setRegrasAtuais(query.regras);
     setSqlAnalisado(true);
 
-    if (retornos.length > 0) {
-      setRegraCampoRetornado(retornos[0]);
-    }
-    if (campos.length > 0) {
-      setRegraCampoCarne(campos[0].nomeCampo);
-    }
+    if (retornos.length > 0) setRegraCampoRetornado(retornos[0]);
+    if (campos.length > 0) setRegraCampoCarne(campos[0].nomeCampo);
   };
+
+  // Obtém a lista única dos identificadores de página já cadastrados no layout
+  const identificadoresExistentes = Array.from(
+    new Set(
+      campos
+        .map((c) => c.identificadorPagina?.trim().toUpperCase())
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
 
   return (
     <div id="container-parametrizacao">
       <style>
         {`
-          .accordion-content-wrapper {
-            transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
-            overflow: hidden;
-          }
-          .accordion-content-open {
-            max-height: 2000px;
-            opacity: 1;
-            padding: 16px;
-          }
-          .accordion-content-closed {
-            max-height: 0;
-            opacity: 0;
-            padding: 0 16px;
-          }
-
-          input[type="number"]::-webkit-inner-spin-button,
-          input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-          }
-
-          input[type="number"] {
-            -moz-appearance: textfield;
-          }
+          .accordion-content-wrapper { transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease; overflow: hidden; }
+          .accordion-content-open { max-height: 2000px; opacity: 1; padding: 16px; }
+          .accordion-content-closed { max-height: 0; opacity: 0; padding: 0 16px; }
+          input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+          input[type="number"] { -moz-appearance: textfield; }
         `}
       </style>
 
@@ -881,7 +859,6 @@ export function ParametrizacaoPage({
         style={{ display: "none" }}
       ></input>
 
-      {/* BANNER / CONTEXTO DE SELEÇÃO GLOBAL DE LAYOUT */}
       <div
         id="cabecalho-seletor-global"
         style={{
@@ -917,7 +894,6 @@ export function ParametrizacaoPage({
           >
             LAYOUT
           </span>
-
           <div style={{ flex: 1, maxWidth: "420px" }}>
             <select
               id="select-layout-global"
@@ -1027,7 +1003,6 @@ export function ParametrizacaoPage({
               <span>{carregandoPdfModelo ? "Processando..." : "Novo"}</span>
               <span style={{ fontSize: "0.65rem" }}>▼</span>
             </button>
-
             {modalNovoLayoutAberto && (
               <div
                 style={{
@@ -1064,7 +1039,6 @@ export function ParametrizacaoPage({
                 >
                   <span>Criar Manualmente</span>
                 </button>
-
                 <button
                   type="button"
                   onClick={dispararUploadModelo}
@@ -1091,9 +1065,6 @@ export function ParametrizacaoPage({
         )}
       </div>
 
-      {/* ========================================== */}
-      {/* SEÇÃO 1: CONFIGURAÇÃO DO LAYOUT            */}
-      {/* ========================================== */}
       <div
         id="accordion-layout"
         style={{
@@ -1143,7 +1114,6 @@ export function ParametrizacaoPage({
               1. Configurações do documento
             </strong>
           </div>
-
           {nomeArquivoModelo && (
             <span
               style={{
@@ -1160,13 +1130,8 @@ export function ParametrizacaoPage({
             </span>
           )}
         </div>
-
         <div
-          className={`accordion-content-wrapper ${
-            etapaAberta === "layout" && !semLayoutSelecionado
-              ? "accordion-content-open"
-              : "accordion-content-closed"
-          }`}
+          className={`accordion-content-wrapper ${etapaAberta === "layout" && !semLayoutSelecionado ? "accordion-content-open" : "accordion-content-closed"}`}
         >
           <div
             style={{
@@ -1207,7 +1172,6 @@ export function ParametrizacaoPage({
                 ))}
               </select>
             </div>
-
             <div>
               <label
                 style={{
@@ -1236,7 +1200,6 @@ export function ParametrizacaoPage({
               ></input>
             </div>
           </div>
-
           <div
             style={{
               display: "grid",
@@ -1270,7 +1233,6 @@ export function ParametrizacaoPage({
                 }}
               ></input>
             </div>
-
             <div>
               <label
                 style={{
@@ -1301,9 +1263,6 @@ export function ParametrizacaoPage({
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* SEÇÃO 2: MAPEAMENTO DE CAMPOS              */}
-      {/* ========================================== */}
       <div
         id="accordion-campos"
         style={{
@@ -1356,18 +1315,12 @@ export function ParametrizacaoPage({
               2. Mapeamento dos campos
             </strong>
           </div>
-
           <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
             {campos.length} campos parametrizados
           </span>
         </div>
-
         <div
-          className={`accordion-content-wrapper ${
-            etapaAberta === "campos" && !semLayoutSelecionado
-              ? "accordion-content-open"
-              : "accordion-content-closed"
-          }`}
+          className={`accordion-content-wrapper ${etapaAberta === "campos" && !semLayoutSelecionado ? "accordion-content-open" : "accordion-content-closed"}`}
         >
           <div
             style={{
@@ -1377,7 +1330,6 @@ export function ParametrizacaoPage({
               flexWrap: "wrap",
             }}
           >
-            {/* CANVAS CARTESIANO COM BARRA DE FERRAMENTAS */}
             <div
               id="coluna-canvas-documento"
               style={{
@@ -1412,7 +1364,6 @@ export function ParametrizacaoPage({
                 >
                   {larguraMm} x {alturaMm} (mm)
                 </div>
-
                 {paginasModelo.length > 0 && (
                   <div
                     style={{
@@ -1445,13 +1396,8 @@ export function ParametrizacaoPage({
                     </span>
                   </div>
                 )}
-
                 <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
                 >
                   <button
                     type="button"
@@ -1496,17 +1442,17 @@ export function ParametrizacaoPage({
                     +
                   </button>
                 </div>
-
                 <div style={{ display: "flex", gap: "4px" }}>
                   {Array.from(
                     {
-                      length: ehIdentificador
-                        ? 1
-                        : Math.max(
-                            paginasModelo.length || 1,
-                            paginaCampo,
-                            ...campos.map((c) => c.pagina || 1),
-                          ),
+                      length:
+                        ehIdentificadorInicio || ehIdentificadorPagina
+                          ? 1
+                          : Math.max(
+                              paginasModelo.length || 1,
+                              paginaCampo,
+                              ...campos.map((c) => c.pagina || 1),
+                            ),
                     },
                     (_, i) => i + 1,
                   ).map((numPagina) => {
@@ -1514,7 +1460,6 @@ export function ParametrizacaoPage({
                     const qtdCamposNestaPagina = campos.filter(
                       (c) => (c.pagina || 1) === numPagina,
                     ).length;
-
                     return (
                       <button
                         key={numPagina}
@@ -1562,7 +1507,6 @@ export function ParametrizacaoPage({
                 </div>
               </div>
 
-              {/* VIEWPORT COM SCROLL */}
               <div
                 id="caixa-viewport-documento"
                 ref={viewportRef}
@@ -1640,7 +1584,8 @@ export function ParametrizacaoPage({
                     )
                     .map((campo) => {
                       const ativo = campo.id === campoEmEdicaoId;
-                      const ehAnchor = campo.ehIdentificadorPrimeiraPagina;
+                      const ehAnchor = campo.ehIdentificadorInicio;
+                      const ehMarker = campo.ehIdentificadorPagina;
 
                       return (
                         <div
@@ -1655,18 +1600,24 @@ export function ParametrizacaoPage({
                             border: ativo
                               ? "2px solid #f57c00"
                               : ehAnchor
-                                ? "2px solid #7b1fa2"
-                                : "2px solid #009688",
+                                ? "2px solid #3f51b5"
+                                : ehMarker
+                                  ? "2px solid #8e24aa"
+                                  : "2px solid #009688",
                             backgroundColor: ativo
                               ? "rgba(245, 124, 0, 0.25)"
                               : ehAnchor
-                                ? "rgba(123, 31, 162, 0.2)"
-                                : "rgba(0, 150, 136, 0.2)",
+                                ? "rgba(63, 81, 181, 0.2)"
+                                : ehMarker
+                                  ? "rgba(142, 36, 170, 0.2)"
+                                  : "rgba(0, 150, 136, 0.2)",
                             color: ativo
                               ? "#e65100"
                               : ehAnchor
-                                ? "#4a148c"
-                                : "#004d40",
+                                ? "#1a237e"
+                                : ehMarker
+                                  ? "#4a148c"
+                                  : "#004d40",
                             fontSize: "0.7rem",
                             fontWeight: 700,
                             padding: "2px 4px",
@@ -1674,7 +1625,11 @@ export function ParametrizacaoPage({
                             boxSizing: "border-box",
                           }}
                         >
-                          {ehAnchor ? `🚩 ${campo.nomeCampo}` : campo.nomeCampo}
+                          {ehAnchor
+                            ? `🚩 ${campo.nomeCampo}`
+                            : ehMarker
+                              ? `📌 ${campo.nomeCampo}`
+                              : campo.nomeCampo}
                         </div>
                       );
                     })}
@@ -1699,7 +1654,6 @@ export function ParametrizacaoPage({
               </div>
             </div>
 
-            {/* PAINEL LATERAL DE CADASTRO DO CAMPO */}
             <div
               style={{
                 flex: "1 1 320px",
@@ -1776,8 +1730,56 @@ export function ParametrizacaoPage({
                     ></input>
                   </div>
 
-                  {/* NOVO CAMPO: Identificador Anterior */}
-                  {!ehIdentificador && (
+                  <div style={{ marginBottom: "10px" }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        color: "#455a64",
+                        marginBottom: "4px",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Identificador de página (Obrigatório)
+                    </label>
+                    <input
+                      type="text"
+                      list="lista-identificadores-pagina"
+                      value={identificadorPagina}
+                      onChange={(e) =>
+                        setIdentificadorPagina(e.target.value.toUpperCase())
+                      }
+                      placeholder="Selecione ou digite (Ex: ENDERECO, DEBITOS)"
+                      style={{
+                        width: "100%",
+                        padding: "6px 10px",
+                        borderRadius: "4px",
+                        border: "1px solid #cfd8dc",
+                        height: "32px",
+                      }}
+                    ></input>
+                    <datalist id="lista-identificadores-pagina">
+                      {identificadoresExistentes.map((opcao) => (
+                        <option key={opcao} value={opcao}>
+                          {opcao}
+                        </option>
+                      ))}
+                    </datalist>
+                    <span
+                      style={{
+                        fontSize: "0.68rem",
+                        color: "#78909c",
+                        marginTop: "2px",
+                        display: "block",
+                      }}
+                    >
+                      Selecione uma estrutura existente ou digite o nome de uma
+                      nova.
+                    </span>
+                  </div>
+
+                  {!ehIdentificadorInicio && !ehIdentificadorPagina && (
                     <div style={{ marginBottom: "10px" }}>
                       <label
                         style={{
@@ -1841,106 +1843,233 @@ export function ParametrizacaoPage({
 
                   <div
                     style={{
-                      backgroundColor: ehIdentificador ? "#f3e5f5" : "#f5f7f8",
+                      backgroundColor: "#f5f7f8",
                       padding: "8px 10px",
                       borderRadius: "4px",
-                      border: ehIdentificador
-                        ? "1px solid #ce93d8"
-                        : "1px solid #eceff1",
+                      border: "1px solid #eceff1",
                       marginBottom: "12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
                     }}
                   >
+                    {/* Identificador de Início */}
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
+                        padding: "6px",
+                        backgroundColor: ehIdentificadorInicio
+                          ? "#e8eaf6"
+                          : "transparent",
+                        borderRadius: "4px",
+                        border: ehIdentificadorInicio
+                          ? "1px solid #c5cae9"
+                          : "none",
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          color: ehIdentificador ? "#6a1b9a" : "#455a64",
-                        }}
-                      >
-                        Identificador de página
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const novoValor = !ehIdentificador;
-                          setEhIdentificador(novoValor);
-                          if (novoValor) {
-                            setPaginaCampo(1);
-                            setPaginaAtivaCanvas(1);
-                            setRetanguloAtualMm(null);
-                          }
-                        }}
-                        style={{
-                          position: "relative",
-                          width: "40px",
-                          height: "22px",
-                          borderRadius: "11px",
-                          backgroundColor: ehIdentificador
-                            ? "#7b1fa2"
-                            : "#b0bec5",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "2px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
                         }}
                       >
                         <span
                           style={{
-                            display: "block",
-                            width: "18px",
-                            height: "18px",
-                            borderRadius: "50%",
-                            backgroundColor: "#ffffff",
-                            transform: ehIdentificador
-                              ? "translateX(18px)"
-                              : "translateX(0px)",
-                            transition: "transform 0.2s",
-                          }}
-                        ></span>
-                      </button>
-                    </div>
-
-                    {ehIdentificador && (
-                      <div
-                        style={{
-                          marginTop: "8px",
-                          paddingTop: "8px",
-                          borderTop: "1px dashed #e1bee7",
-                        }}
-                      >
-                        <label
-                          style={{
-                            display: "block",
-                            fontSize: "0.7rem",
+                            fontSize: "0.75rem",
                             fontWeight: 700,
-                            color: "#6a1b9a",
-                            marginBottom: "3px",
+                            color: ehIdentificadorInicio
+                              ? "#3f51b5"
+                              : "#455a64",
                           }}
                         >
-                          Texto exato esperado nesta área:
-                        </label>
-                        <input
-                          type="text"
-                          value={textoEsperado}
-                          onChange={(e) => setTextoEsperado(e.target.value)}
-                          placeholder="Ex: PARA USO DOS CORREIOS"
-                          style={{
-                            width: "100%",
-                            padding: "5px 8px",
-                            borderRadius: "3px",
-                            border: "1px solid #ba68c8",
-                            fontSize: "0.75rem",
-                            height: "28px",
+                          Identificador de início
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEhIdentificadorInicio(!ehIdentificadorInicio);
+                            if (!ehIdentificadorInicio) {
+                              setEhIdentificadorPagina(false);
+                              setPaginaCampo(1);
+                              setPaginaAtivaCanvas(1);
+                              setRetanguloAtualMm(null);
+                            }
                           }}
-                        ></input>
+                          style={{
+                            position: "relative",
+                            width: "40px",
+                            height: "22px",
+                            borderRadius: "11px",
+                            backgroundColor: ehIdentificadorInicio
+                              ? "#5c6bc0"
+                              : "#b0bec5",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "2px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "block",
+                              width: "18px",
+                              height: "18px",
+                              borderRadius: "50%",
+                              backgroundColor: "#ffffff",
+                              transform: ehIdentificadorInicio
+                                ? "translateX(18px)"
+                                : "translateX(0px)",
+                              transition: "transform 0.2s",
+                            }}
+                          ></span>
+                        </button>
                       </div>
-                    )}
+                      {ehIdentificadorInicio && (
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            paddingTop: "8px",
+                            borderTop: "1px dashed #c5cae9",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "0.7rem",
+                              fontWeight: 700,
+                              color: "#3f51b5",
+                              marginBottom: "3px",
+                            }}
+                          >
+                            Texto exato esperado na quebra de documento:
+                          </label>
+                          <input
+                            type="text"
+                            value={textoEsperadoInicio}
+                            onChange={(e) =>
+                              setTextoEsperadoInicio(e.target.value)
+                            }
+                            placeholder="Ex: PREFEITURA MUNICIPAL"
+                            style={{
+                              width: "100%",
+                              padding: "5px 8px",
+                              borderRadius: "3px",
+                              border: "1px solid #9fa8da",
+                              fontSize: "0.75rem",
+                              height: "28px",
+                            }}
+                          ></input>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Marcador de Página/Estrutura */}
+                    <div
+                      style={{
+                        padding: "6px",
+                        backgroundColor: ehIdentificadorPagina
+                          ? "#f3e5f5"
+                          : "transparent",
+                        borderRadius: "4px",
+                        border: ehIdentificadorPagina
+                          ? "1px solid #e1bee7"
+                          : "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            color: ehIdentificadorPagina
+                              ? "#6a1b9a"
+                              : "#455a64",
+                          }}
+                        >
+                          É o marcador desta estrutura?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEhIdentificadorPagina(!ehIdentificadorPagina);
+                            if (!ehIdentificadorPagina) {
+                              setEhIdentificadorInicio(false);
+                              setPaginaCampo(1);
+                              setPaginaAtivaCanvas(1);
+                              setRetanguloAtualMm(null);
+                            }
+                          }}
+                          style={{
+                            position: "relative",
+                            width: "40px",
+                            height: "22px",
+                            borderRadius: "11px",
+                            backgroundColor: ehIdentificadorPagina
+                              ? "#8e24aa"
+                              : "#b0bec5",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "2px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "block",
+                              width: "18px",
+                              height: "18px",
+                              borderRadius: "50%",
+                              backgroundColor: "#ffffff",
+                              transform: ehIdentificadorPagina
+                                ? "translateX(18px)"
+                                : "translateX(0px)",
+                              transition: "transform 0.2s",
+                            }}
+                          ></span>
+                        </button>
+                      </div>
+                      {ehIdentificadorPagina && (
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            paddingTop: "8px",
+                            borderTop: "1px dashed #e1bee7",
+                          }}
+                        >
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "0.7rem",
+                              fontWeight: 700,
+                              color: "#6a1b9a",
+                              marginBottom: "3px",
+                            }}
+                          >
+                            Texto exato que comprova a estrutura nesta página:
+                          </label>
+                          <input
+                            type="text"
+                            value={textoEsperadoPagina}
+                            onChange={(e) =>
+                              setTextoEsperadoPagina(e.target.value)
+                            }
+                            placeholder={`Ex: ${identificadorPagina || "DEBITOS"}`}
+                            style={{
+                              width: "100%",
+                              padding: "5px 8px",
+                              borderRadius: "3px",
+                              border: "1px solid #ba68c8",
+                              fontSize: "0.75rem",
+                              height: "28px",
+                            }}
+                          ></input>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <button
@@ -1963,7 +2092,6 @@ export function ParametrizacaoPage({
                 </div>
               </div>
 
-              {/* LISTAGEM DE CAMPOS CADASTRADOS */}
               <div
                 style={{
                   backgroundColor: "#ffffff",
@@ -1984,7 +2112,6 @@ export function ParametrizacaoPage({
                 >
                   CAMPOS DO MODELO ({campos.length})
                 </div>
-
                 <div
                   style={{
                     padding: "8px",
@@ -2031,27 +2158,28 @@ export function ParametrizacaoPage({
                               style={{
                                 display: "block",
                                 fontSize: "0.8rem",
-                                color: c.ehIdentificadorPrimeiraPagina
-                                  ? "#6a1b9a"
-                                  : "#263238",
+                                color: c.ehIdentificadorInicio
+                                  ? "#3f51b5"
+                                  : c.ehIdentificadorPagina
+                                    ? "#8e24aa"
+                                    : "#263238",
                               }}
                             >
-                              {c.ehIdentificadorPrimeiraPagina
-                                ? `🚩 ${c.nomeCampo}`
-                                : c.nomeCampo}
+                              {c.ehIdentificadorInicio
+                                ? `🚩 [INÍCIO] ${c.nomeCampo}`
+                                : c.ehIdentificadorPagina
+                                  ? `📌 [${c.identificadorPagina}] ${c.nomeCampo}`
+                                  : c.nomeCampo}
                             </strong>
                             <span
-                              style={{
-                                fontSize: "0.65rem",
-                                color: "#78909c",
-                              }}
+                              style={{ fontSize: "0.65rem", color: "#78909c" }}
                             >
-                              Pg: {c.pagina} • {c.larguraMm}x{c.alturaMm}mm
+                              Estrutura: {c.identificadorPagina} • Pg:{" "}
+                              {c.pagina} • {c.larguraMm}x{c.alturaMm}mm
                               {c.identificadorAnterior &&
                                 ` • [Pré: "${c.identificadorAnterior}"]`}
                             </span>
                           </div>
-
                           <div style={{ display: "flex", gap: "4px" }}>
                             <button
                               onClick={() => iniciarEdicaoCampo(c)}
@@ -2099,9 +2227,6 @@ export function ParametrizacaoPage({
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* SEÇÃO 3: VALIDAÇÕES (SQL SERVER)           */}
-      {/* ========================================== */}
       <div
         id="accordion-validacoes"
         style={{
@@ -2157,18 +2282,12 @@ export function ParametrizacaoPage({
               3. Regras de validação
             </strong>
           </div>
-
           <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
             {queries.length} validações ativas
           </span>
         </div>
-
         <div
-          className={`accordion-content-wrapper ${
-            etapaAberta === "validacoes" && !semLayoutSelecionado
-              ? "accordion-content-open"
-              : "accordion-content-closed"
-          }`}
+          className={`accordion-content-wrapper ${etapaAberta === "validacoes" && !semLayoutSelecionado ? "accordion-content-open" : "accordion-content-closed"}`}
         >
           <div
             style={{
@@ -2178,7 +2297,6 @@ export function ParametrizacaoPage({
               flexWrap: "wrap",
             }}
           >
-            {/* PAINEL DE CRIAÇÃO DA QUERY */}
             <div
               style={{
                 flex: "2 1 500px",
@@ -2201,7 +2319,6 @@ export function ParametrizacaoPage({
               >
                 {queryEmEdicaoId ? "EDITAR QUERY" : "NOVA VALIDAÇÃO"}
               </div>
-
               <div style={{ marginBottom: "12px" }}>
                 <label
                   style={{
@@ -2229,7 +2346,6 @@ export function ParametrizacaoPage({
                   }}
                 ></input>
               </div>
-
               <div style={{ marginBottom: "12px" }}>
                 <label
                   style={{
@@ -2243,7 +2359,6 @@ export function ParametrizacaoPage({
                 >
                   Regra para validar
                 </label>
-
                 <SqlCodeEditor
                   value={sqlQuery}
                   onChange={(novoSql) => {
@@ -2253,7 +2368,6 @@ export function ParametrizacaoPage({
                   camposDisponiveis={campos.map((c) => c.nomeCampo)}
                 ></SqlCodeEditor>
               </div>
-
               <div
                 id="container-botao-analisar"
                 style={{
@@ -2282,7 +2396,6 @@ export function ParametrizacaoPage({
                   <span>Analisar</span>
                 </button>
               </div>
-
               {sqlAnalisado && (
                 <div
                   style={{
@@ -2335,7 +2448,6 @@ export function ParametrizacaoPage({
                         </span>
                       )}
                     </div>
-
                     <div>
                       <strong
                         style={{
@@ -2373,7 +2485,6 @@ export function ParametrizacaoPage({
                       )}
                     </div>
                   </div>
-
                   <div
                     style={{
                       display: "flex",
@@ -2414,7 +2525,6 @@ export function ParametrizacaoPage({
                         ))}
                       </select>
                     </div>
-
                     <div style={{ width: "70px" }}>
                       <label
                         style={{
@@ -2440,7 +2550,6 @@ export function ParametrizacaoPage({
                         <option value="<>">&lt;&gt;</option>
                       </select>
                     </div>
-
                     <div style={{ flex: 1 }}>
                       <label
                         style={{
@@ -2469,7 +2578,6 @@ export function ParametrizacaoPage({
                         ))}
                       </select>
                     </div>
-
                     <button
                       onClick={adicionarRegraValidacao}
                       style={{
@@ -2486,7 +2594,6 @@ export function ParametrizacaoPage({
                       + Vincular
                     </button>
                   </div>
-
                   <table
                     style={{
                       width: "100%",
@@ -2506,21 +2613,11 @@ export function ParametrizacaoPage({
                         <th style={{ padding: "6px 8px" }}>
                           Campo Banco de Dados
                         </th>
-                        <th
-                          style={{
-                            padding: "6px 8px",
-                            textAlign: "center",
-                          }}
-                        >
+                        <th style={{ padding: "6px 8px", textAlign: "center" }}>
                           Operador
                         </th>
                         <th style={{ padding: "6px 8px" }}>Campo Documento</th>
-                        <th
-                          style={{
-                            padding: "6px 8px",
-                            textAlign: "center",
-                          }}
-                        >
+                        <th style={{ padding: "6px 8px", textAlign: "center" }}>
                           Ação
                         </th>
                       </tr>
@@ -2578,10 +2675,7 @@ export function ParametrizacaoPage({
                             {r.campoCarne}
                           </td>
                           <td
-                            style={{
-                              padding: "6px 8px",
-                              textAlign: "center",
-                            }}
+                            style={{ padding: "6px 8px", textAlign: "center" }}
                           >
                             <button
                               onClick={() => removerRegraValidacao(r.id)}
@@ -2600,7 +2694,6 @@ export function ParametrizacaoPage({
                       ))}
                     </tbody>
                   </table>
-
                   <div
                     style={{
                       display: "flex",
@@ -2641,8 +2734,6 @@ export function ParametrizacaoPage({
                 </div>
               )}
             </div>
-
-            {/* LISTA DE CONSULTAS CADASTRADAS */}
             <div style={{ flex: "1 1 280px", minWidth: "260px" }}>
               <div
                 style={{
@@ -2664,7 +2755,6 @@ export function ParametrizacaoPage({
                 >
                   VALIDAÇÕES CONFIGURADAS ({queries.length})
                 </div>
-
                 <div
                   style={{
                     padding: "10px",
@@ -2755,9 +2845,6 @@ export function ParametrizacaoPage({
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* SEÇÃO 4: CONEXÃO COM BANCO DE DADOS        */}
-      {/* ========================================== */}
       <div
         id="accordion-conexao-banco"
         style={{
@@ -2812,7 +2899,6 @@ export function ParametrizacaoPage({
               4. Conexão com banco de dados
             </strong>
           </div>
-
           <span style={{ fontSize: "0.75rem", color: "#546e7a" }}>
             {semLayoutSelecionado
               ? "(Layout não selecionado)"
@@ -2823,13 +2909,8 @@ export function ParametrizacaoPage({
                   : "Não configurado"}
           </span>
         </div>
-
         <div
-          className={`accordion-content-wrapper ${
-            etapaAberta === "conexao" && !semLayoutSelecionado
-              ? "accordion-content-open"
-              : "accordion-content-closed"
-          }`}
+          className={`accordion-content-wrapper ${etapaAberta === "conexao" && !semLayoutSelecionado ? "accordion-content-open" : "accordion-content-closed"}`}
         >
           <div
             id="alerta-seguranca-banco"
@@ -2863,7 +2944,6 @@ export function ParametrizacaoPage({
               </p>
             </div>
           </div>
-
           <div style={{ marginBottom: "14px" }}>
             <label
               style={{
@@ -2897,7 +2977,6 @@ export function ParametrizacaoPage({
               <option value="SQL Server">SQL Server</option>
             </select>
           </div>
-
           <div
             style={{
               display: "grid",
@@ -2933,7 +3012,6 @@ export function ParametrizacaoPage({
                 }}
               ></input>
             </div>
-
             <div>
               <label
                 style={{
@@ -2962,7 +3040,6 @@ export function ParametrizacaoPage({
               ></input>
             </div>
           </div>
-
           <div
             style={{
               display: "grid",
@@ -2997,7 +3074,6 @@ export function ParametrizacaoPage({
                 }}
               ></input>
             </div>
-
             <div>
               <label
                 style={{
@@ -3029,9 +3105,6 @@ export function ParametrizacaoPage({
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* BOTÃO GLOBAL "SALVAR TUDO"                */}
-      {/* ========================================== */}
       <div
         id="rodape-salvar-tudo"
         style={{

@@ -8,8 +8,18 @@ export interface RegiaoCampo {
   larguraMm: number;
   alturaMm: number;
   pagina?: number;
-  ehIdentificadorPrimeiraPagina?: boolean;
-  textoEsperadoIdentificador?: string;
+
+  // Identificador de início do documento (renomeado)
+  ehIdentificadorInicio?: boolean;
+  textoEsperadoInicio?: string;
+
+  // Associação à estrutura lógica da página (novo - obrigatório)
+  identificadorPagina: string;
+
+  // Marcador que define a estrutura da página (novo)
+  ehIdentificadorPagina?: boolean;
+  textoEsperadoPagina?: string;
+
   identificadorAnterior?: string;
   consultaSql?: string;
 }

@@ -56,7 +56,11 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.YMm).HasPrecision(10, 2);
             entity.Property(e => e.LarguraMm).HasPrecision(10, 2);
             entity.Property(e => e.AlturaMm).HasPrecision(10, 2);
-            entity.Property(e => e.TextoEsperadoIdentificador).HasMaxLength(250);
+
+            entity.Property(e => e.TextoEsperadoInicio).HasMaxLength(250);
+            entity.Property(e => e.IdentificadorPagina).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.TextoEsperadoPagina).HasMaxLength(250);
+
             entity.Property(e => e.IdentificadorAnterior).HasMaxLength(150);
         });
 
@@ -70,16 +74,16 @@ public class SMARsvpDbContext : DbContext
         });
 
         modelBuilder.Entity<QueryValidacao>(entity =>
-                {
-                    entity.HasKey(e => e.Id);
-                    entity.Property(e => e.Nome).IsRequired().HasMaxLength(100);
-                    entity.Property(e => e.Sql).IsRequired();
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nome).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Sql).IsRequired();
 
-                    entity.HasMany(e => e.Regras)
-                          .WithOne(e => e.QueryValidacao)
-                          .HasForeignKey(e => e.QueryValidacaoId)
-                          .OnDelete(DeleteBehavior.Cascade);
-                });
+            entity.HasMany(e => e.Regras)
+                  .WithOne(e => e.QueryValidacao)
+                  .HasForeignKey(e => e.QueryValidacaoId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<RegraValidacao>(entity =>
         {
@@ -97,7 +101,6 @@ public class SMARsvpDbContext : DbContext
             entity.Property(e => e.ImagemBase64).IsRequired();
         });
 
-        // Configuração da Tabela de Logs
         modelBuilder.Entity<LogSistema>(entity =>
         {
             entity.HasKey(e => e.Id);

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SMARsvp.Infrastructure.Data;
 
@@ -10,9 +11,11 @@ using SMARsvp.Infrastructure.Data;
 namespace SMARsvp.Infrastructure.Migrations
 {
     [DbContext(typeof(SMARsvpDbContext))]
-    partial class SMARsvpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921060133_AjusteEstruturaPaginas")]
+    partial class AjusteEstruturaPaginas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");

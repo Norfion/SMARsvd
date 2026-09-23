@@ -57,8 +57,12 @@ public class LayoutsController : ControllerBase
                 LarguraMm = c.LarguraMm,
                 AlturaMm = c.AlturaMm,
                 Pagina = c.Pagina,
-                EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
-                TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                EhIdentificadorInicio = c.EhIdentificadorInicio,
+                TextoEsperadoInicio = c.TextoEsperadoInicio,
+                // Fallback para layouts antigos ("GERAL") impedindo quebra em leitura
+                IdentificadorPagina = c.IdentificadorPagina ?? "GERAL",
+                EhIdentificadorPagina = c.EhIdentificadorPagina,
+                TextoEsperadoPagina = c.TextoEsperadoPagina,
                 IdentificadorAnterior = c.IdentificadorAnterior,
                 ConsultaSql = c.ConsultaSql
             }).ToList(),
@@ -94,7 +98,6 @@ public class LayoutsController : ControllerBase
 
         LayoutCliente? entidadeLayout = null;
 
-        // 1. Localiza pelo GUID se enviado
         if (dto.Id.HasValue && dto.Id.Value != Guid.Empty)
         {
             entidadeLayout = await _context.Layouts
@@ -102,7 +105,6 @@ public class LayoutsController : ControllerBase
                 .FirstOrDefaultAsync(l => l.Id == dto.Id.Value);
         }
 
-        // 2. Se não encontrou por ID, tenta por NomeModelo + Cliente
         if (entidadeLayout == null && !string.IsNullOrWhiteSpace(dto.NomeModelo) && !string.IsNullOrWhiteSpace(dto.Cliente))
         {
             var nomeBusca = dto.NomeModelo.Trim().ToLower();
@@ -113,7 +115,6 @@ public class LayoutsController : ControllerBase
                 .FirstOrDefaultAsync(l => l.NomeModelo.ToLower() == nomeBusca && l.Cliente.ToLower() == clienteBusca);
         }
 
-        // 3. Se for novo layout, cria a entidade base
         if (entidadeLayout == null)
         {
             entidadeLayout = new LayoutCliente
@@ -124,7 +125,6 @@ public class LayoutsController : ControllerBase
         }
         else
         {
-            // 4. Limpeza isolada e direta das coleções antigas vinculadas ao layout
             var layoutId = entidadeLayout.Id;
 
             var queriesAntigasIds = await _context.QueriesValidacao
@@ -150,7 +150,6 @@ public class LayoutsController : ControllerBase
             await _context.SaveChangesAsync();
         }
 
-        // 5. Atualiza os dados principais do Layout
         entidadeLayout.Cliente = dto.Cliente;
         entidadeLayout.NomeModelo = dto.NomeModelo;
         entidadeLayout.Versao = dto.Versao;
@@ -158,7 +157,6 @@ public class LayoutsController : ControllerBase
         entidadeLayout.AlturaPaginaMm = dto.AlturaPaginaMm;
         entidadeLayout.NomeArquivoModelo = dto.NomeArquivoModelo;
 
-        // 6. Atualização da Conexão com o Banco
         if (dto.ConexaoBanco != null && !string.IsNullOrWhiteSpace(dto.ConexaoBanco.Servidor))
         {
             if (entidadeLayout.ConexaoBanco != null)
@@ -189,7 +187,6 @@ public class LayoutsController : ControllerBase
             entidadeLayout.ConexaoBanco = null;
         }
 
-        // 7. Insere os novos campos mapeados (com IdentificadorAnterior incluído)
         if (dto.Campos != null && dto.Campos.Any())
         {
             var novosCampos = dto.Campos.Select(c => new RegiaoCampo
@@ -201,8 +198,11 @@ public class LayoutsController : ControllerBase
                 LarguraMm = c.LarguraMm,
                 AlturaMm = c.AlturaMm,
                 Pagina = c.Pagina,
-                EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
-                TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                EhIdentificadorInicio = c.EhIdentificadorInicio,
+                TextoEsperadoInicio = c.TextoEsperadoInicio,
+                IdentificadorPagina = c.IdentificadorPagina ?? "GERAL",
+                EhIdentificadorPagina = c.EhIdentificadorPagina,
+                TextoEsperadoPagina = c.TextoEsperadoPagina,
                 IdentificadorAnterior = c.IdentificadorAnterior,
                 ConsultaSql = c.ConsultaSql,
                 LayoutClienteId = entidadeLayout.Id
@@ -211,7 +211,6 @@ public class LayoutsController : ControllerBase
             await _context.RegioesCampos.AddRangeAsync(novosCampos);
         }
 
-        // 8. Insere as novas queries e regras
         if (dto.QueriesValidacao != null && dto.QueriesValidacao.Any())
         {
             foreach (var q in dto.QueriesValidacao)
@@ -237,7 +236,6 @@ public class LayoutsController : ControllerBase
             }
         }
 
-        // 9. Insere as imagens das páginas
         if (dto.PaginasModeloBase64 != null && dto.PaginasModeloBase64.Any())
         {
             int numeroPagina = 1;
@@ -252,7 +250,6 @@ public class LayoutsController : ControllerBase
             await _context.PaginasModelo.AddRangeAsync(novasPaginas);
         }
 
-        // 10. Persiste no banco de dados
         await _context.SaveChangesAsync();
 
         return Ok(entidadeLayout.Id);

@@ -58,8 +58,11 @@ public class ProcessamentoController : ControllerBase
             Campos = layout.Campos.Select(c => new RegiaoCampoDto
             {
                 NomeCampo = c.NomeCampo,
-                EhIdentificadorPrimeiraPagina = c.EhIdentificadorPrimeiraPagina,
-                TextoEsperadoIdentificador = c.TextoEsperadoIdentificador,
+                EhIdentificadorInicio = c.EhIdentificadorInicio,
+                TextoEsperadoInicio = c.TextoEsperadoInicio,
+                IdentificadorPagina = c.IdentificadorPagina ?? "GERAL",
+                EhIdentificadorPagina = c.EhIdentificadorPagina,
+                TextoEsperadoPagina = c.TextoEsperadoPagina,
                 IdentificadorAnterior = c.IdentificadorAnterior,
                 Pagina = c.Pagina,
                 XMm = c.XMm,

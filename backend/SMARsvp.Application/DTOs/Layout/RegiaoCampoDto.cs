@@ -9,11 +9,16 @@ public class RegiaoCampoDto
     public decimal LarguraMm { get; set; }
     public decimal AlturaMm { get; set; }
     public int Pagina { get; set; } = 1;
-    public bool EhIdentificadorPrimeiraPagina { get; set; }
-    public string? TextoEsperadoIdentificador { get; set; }
+
+    public bool EhIdentificadorInicio { get; set; }
+    public string? TextoEsperadoInicio { get; set; }
+
+    public string IdentificadorPagina { get; set; } = string.Empty;
+    public bool EhIdentificadorPagina { get; set; }
+    public string? TextoEsperadoPagina { get; set; }
+
     public string? IdentificadorAnterior { get; set; }
     public string? ConsultaSql { get; set; }
 
-    // Nova propriedade para orientar a limpeza de OCR
     public string? TipoDado { get; set; } = "Texto";
 }
