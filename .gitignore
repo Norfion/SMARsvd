@@ -27,7 +27,7 @@ TestResults/
 *.nupkg
 
 # Configurações locais da API que não devem ser versionadas se contiverem senhas
-backend/SMARsvp.API/appsettings.Production.json
+backend/SMARsvd.API/appsettings.Production.json
 
 # =========================================
 # Banco de Dados Local (SQLite)
