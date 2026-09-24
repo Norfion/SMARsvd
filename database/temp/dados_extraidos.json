@@ -2,7 +2,7 @@
   "PercentualAmostragem": 100,
   "TotalDocumentos": 2,
   "DocumentosProcessados": 2,
-  "UsouOcr": false,
+  "UsouOcr": true,
   "Documentos": [
     {
       "PaginaInicio": 1,
@@ -12,13 +12,13 @@
           "Nome": "CRC",
           "ValorExtraido": "650",
           "PaginaExtraido": 1,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "Nro Parcelamento",
           "ValorExtraido": "27480056",
           "PaginaExtraido": 2,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         }
       ]
     },
@@ -30,13 +30,13 @@
           "Nome": "CRC",
           "ValorExtraido": "414990",
           "PaginaExtraido": 3,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         },
         {
           "Nome": "Nro Parcelamento",
           "ValorExtraido": "27480059",
           "PaginaExtraido": 4,
-          "ExtracaoMetodo": "Digital"
+          "ExtracaoMetodo": "OCR"
         }
       ]
     }

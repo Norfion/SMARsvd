@@ -1,11 +1,11 @@
 {
-  "NomeArquivo": "Lote de Testes - Digital.pdf",
+  "NomeArquivo": "Lote de Testes - Rasterizado.pdf",
   "LayoutUtilizado": "Carnê de Parcelamento",
   "TotalDocumentosAnalisados": 2,
   "DocumentosValidos": 0,
   "DocumentosComInconsistencia": 2,
   "Amostragem": 100,
-  "UsouOcr": false,
+  "UsouOcr": true,
   "Inconsistencias": [
     {
       "PaginaExtraido": 1,
