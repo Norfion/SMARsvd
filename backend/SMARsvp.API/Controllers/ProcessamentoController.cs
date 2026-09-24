@@ -6,19 +6,13 @@ using SMARsvp.Application.DTOs.Processamento;
 using SMARsvp.Application.Interfaces;
 using SMARsvp.Application.Services;
 using SMARsvp.Infrastructure.Data;
+using System;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace SMARsvp.API.Controllers;
-
-public class ConfiguracaoBancoDto
-{
-    public string Provedor { get; set; } = "SQL Server";
-    public string Servidor { get; set; } = string.Empty;
-    public int Porta { get; set; } = 1433;
-    public string BaseDados { get; set; } = string.Empty;
-    public string Usuario { get; set; } = string.Empty;
-    public string? Senha { get; set; }
-}
 
 public class EtapaProcessamentoRequest
 {
@@ -152,7 +146,7 @@ public class ProcessamentoController : ControllerBase
         }
     }
 
-    // Etapa 2 - Montagem e Execução das Consultas (recebe as credenciais temporárias)
+    // Etapa 2 - Montagem e Execução das Consultas (recebe as credenciais da tela)
     [HttpPost("buscar-banco")]
     public async Task<IActionResult> ConstruirQueriesEBuscar([FromBody] EtapaProcessamentoRequest request)
     {
@@ -174,12 +168,16 @@ public class ProcessamentoController : ControllerBase
             if (extracao == null)
                 return BadRequest("Não foi possível carregar os dados da extração anterior.");
 
-            await _auditoriaService.MontarQueriesEBuscarBancoAsync(extracao, layoutDto, pastaTemp);
+            await _auditoriaService.MontarQueriesEBuscarBancoAsync(extracao, layoutDto, pastaTemp, request.ConexaoBanco);
             return Ok(new { status = "Concluído" });
+        }
+        catch (NotSupportedException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
         }
         catch (Exception ex)
         {
-            return StatusCode(422, new { mensagem = "Falha ao preparar consultas ao banco de dados.", erro = ex.Message });
+            return StatusCode(422, new { mensagem = "Falha ao conectar ou executar consultas no banco de dados.", erro = ex.Message });
         }
     }
 

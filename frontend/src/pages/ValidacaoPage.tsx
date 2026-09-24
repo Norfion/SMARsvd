@@ -321,8 +321,6 @@ export function ValidacaoPage({
                 style={{
                   backgroundColor: "var(--smar-bg-subtle)",
                   padding: "10px 14px",
-                  borderRadius: "6px",
-                  border: "1px solid var(--smar-border-color)",
                   color: "var(--smar-text-primary)",
                   fontSize: "0.85rem",
                   fontWeight: 600,
@@ -384,12 +382,11 @@ export function ValidacaoPage({
           >
             <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>⚠️</span>
             <div style={{ lineHeight: 1.4 }}>
-              <strong>Credenciais temporárias de execução:</strong>
+              <strong>Observações:</strong>
               <p style={{ margin: "4px 0 0 0" }}>
-                As credenciais informadas aqui não serão salvas. Por motivos de
-                segurança, utilize preferencialmente credenciais de um usuário
-                com{" "}
-                <strong>permissão de somente leitura (db_datareader)</strong> no
+                Por motivos de segurança, as credenciais informadas aqui não
+                serão salvas. Utilize preferencialmente credenciais de um
+                usuário com <strong>permissão de somente leitura</strong> no
                 banco de dados.
               </p>
             </div>

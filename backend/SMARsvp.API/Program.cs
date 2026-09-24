@@ -4,6 +4,8 @@ using SMARsvp.Application.Services;
 using SMARsvp.Infrastructure.Data;
 using SMARsvp.Infrastructure.Services;
 using SMARsvp.API.Middlewares;
+using SMARsvp.Infrastructure.Factories;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,9 @@ builder.Services.AddDbContext<SMARsvpDbContext>(options =>
 builder.Services.AddScoped<IExtratorPdfService, ExtratorPdfService>();
 builder.Services.AddScoped<ProcessadorCarnesService>();
 builder.Services.AddScoped<ILogService, LogService>();
+builder.Services.AddScoped<IAuditoriaValidacaoService, AuditoriaValidacaoService>();
+builder.Services.AddScoped<IExecutorBancoDados, SqlServerExecutorService>();
+builder.Services.AddScoped<IBancoDadosExecutorFactory, BancoDadosExecutorFactory>();
 builder.Services.AddScoped<IAuditoriaValidacaoService, AuditoriaValidacaoService>();
 
 // Mantém o OCR como Singleton para não recarregar o modelo do Tesseract em toda requisição

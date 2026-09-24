@@ -200,6 +200,8 @@ export function ResultadoPage({
     const estiloBase: CellStyle = {
       display: "flex",
       alignItems: "center",
+      userSelect: "text",
+      WebkitUserSelect: "text",
     };
 
     return [
@@ -273,21 +275,13 @@ export function ResultadoPage({
             >
               <span
                 style={{
-                  display: "inline-block",
-                  padding: "2px 8px",
-                  borderRadius: "12px",
-                  fontSize: "0.7rem",
                   fontWeight: 700,
-                  backgroundColor: ehOk
-                    ? "var(--smar-success-bg)"
-                    : "var(--smar-danger-bg)",
+                  fontSize: "0.82rem",
                   color: ehOk
                     ? "var(--smar-success-text)"
                     : "var(--smar-danger-text)",
-                  border: ehOk
-                    ? "1px solid var(--smar-success-border)"
-                    : "1px solid var(--smar-danger-border)",
-                  lineHeight: "1.2",
+                  userSelect: "text",
+                  WebkitUserSelect: "text",
                 }}
               >
                 {ehOk ? "OK" : "DIVERGÊNCIA"}
@@ -704,6 +698,18 @@ export function ResultadoPage({
       className="smar-card"
       style={{ padding: "20px" }}
     >
+      <style>
+        {`
+          .ag-cell,
+          .ag-cell-value,
+          .ag-cell span {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            cursor: text;
+          }
+        `}
+      </style>
+
       {/* CABEÇALHO DO RESULTADO E BOTÕES */}
       <div
         style={{
@@ -884,6 +890,8 @@ export function ResultadoPage({
             pagination={true}
             paginationPageSize={20}
             paginationPageSizeSelector={[10, 20, 50, 100]}
+            enableCellTextSelection={true}
+            ensureDomOrder={true}
             initialState={{
               filter: {
                 filterModel: {

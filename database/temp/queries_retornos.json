@@ -1,0 +1,33 @@
+[
+  {
+    "PaginaInicio": 1,
+    "PaginaFim": 2,
+    "Retornos": [
+      {
+        "NomeQuery": "Contribuinte",
+        "SqlExecutado": "SELECT C.CRC AS CRC,\n       C.NroParcelamento AS NroParcelamento\n  FROM Contribuintes C\n WHERE C.CRC = 650",
+        "Sucesso": true,
+        "Erro": null,
+        "Registros": []
+      }
+    ]
+  },
+  {
+    "PaginaInicio": 3,
+    "PaginaFim": 4,
+    "Retornos": [
+      {
+        "NomeQuery": "Contribuinte",
+        "SqlExecutado": "SELECT C.CRC AS CRC,\n       C.NroParcelamento AS NroParcelamento\n  FROM Contribuintes C\n WHERE C.CRC = 414990",
+        "Sucesso": true,
+        "Erro": null,
+        "Registros": [
+          {
+            "CRC": "414990",
+            "NroParcelamento": "123456"
+          }
+        ]
+      }
+    ]
+  }
+]

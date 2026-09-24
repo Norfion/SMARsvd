@@ -14,6 +14,8 @@ namespace SMARsvp.Application.Services;
 
 public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 {
+    private readonly IBancoDadosExecutorFactory _bancoFactory;
+
     private static readonly JsonSerializerOptions OpcoesJson = new()
     {
         WriteIndented = true,
@@ -21,21 +23,28 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         PropertyNameCaseInsensitive = true
     };
 
+    public AuditoriaValidacaoService(IBancoDadosExecutorFactory bancoFactory)
+    {
+        _bancoFactory = bancoFactory;
+    }
+
     public async Task<ResultadoAuditoriaDto> ProcessarAuditoriaSimuladaAsync(
         ResultadoProcessamentoDto extracao,
         LayoutClienteDto layout,
         string nomeArquivo,
         bool utilizouOcr,
-        string pastaTemp)
+        string pastaTemp,
+        ConfiguracaoBancoDto? conexaoBanco = null)
     {
-        await MontarQueriesEBuscarBancoAsync(extracao, layout, pastaTemp);
+        await MontarQueriesEBuscarBancoAsync(extracao, layout, pastaTemp, conexaoBanco);
         return await CompararEGerarAuditoriaAsync(extracao, layout, nomeArquivo, utilizouOcr, pastaTemp);
     }
 
     public async Task MontarQueriesEBuscarBancoAsync(
         ResultadoProcessamentoDto extracao,
         LayoutClienteDto layout,
-        string pastaTemp)
+        string pastaTemp,
+        ConfiguracaoBancoDto? conexaoBanco = null)
     {
         var queriesMontadas = new List<DocumentoQueriesDto>();
 
@@ -92,35 +101,74 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
         Directory.CreateDirectory(pastaTemp);
 
+        // 1. Salva queries_montadas.json
         string caminhoQueriesMontadas = Path.Combine(pastaTemp, "queries_montadas.json");
         await File.WriteAllTextAsync(caminhoQueriesMontadas, JsonSerializer.Serialize(queriesMontadas, OpcoesJson));
 
-        string caminhoBancoMock = Path.Combine(pastaTemp, "dados_banco.json");
-        var dadosBanco = new List<RetornoBancoSimuladoDto>();
-
-        if (File.Exists(caminhoBancoMock))
+        // 2. Se houver configuração de conexão, executa no banco real
+        if (conexaoBanco != null && !string.IsNullOrWhiteSpace(conexaoBanco.Servidor))
         {
-            try
+            var executor = _bancoFactory.ObterExecutor(conexaoBanco.Provedor);
+            var retornosQueries = await executor.ExecutarLoteQueriesAsync(queriesMontadas, conexaoBanco);
+
+            // 3. Salva queries_retornos.json
+            string caminhoQueriesRetornos = Path.Combine(pastaTemp, "queries_retornos.json");
+            await File.WriteAllTextAsync(caminhoQueriesRetornos, JsonSerializer.Serialize(retornosQueries, OpcoesJson));
+
+            // Exclui queries_montadas.json logo após a gravação de queries_retornos.json
+            if (File.Exists(caminhoQueriesMontadas))
             {
-                string bancoJson = await File.ReadAllTextAsync(caminhoBancoMock);
-                dadosBanco = JsonSerializer.Deserialize<List<RetornoBancoSimuladoDto>>(bancoJson, OpcoesJson)
-                             ?? new List<RetornoBancoSimuladoDto>();
+                File.Delete(caminhoQueriesMontadas);
             }
-            catch
+
+            // 4. Converte os retornos das queries para o dados_banco.json
+            var dadosBanco = new List<RetornoBancoSimuladoDto>();
+
+            foreach (var docRetorno in retornosQueries)
             {
-                dadosBanco = new List<RetornoBancoSimuladoDto>();
+                var mapaDados = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var item in docRetorno.Retornos)
+                {
+                    if (item.Sucesso && item.Registros.Any())
+                    {
+                        var primeiraLinha = item.Registros.First();
+                        foreach (var kvp in primeiraLinha)
+                        {
+                            if (!mapaDados.ContainsKey(kvp.Key))
+                            {
+                                mapaDados[kvp.Key] = kvp.Value;
+                            }
+                        }
+                    }
+                }
+
+                dadosBanco.Add(new RetornoBancoSimuladoDto
+                {
+                    PaginaInicio = docRetorno.PaginaInicio,
+                    PaginaFim = docRetorno.PaginaFim,
+                    DadosRetornados = mapaDados
+                });
             }
+
+            string caminhoDadosBanco = Path.Combine(pastaTemp, "dados_banco.json");
+            await File.WriteAllTextAsync(caminhoDadosBanco, JsonSerializer.Serialize(dadosBanco, OpcoesJson));
         }
         else
         {
-            dadosBanco = queriesMontadas.Select(q => new RetornoBancoSimuladoDto
+            // Fallback caso não seja informada conexão
+            string caminhoBancoMock = Path.Combine(pastaTemp, "dados_banco.json");
+            if (!File.Exists(caminhoBancoMock))
             {
-                PaginaInicio = q.PaginaInicio,
-                PaginaFim = q.PaginaFim,
-                DadosRetornados = new Dictionary<string, string>()
-            }).ToList();
+                var dadosBancoVazio = queriesMontadas.Select(q => new RetornoBancoSimuladoDto
+                {
+                    PaginaInicio = q.PaginaInicio,
+                    PaginaFim = q.PaginaFim,
+                    DadosRetornados = new Dictionary<string, string>()
+                }).ToList();
 
-            await File.WriteAllTextAsync(caminhoBancoMock, JsonSerializer.Serialize(dadosBanco, OpcoesJson));
+                await File.WriteAllTextAsync(caminhoBancoMock, JsonSerializer.Serialize(dadosBancoVazio, OpcoesJson));
+            }
         }
     }
 
@@ -178,7 +226,7 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                         Campo = "Geral",
                         ValorExtraidoPdf = "Encontrado",
                         ValorEsperadoBanco = "Ausente",
-                        MensagemAuditoria = "Documento ausente no banco (mock)."
+                        MensagemAuditoria = "Documento ausente nos dados retornados do banco."
                     });
                     documentosComErro++;
                     continue;

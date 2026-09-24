@@ -1,28 +1,57 @@
 {
   "NomeArquivo": "Lote de Testes - Digital.pdf",
   "LayoutUtilizado": "Carnê de Parcelamento",
-  "TotalDocumentosAnalisados": 1,
+  "TotalDocumentosAnalisados": 2,
   "DocumentosValidos": 0,
-  "DocumentosComInconsistencia": 1,
-  "Amostragem": 50,
+  "DocumentosComInconsistencia": 2,
+  "Amostragem": 100,
   "UsouOcr": false,
   "Inconsistencias": [
     {
-      "PaginaExtraido": 3,
+      "PaginaExtraido": 1,
       "Campo": "CRC",
-      "ValorExtraidoPdf": "414990",
-      "ValorEsperadoBanco": "414993",
+      "ValorExtraidoPdf": "650",
+      "ValorEsperadoBanco": "Vazio/Null",
+      "MensagemAuditoria": "Divergência de valores."
+    },
+    {
+      "PaginaExtraido": 2,
+      "Campo": "Nro Parcelamento",
+      "ValorExtraidoPdf": "27480056",
+      "ValorEsperadoBanco": "Vazio/Null",
       "MensagemAuditoria": "Divergência de valores."
     },
     {
       "PaginaExtraido": 4,
       "Campo": "Nro Parcelamento",
       "ValorExtraidoPdf": "27480059",
-      "ValorEsperadoBanco": "27480057",
+      "ValorEsperadoBanco": "123456",
       "MensagemAuditoria": "Divergência de valores."
     }
   ],
   "Validacoes": [
+    {
+      "PaginaExtraido": 1,
+      "NomeQuery": "Contribuinte",
+      "CampoLayout": "CRC",
+      "CampoBanco": "CRC",
+      "RegraAplicada": "=",
+      "ValorExtraido": "650",
+      "ValorBanco": "Vazio/Null",
+      "Status": "DIVERGÊNCIA",
+      "MensagemAuditoria": "Divergência de valores."
+    },
+    {
+      "PaginaExtraido": 2,
+      "NomeQuery": "Contribuinte",
+      "CampoLayout": "Nro Parcelamento",
+      "CampoBanco": "NroParcelamento",
+      "RegraAplicada": "=",
+      "ValorExtraido": "27480056",
+      "ValorBanco": "Vazio/Null",
+      "Status": "DIVERGÊNCIA",
+      "MensagemAuditoria": "Divergência de valores."
+    },
     {
       "PaginaExtraido": 3,
       "NomeQuery": "Contribuinte",
@@ -30,9 +59,9 @@
       "CampoBanco": "CRC",
       "RegraAplicada": "=",
       "ValorExtraido": "414990",
-      "ValorBanco": "414993",
-      "Status": "DIVERGÊNCIA",
-      "MensagemAuditoria": "Divergência de valores."
+      "ValorBanco": "414990",
+      "Status": "OK",
+      "MensagemAuditoria": "Valor validado com sucesso."
     },
     {
       "PaginaExtraido": 4,
@@ -41,7 +70,7 @@
       "CampoBanco": "NroParcelamento",
       "RegraAplicada": "=",
       "ValorExtraido": "27480059",
-      "ValorBanco": "27480057",
+      "ValorBanco": "123456",
       "Status": "DIVERGÊNCIA",
       "MensagemAuditoria": "Divergência de valores."
     }

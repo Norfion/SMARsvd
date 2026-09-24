@@ -11,12 +11,14 @@ public interface IAuditoriaValidacaoService
         LayoutClienteDto layout,
         string nomeArquivo,
         bool utilizouOcr,
-        string pastaTemp);
+        string pastaTemp,
+        ConfiguracaoBancoDto? conexaoBanco = null);
 
     Task MontarQueriesEBuscarBancoAsync(
         ResultadoProcessamentoDto extracao,
         LayoutClienteDto layout,
-        string pastaTemp);
+        string pastaTemp,
+        ConfiguracaoBancoDto? conexaoBanco = null);
 
     Task<ResultadoAuditoriaDto> CompararEGerarAuditoriaAsync(
         ResultadoProcessamentoDto extracao,
