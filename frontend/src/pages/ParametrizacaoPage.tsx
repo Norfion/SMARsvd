@@ -58,10 +58,31 @@ export function ParametrizacaoPage({
   onHouveAlteracaoChange,
 }: ParametrizacaoPageProps) {
   const CLIENTES_DISPONIVEIS = [
-    "PM Sertãozinho - SP",
-    "PM Serra - ES",
+    "PM Aluminio - SP",
+    "PM Angatuba - SP",
+    "PM Bertioga - SP",
     "PM Birigui - SP",
-    "PM Araraquara - SP",
+    "PM Cravinhos - SP",
+    "PM Cubatão - SP",
+    "PM Guarapari - ES",
+    "PM Itápolis - SP",
+    "PM Itatiba - SP",
+    "PM Ituiutaba - SP",
+    "PM Ituverava - SP",
+    "PM Luiz Antonio - SP",
+    "PM Mairinque - SP",
+    "PM Marília - SP",
+    "PM Matão - SP",
+    "PM Nova Odessa - SP",
+    "PM Olímpia - SP",
+    "PM Ourinhos - SP",
+    "PM Pederneiras - SP",
+    "PM Pitangueiras - SP",
+    "PM Ribeirão Pires - SP",
+    "PM São João da Boa Vista - SP",
+    "PM Serra - ES",
+    "PM Sertãozinho - SP",
+    "PM Valinhos - SP",
     "Outro",
   ];
 
@@ -138,7 +159,7 @@ export function ParametrizacaoPage({
     setEtapaAberta((etapaAtual) => (etapaAtual === etapa ? null : etapa));
   };
 
-  const [cliente, setCliente] = useState<string>("PM Sertãozinho - SP");
+  const [cliente, setCliente] = useState<string>("Outro");
   const [nomeModelo, setNomeModelo] = useState<string>("");
   const [larguraMm, setLarguraMm] = useState<number>(70);
   const [alturaMm, setAlturaMm] = useState<number>(30);
@@ -251,7 +272,7 @@ export function ParametrizacaoPage({
     setLayoutId(undefined);
     setCriandoNovoLayout(true);
     setLayoutSelecionadoId(nomePadrao);
-    setCliente("PM Sertãozinho - SP");
+    setCliente("Outro");
     setNomeModelo(nomePadrao);
     setLarguraMm(70);
     setAlturaMm(30);
@@ -286,7 +307,7 @@ export function ParametrizacaoPage({
       setLayoutId(undefined);
       setCriandoNovoLayout(true);
       setLayoutSelecionadoId(nomeIdentificador);
-      setCliente("PM Sertãozinho - SP");
+      setCliente("Outro");
       setNomeModelo(nomeIdentificador);
       setLarguraMm(dados.larguraMm);
       setAlturaMm(dados.alturaMm);
@@ -593,8 +614,8 @@ export function ParametrizacaoPage({
     setTipoClassificacao(classif);
     setTextoEsperadoDocumento(
       campo.textoEsperadoDocumento ||
-        (cAny.textoEsperadoInicio as string | undefined) ||
-        "",
+      (cAny.textoEsperadoInicio as string | undefined) ||
+      "",
     );
     setTextoEsperadoPagina(campo.textoEsperadoPagina || "");
     setIdentificadorPagina(campo.identificadorPagina || "");
@@ -1323,15 +1344,14 @@ export function ParametrizacaoPage({
                           <div
                             key={campo.id}
                             id={`box-campo-${campo.id}`}
-                            className={`caixa-campo ${
-                              ativo
+                            className={`caixa-campo ${ativo
                                 ? "caixa-campo-ativo"
                                 : ehDocId
                                   ? "caixa-campo-documento"
                                   : ehPagId
                                     ? "caixa-campo-pagina"
                                     : ""
-                            }`}
+                              }`}
                             style={{
                               left: `${campo.xMm * escalaPxPorMm}px`,
                               top: `${campo.yMm * escalaPxPorMm}px`,
@@ -1470,7 +1490,7 @@ export function ParametrizacaoPage({
                     onChange={(e) => setNomeCampo(e.target.value)}
                     placeholder={
                       tipoClassificacao ===
-                      TipoClassificacaoCampo.IdentificadorPagina
+                        TipoClassificacaoCampo.IdentificadorPagina
                         ? "Ex: Débitos, Identificação, Resumo"
                         : "Ex: Total, Contribuinte, Inscrição"
                     }
@@ -1479,47 +1499,47 @@ export function ParametrizacaoPage({
 
                   {tipoClassificacao ===
                     TipoClassificacaoCampo.IdentificadorDocumento && (
-                    <div className="bloco-identificador bloco-identificador-documento">
-                      <label htmlFor="input-texto-esperado-documento">
-                        <i className="fas fa-flag mr-1"></i>
-                        Texto esperado no documento
-                      </label>
-                      <input
-                        id="input-texto-esperado-documento"
-                        type="text"
-                        value={textoEsperadoDocumento}
-                        onChange={(e) =>
-                          setTextoEsperadoDocumento(e.target.value)
-                        }
-                        placeholder="Ex: PREFEITURA MUNICIPAL"
-                        className="form-control"
-                      ></input>
-                      <small className="form-text text-muted">
-                        Texto que identifica onde o carnê começa/termina no PDF.
-                      </small>
-                    </div>
-                  )}
+                      <div className="bloco-identificador bloco-identificador-documento">
+                        <label htmlFor="input-texto-esperado-documento">
+                          <i className="fas fa-flag mr-1"></i>
+                          Texto esperado no documento
+                        </label>
+                        <input
+                          id="input-texto-esperado-documento"
+                          type="text"
+                          value={textoEsperadoDocumento}
+                          onChange={(e) =>
+                            setTextoEsperadoDocumento(e.target.value)
+                          }
+                          placeholder="Ex: PREFEITURA MUNICIPAL"
+                          className="form-control"
+                        ></input>
+                        <small className="form-text text-muted">
+                          Texto que identifica onde o carnê começa/termina no PDF.
+                        </small>
+                      </div>
+                    )}
 
                   {tipoClassificacao ===
                     TipoClassificacaoCampo.IdentificadorPagina && (
-                    <div className="bloco-identificador bloco-identificador-pagina">
-                      <label htmlFor="input-texto-esperado-pagina">
-                        <i className="fas fa-thumbtack mr-1"></i>
-                        Texto esperado na página
-                      </label>
-                      <input
-                        id="input-texto-esperado-pagina"
-                        type="text"
-                        value={textoEsperadoPagina}
-                        onChange={(e) => setTextoEsperadoPagina(e.target.value)}
-                        placeholder="Ex: DEMONSTRATIVO DE DÉBITOS"
-                        className="form-control"
-                      ></input>
-                      <small className="form-text text-muted">
-                        Texto que comprova que a página é deste tipo.
-                      </small>
-                    </div>
-                  )}
+                      <div className="bloco-identificador bloco-identificador-pagina">
+                        <label htmlFor="input-texto-esperado-pagina">
+                          <i className="fas fa-thumbtack mr-1"></i>
+                          Texto esperado na página
+                        </label>
+                        <input
+                          id="input-texto-esperado-pagina"
+                          type="text"
+                          value={textoEsperadoPagina}
+                          onChange={(e) => setTextoEsperadoPagina(e.target.value)}
+                          placeholder="Ex: DEMONSTRATIVO DE DÉBITOS"
+                          className="form-control"
+                        ></input>
+                        <small className="form-text text-muted">
+                          Texto que comprova que a página é deste tipo.
+                        </small>
+                      </div>
+                    )}
 
                   {tipoClassificacao === TipoClassificacaoCampo.Nenhum && (
                     <>
@@ -1594,7 +1614,7 @@ export function ParametrizacaoPage({
                         {OPCOES_TIPO_DADO.map((opcao) => (
                           <option key={opcao.valor} value={opcao.valor}>
                             {opcao.exemplo &&
-                            opcao.valor !== TipoDadoCampo.Texto
+                              opcao.valor !== TipoDadoCampo.Texto
                               ? `${opcao.rotulo} (ex: ${opcao.exemplo})`
                               : opcao.rotulo}
                           </option>
