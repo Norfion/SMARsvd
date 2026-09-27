@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import logoImg from "../assets/logo-smartb.png";
+import { NOME_MODULO, NOME_SISTEMA } from "../constants/identificacaoSistema";
 
 export interface ItemMenuLateral<T extends string> {
   chave: T;
@@ -49,7 +50,7 @@ export function LayoutSistema<T extends string>({
       >
         <div className="header-logo">
           <a onClick={aoClicarLogo}>
-            <img alt="SMARtb SVD" src={logoImg} />
+            <img alt={NOME_SISTEMA} src={logoImg} />
           </a>
         </div>
 
@@ -63,13 +64,13 @@ export function LayoutSistema<T extends string>({
                   <li>
                     <h5 className="info">
                       <strong>Sistema:</strong>
-                      SVD
+                      {NOME_SISTEMA}
                     </h5>
                   </li>
                   <li>
                     <h5 className="info">
                       <strong>Módulo:</strong>
-                      Validação de Documentos
+                      {NOME_MODULO}
                     </h5>
                   </li>
                 </ul>
@@ -93,10 +94,10 @@ export function LayoutSistema<T extends string>({
           <div className="container container-main">
             <ul className="custom-breadcrumb">
               <li>
-                <span>SVD</span>
+                <span>{NOME_SISTEMA}</span>
               </li>
               <li>
-                <span>Validação de Documentos</span>
+                <span>{NOME_MODULO}</span>
               </li>
               <li className="active">
                 <span>{itemSelecionado?.texto}</span>

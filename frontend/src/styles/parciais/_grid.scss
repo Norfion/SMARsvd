@@ -1,0 +1,810 @@
+// Grid das listagens — Common/src/components/table (antd Table size="small" bordered)
+// com os overrides de Common/scss/components/base/antd.overrides.scss e partials/actionbar.scss
+
+// Destaques que a grid da empresa herda do antd (ordenação, seleção e paginação)
+$grid-azul: #1890ff;
+$grid-borda: #d9d9d9;
+$grid-texto: rgba(0, 0, 0, 0.85);
+$grid-texto-desabilitado: rgba(0, 0, 0, 0.25);
+$grid-foco: #1abc9c;
+$grid-dica: #224b42;
+$grid-sombra-suspensa:
+  0 3px 6px -4px rgba(0, 0, 0, 0.12),
+  0 6px 16px 0 rgba(0, 0, 0, 0.08),
+  0 9px 28px 8px rgba(0, 0, 0, 0.05);
+
+// Barra de ações acima da grid
+.action-bar {
+  margin-top: 8px;
+  margin-bottom: 4px;
+  line-height: 1px;
+
+  > .float-right {
+    display: flex;
+    align-items: center;
+    margin-right: 5px;
+  }
+
+  .btn-custom,
+  .btn.btn-custom {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px !important;
+    min-width: 0;
+    margin: 2px;
+    padding: 0 10px;
+    font-size: 1em;
+    line-height: 1;
+    color: #fafafa;
+    background-color: $brand-primary;
+    border: 0;
+    @include arredondar(4px);
+    cursor: pointer;
+
+    &:hover,
+    &:focus,
+    &[aria-expanded="true"] {
+      color: #fafafa;
+      background-color: darken($brand-primary, 5%);
+      outline: none;
+      box-shadow: none;
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px rgba($brand-primary, 0.35);
+    }
+  }
+
+  .dropdown-toggle::after {
+    margin-left: 6px;
+  }
+
+  .dropdown,
+  .menu-acao-grid {
+    position: relative;
+  }
+
+  .dropdown-menu {
+    top: 100%;
+    margin: 2px 0 0;
+    border-top: 1px solid $borda-clara;
+    @include arredondar(4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      cursor: pointer;
+
+      i {
+        width: 14px;
+        color: $brand-primary;
+        text-align: center;
+      }
+    }
+  }
+}
+
+// Dica das ações e das células (tooltip do antd com a cor da empresa)
+.action-bar [data-dica]:hover::after {
+  content: attr(data-dica);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 1070;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: #fff;
+  background-color: $grid-dica;
+  @include arredondar(4px);
+  box-shadow: $grid-sombra-suspensa;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.action-bar [data-dica]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  z-index: 1071;
+  border: 4px solid transparent;
+  border-top-color: $grid-dica;
+  border-bottom: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tooltip-grid {
+  position: relative;
+  max-width: 320px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #fff;
+  white-space: normal;
+  word-wrap: break-word;
+  background-color: $grid-dica;
+  @include arredondar(4px);
+  box-shadow: $grid-sombra-suspensa;
+  transform: translate(-50%, calc(-100% - 30px));
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    border: 5px solid transparent;
+    border-top-color: $grid-dica;
+    border-bottom: 0;
+    transform: translateX(-50%);
+  }
+}
+
+// Painel suspenso das ações (Ordenação, Configuração Colunas, Ver Filtro)
+.painel-suspenso-grid {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 1050;
+  min-width: 240px;
+  max-width: 380px;
+  padding: 8px;
+  font-size: 14px;
+  line-height: 1.5715;
+  color: $grid-texto;
+  text-align: left;
+  background-color: #fff;
+  @include arredondar(2px);
+  box-shadow: $grid-sombra-suspensa;
+}
+
+.tabela-grid .painel-suspenso-grid-cabecalho {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+
+  h5 {
+    flex: 1;
+    padding: 0;
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: normal;
+    line-height: 1.5;
+  }
+}
+
+.link-grid {
+  padding: 0 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: $brand-primary;
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &:hover,
+  &:focus {
+    color: $grid-foco;
+    outline: none;
+  }
+}
+
+.lista-suspensa-grid {
+  max-height: 360px;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+
+  > li {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px 8px 8px;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  .lista-suspensa-grid-texto {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    font-size: 13px;
+
+    span {
+      color: #333;
+    }
+  }
+
+  .caixa-selecao-grid-rotulo {
+    white-space: nowrap;
+  }
+
+  .lista-suspensa-grid-vazia {
+    font-size: 13px;
+    color: $grid-texto-desabilitado;
+  }
+}
+
+// Menu de seleções do cabeçalho do checkbox (renderizado no body)
+.menu-suspenso-grid {
+  position: fixed;
+  z-index: 1060;
+  min-width: 140px;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+  background-color: #fff;
+  @include arredondar(2px);
+  box-shadow: $grid-sombra-suspensa;
+
+  button {
+    display: block;
+    width: 100%;
+    padding: 5px 12px;
+    font-family: $fonte-padrao;
+    font-size: 14px;
+    line-height: 22px;
+    color: $grid-texto;
+    text-align: left;
+    white-space: nowrap;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: background-color 0.3s;
+
+    &:hover,
+    &:focus {
+      background-color: #f5f5f5;
+      outline: none;
+    }
+  }
+}
+
+// Checkbox do antd
+.tabela-grid .caixa-selecao-grid.caixa-selecao-grid {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.5715;
+  color: $grid-texto;
+  cursor: pointer;
+
+  &.desabilitada {
+    cursor: not-allowed;
+  }
+}
+
+.caixa-selecao-grid-caixa {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  background-color: #fff;
+  border: 1px solid $grid-borda;
+  @include arredondar(2px);
+  transition: all 0.3s;
+
+  input {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  .caixa-selecao-grid-marca {
+    position: absolute;
+    top: 50%;
+    left: 21.5%;
+    display: table;
+    width: 5.71428571px;
+    height: 9.14285714px;
+    border: 2px solid #fff;
+    border-top: 0;
+    border-left: 0;
+    opacity: 0;
+    transform: rotate(45deg) scale(0) translate(-50%, -50%);
+    transition:
+      all 0.1s cubic-bezier(0.71, -0.46, 0.88, 0.6),
+      opacity 0.1s;
+  }
+
+  &.marcada {
+    background-color: $grid-azul;
+    border-color: $grid-azul;
+
+    .caixa-selecao-grid-marca {
+      opacity: 1;
+      transform: rotate(45deg) scale(1) translate(-50%, -50%);
+      transition: all 0.2s cubic-bezier(0.12, 0.4, 0.29, 1.46) 0.1s;
+    }
+  }
+
+  &.indeterminada .caixa-selecao-grid-marca {
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background-color: $grid-azul;
+    border: 0;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.caixa-selecao-grid:hover .caixa-selecao-grid-caixa,
+.caixa-selecao-grid-caixa:focus-within {
+  border-color: $grid-azul;
+}
+
+.caixa-selecao-grid-caixa:has(input:focus-visible) {
+  box-shadow: 0 0 0 2px rgba($grid-azul, 0.2);
+}
+
+.caixa-selecao-grid.desabilitada .caixa-selecao-grid-caixa {
+  background-color: #f5f5f5;
+  border-color: $grid-borda !important;
+}
+
+.caixa-selecao-grid-rotulo {
+  padding: 0 8px;
+}
+
+// Grid
+.tabela-grid {
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.42857143;
+
+  .tabela-grid-corpo {
+    width: 100%;
+  }
+
+  .ag-header-cell,
+  .ag-cell {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .ag-header-cell {
+    color: #fafafa;
+  }
+
+  .ag-cell {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: text !important;
+    cursor: text;
+  }
+
+  .ag-row-even:not(.ag-row-selected) {
+    background-color: #f9f9f9;
+  }
+
+  .ag-row-hover .ag-cell {
+    color: #fafafa;
+  }
+
+  .tabela-grid-vazia {
+    font-size: 13px;
+    color: #333;
+  }
+
+  .ag-popup-child:not(.ag-tooltip-custom) {
+    @include arredondar(2px);
+  }
+}
+
+// Cabeçalho da coluna
+.cabecalho-grid {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+
+  &.ordenavel {
+    cursor: pointer;
+  }
+
+  .cabecalho-grid-titulo {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cabecalho-grid-ordenacao {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 4px;
+    color: #bfbfbf;
+
+    i {
+      display: block;
+      height: 6px;
+      font-size: 12px;
+      line-height: 6px;
+      transition: color 0.3s;
+
+      &.ativo {
+        color: $grid-azul;
+      }
+    }
+
+    .fa-caret-down {
+      margin-top: 1px;
+    }
+  }
+
+  .cabecalho-grid-filtro {
+    display: flex;
+    align-items: center;
+    align-self: stretch;
+    margin: 0 -8px 0 4px;
+    padding: 0 6px;
+    font-size: 12px;
+    color: #fafafa;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover,
+    &:focus {
+      background-color: rgba(0, 0, 0, 0.04);
+      outline: none;
+    }
+
+    &.filtrado {
+      color: #050505;
+    }
+  }
+}
+
+// Coluna de seleção
+.cabecalho-coluna-selecao .ag-header-cell-comp-wrapper,
+.celula-coluna-selecao {
+  justify-content: center;
+}
+
+.celula-coluna-selecao .ag-cell-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.cabecalho-selecao-grid {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+
+  .cabecalho-selecao-grid-menu {
+    position: absolute;
+    top: 50%;
+    left: calc(50% + 10px);
+    padding: 0 2px;
+    font-size: 10px;
+    line-height: 1;
+    color: #bfbfbf;
+    background: none;
+    border: 0;
+    transform: translateY(-50%);
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+      color: rgba(0, 0, 0, 0.45);
+      outline: none;
+    }
+  }
+}
+
+// Filtro da coluna (Common/components/table/components/filters)
+.filtro-grid {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  padding: 8px;
+  font-size: 14px;
+  line-height: 1.5715;
+  color: $grid-texto;
+  background-color: #fff;
+
+  .filtro-grid-titulo {
+    margin-bottom: 5px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: $brand-primary;
+  }
+
+  .filtro-grid-rotulo {
+    margin-bottom: 2px;
+    font-size: 12px;
+  }
+
+  .filtro-grid-campo {
+    display: block;
+    width: 100%;
+    height: 30px;
+    padding: 0 7px;
+    margin-bottom: 8px;
+    font-family: $fonte-padrao;
+    font-size: 14px;
+    color: $grid-texto;
+    background-color: #fff;
+    border: 1px solid $grid-borda;
+    @include arredondar(4px);
+    transition: all 0.3s;
+
+    &:hover {
+      border-color: $grid-foco;
+    }
+
+    &:focus {
+      border-color: $grid-foco;
+      outline: 0;
+      box-shadow:
+        inset 0 1px 1px rgba(0, 0, 0, 0.075),
+        0 0 8px rgba(26, 188, 156, 0.6);
+    }
+
+    &:disabled {
+      color: $grid-texto-desabilitado;
+      background-color: #f5f5f5;
+      border-color: $grid-borda;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+  }
+
+  .caixa-selecao-grid.caixa-selecao-grid.caixa-selecao-grid {
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  .filtro-grid-lista {
+    display: flex;
+    flex-direction: column;
+    max-height: 370px;
+    overflow: auto;
+  }
+
+  .filtro-grid-botoes {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 2px;
+  }
+
+  .filtro-grid-botoes-cheios .botao-grid {
+    flex: 1;
+  }
+}
+
+// Botões small do antd usados no filtro
+.botao-grid {
+  min-width: 100px;
+  height: 24px;
+  padding: 0 7px;
+  font-family: $fonte-padrao;
+  font-size: 14px;
+  line-height: 1.5715;
+  color: #fff;
+  border: 1px solid transparent;
+  @include arredondar(2px);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+  &.botao-grid-cancelar {
+    background-color: #465f5a;
+    border-color: #465f5a;
+    @include arredondar(4px);
+
+    &:hover,
+    &:focus {
+      color: #fafafa;
+      background-color: #5c7c76;
+      border-color: #5c7c76;
+    }
+  }
+
+  &.botao-grid-primario {
+    background-color: $brand-primary;
+    border-color: $brand-primary;
+
+    &:hover,
+    &:focus {
+      background-color: $grid-foco;
+      border-color: $grid-foco;
+    }
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:disabled,
+  &:disabled:hover {
+    color: $grid-texto-desabilitado;
+    background-color: #f5f5f5;
+    border-color: $grid-borda;
+    cursor: not-allowed;
+  }
+}
+
+// Paginação do antd
+.paginacao-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+  margin: 16px 0 0;
+  font-size: 14px;
+  line-height: 1.5715;
+  color: $grid-texto;
+  list-style: none;
+
+  > li {
+    margin-right: 8px;
+  }
+
+  > li:last-child {
+    margin-right: 0;
+  }
+
+  .paginacao-grid-total {
+    font-size: 13px;
+    line-height: 1;
+    color: #333;
+  }
+
+  .paginacao-grid-item {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 6px;
+    font-family: $fonte-padrao;
+    font-size: 14px;
+    line-height: 30px;
+    color: $grid-texto;
+    text-align: center;
+    background-color: #fff;
+    border: 1px solid $grid-borda;
+    @include arredondar(2px);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s;
+
+    &:hover,
+    &:focus-visible {
+      color: $grid-azul;
+      border-color: $grid-foco;
+      outline: none;
+    }
+
+    &.ativo {
+      font-weight: 500;
+      color: $grid-azul;
+      border-color: $brand-primary;
+    }
+
+    &:disabled,
+    &:disabled:hover {
+      color: $grid-texto-desabilitado;
+      border-color: $grid-borda;
+      cursor: not-allowed;
+    }
+  }
+
+  .paginacao-grid-seta {
+    font-size: 10px;
+  }
+
+  .paginacao-grid-salto {
+    position: relative;
+    min-width: 32px;
+    height: 32px;
+    font-size: 12px;
+    color: $grid-texto-desabilitado;
+    letter-spacing: 2px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+
+    i {
+      display: none;
+      color: $grid-azul;
+      letter-spacing: 0;
+    }
+
+    &:hover,
+    &:focus-visible {
+      outline: none;
+
+      .paginacao-grid-reticencias {
+        display: none;
+      }
+
+      i {
+        display: inline;
+      }
+    }
+  }
+
+  .paginacao-grid-opcoes {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+  }
+
+  .paginacao-grid-tamanho {
+    height: 30px;
+    padding: 0 8px;
+    margin-right: 8px;
+    font-family: $fonte-padrao;
+    font-size: 14px;
+    color: $grid-texto;
+    background-color: #fff;
+    border: 1px solid $grid-borda;
+    @include arredondar(4px);
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+      border-color: $grid-foco;
+      outline: none;
+    }
+  }
+
+  .paginacao-grid-ir-para {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+
+    input {
+      width: 50px;
+      height: 32px;
+      padding: 4px 11px;
+      margin: 0 8px;
+      font-family: $fonte-padrao;
+      font-size: 14px;
+      color: $grid-texto;
+      border: 1px solid $grid-borda;
+      @include arredondar(2px);
+      transition: all 0.3s;
+
+      &:hover,
+      &:focus {
+        border-color: $grid-foco;
+        outline: none;
+      }
+    }
+  }
+}

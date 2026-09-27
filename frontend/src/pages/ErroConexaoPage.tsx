@@ -1,10 +1,11 @@
 import logoImg from "../assets/logo-smartb.png";
+import { NOME_SISTEMA } from "../constants/identificacaoSistema";
 
 export function ErroConexaoPage() {
   return (
     <div id="pagina-erro-conexao-banco" className="login-container">
       <div className="main-logo">
-        <img alt="SMARtb SVD" src={logoImg} />
+        <img alt={NOME_SISTEMA} src={logoImg} />
       </div>
 
       <div id="card-erro-conexao" className="form erro-conexao">

@@ -2,6 +2,7 @@ import axios from "axios";
 import { useState, type FormEvent } from "react";
 import { sessaoService } from "../services/sessaoService";
 import logoImg from "../assets/logo-smartb.png";
+import { NOME_MODULO, NOME_SISTEMA } from "../constants/identificacaoSistema";
 
 const DOMINIO_REDE = "SMARAPD.COM.BR";
 
@@ -53,11 +54,11 @@ export function ModalLogin({ aoAutenticar }: ModalLoginProps) {
   return (
     <div className="login-container">
       <div className="main-logo">
-        <img alt="SMARtb SVD" src={logoImg} />
+        <img alt={NOME_SISTEMA} src={logoImg} />
       </div>
 
       <form className="form" onSubmit={entrar} autoComplete="off">
-        <h2>Acesso ao SVD</h2>
+        <h2>{NOME_MODULO}</h2>
 
         <p className="mb-2" style={{ lineHeight: 1.5 }}>
           Informe o usuário e a senha da rede Windows (domínio{" "}

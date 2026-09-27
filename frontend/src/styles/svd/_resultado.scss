@@ -25,62 +25,23 @@
   align-items: flex-end;
   padding-top: 25px;
 
-  > .btn,
-  > .dropdown-hover {
+  > .btn {
     margin-bottom: 10px;
   }
 }
 
-.grid-resultado {
-  width: 100%;
-  height: 520px;
-
-  .ag-cell {
-    display: flex;
-    align-items: center;
-    user-select: text !important;
-    cursor: text;
+#grid-resultado {
+  .celula-divergente,
+  .celula-status-divergente {
+    color: $brand-danger;
   }
 
-  .ag-cell-value,
-  .ag-cell span {
-    user-select: text !important;
-  }
-
-  .celula-negrito {
-    font-weight: bold;
-  }
-
-  .celula-campo {
-    color: $brand-primary;
-    font-weight: bold;
-  }
-
-  .celula-esperado {
+  .celula-status-ok {
     color: darken($brand-success, 15%);
-    font-weight: bold;
-  }
-
-  .celula-divergente {
-    color: $brand-danger;
-    font-weight: bold;
-  }
-
-  .celula-divergente-texto {
-    color: $brand-danger;
-  }
-
-  .celula-secundaria {
-    color: #6c757d;
   }
 
   .ag-row-hover .ag-cell {
     color: #fafafa;
-  }
-
-  .badge {
-    font-size: 11px;
-    padding: 4px 8px;
   }
 }
 

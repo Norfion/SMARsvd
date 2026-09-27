@@ -303,6 +303,14 @@ export function App() {
         {abaAtiva === "resultado" && (
           <ResultadoPage
             resultadoAuditoria={resultadoAuditoria}
+            nomeCliente={
+              layoutsSalvos.find(
+                (layout) =>
+                  layout.nomeModelo ===
+                  (resultadoAuditoria?.LayoutUtilizado ??
+                    resultadoAuditoria?.layoutUtilizado),
+              )?.cliente
+            }
             onIrParaValidacao={() => setAbaAtiva("validacao")}
           ></ResultadoPage>
         )}
