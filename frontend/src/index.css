@@ -1,0 +1,667 @@
+/* ==========================================================================
+   1. TOKENS E VARIÁVEIS GLOBAIS DE ESTILO
+   ========================================================================== */
+:root {
+  /* Cores Institucionais SMAR (Verde-Petróleo) */
+  --smar-teal-primary: #009688;
+  --smar-teal-dark: #00796b;
+  --smar-teal-darker: #004d40;
+  --smar-teal-light: #e0f2f1;
+  --smar-teal-border: #b2dfdb;
+  --smar-teal-hover: #00897b;
+
+  /* Neutros e Tipografia */
+  --smar-navy: #1e2530;
+  --smar-text-primary: #263238;
+  --smar-text-secondary: #546e7a;
+  --smar-text-muted: #78909c;
+  --smar-text-label: #455a64;
+  --smar-text-body: #37474f;
+
+  /* Fundos e Superfícies */
+  --smar-bg-page: #f0f2f5;
+  --smar-bg-card: #ffffff;
+  --smar-bg-subtle: #f8fafc;
+  --smar-bg-alt: #f5f7f8;
+
+  /* Bordas */
+  --smar-border-color: #cfd8dc;
+  --smar-border-light: #eceff1;
+  --smar-border-dark: #b0bec5;
+
+  /* Estados e Alertas */
+  --smar-danger-text: #c62828;
+  --smar-danger-bg: #ffebee;
+  --smar-danger-border: #ffcdd2;
+  --smar-danger-dark: #b71c1c;
+
+  --smar-warning-text: #6d4c41;
+  --smar-warning-bg: #fff8e1;
+  --smar-warning-border: #ffe082;
+
+  --smar-success-text: #2e7d32;
+  --smar-success-bg: #e8f5e9;
+  --smar-success-border: #c8e6c9;
+  --smar-success-dark: #1b5e20;
+
+  /* Métricas */
+  --smar-radius: 4px;
+  --smar-radius-sm: 3px;
+  --smar-radius-lg: 8px;
+  --smar-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --smar-shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================================================
+   2. RESET E TIPOGRAFIA BASE
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family:
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Roboto",
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  background-color: var(--smar-bg-page);
+  color: var(--smar-text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Oculta os botões de incremento/decremento em inputs numéricos */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Barra de rolagem padronizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--smar-border-dark);
+  border-radius: var(--smar-radius);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--smar-text-muted);
+}
+
+/* Animação universal do Spinner */
+@keyframes smar-spinner {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   3. FORMULÁRIOS, LABELS E INPUTS
+   ========================================================================== */
+.smar-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--smar-text-label);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.smar-input,
+.smar-select {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--smar-radius);
+  border: 1px solid var(--smar-border-color);
+  height: 34px;
+  background-color: var(--smar-bg-card);
+  color: var(--smar-text-primary);
+  box-sizing: border-box;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.smar-input:focus,
+.smar-select:focus {
+  border-color: var(--smar-teal-primary);
+  box-shadow: 0 0 0 2px rgba(0, 150, 136, 0.15);
+}
+
+.smar-input:disabled,
+.smar-select:disabled {
+  background-color: #f5f5f5;
+  color: var(--smar-text-muted);
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   4. BOTÕES E AÇÕES
+   ========================================================================== */
+.smar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--smar-radius);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: none;
+  height: 32px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.05s ease;
+  white-space: nowrap;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.smar-btn:active {
+  transform: translateY(1px);
+}
+
+.smar-btn-primary {
+  background-color: var(--smar-teal-primary);
+  color: #ffffff;
+}
+.smar-btn-primary:hover:not(:disabled) {
+  background-color: var(--smar-teal-hover);
+}
+
+.smar-btn-secondary {
+  background-color: var(--smar-bg-card);
+  color: var(--smar-text-body);
+  border: 1px solid var(--smar-border-color);
+}
+.smar-btn-secondary:hover:not(:disabled) {
+  background-color: var(--smar-bg-alt);
+}
+
+.smar-btn-danger {
+  background-color: var(--smar-danger-bg);
+  color: var(--smar-danger-text);
+  border: 1px solid var(--smar-danger-border);
+}
+.smar-btn-danger:hover:not(:disabled) {
+  background-color: #ffcdd2;
+}
+
+.smar-btn-dark {
+  background-color: #37474f;
+  color: #ffffff;
+}
+.smar-btn-dark:hover:not(:disabled) {
+  background-color: #263238;
+}
+
+.smar-btn-save {
+  background-color: var(--smar-teal-dark);
+  color: #ffffff;
+  padding: 10px 22px;
+  font-size: 0.9rem;
+  height: 38px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+.smar-btn-save:hover:not(:disabled) {
+  background-color: var(--smar-teal-darker);
+}
+
+.smar-btn:disabled {
+  background-color: #b0bec5 !important;
+  color: #ffffff !important;
+  border-color: #b0bec5 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ==========================================================================
+   5. ACORDEÕES E COLAPSO DE CONTEÚDO
+   ========================================================================== */
+.smar-accordion {
+  background-color: var(--smar-bg-card);
+  border: 1px solid var(--smar-border-color);
+  border-radius: var(--smar-radius);
+  overflow: hidden;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.smar-accordion-header {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.smar-accordion-header.aberto {
+  background-color: var(--smar-teal-light);
+  border-bottom: 1px solid var(--smar-teal-border);
+}
+
+.smar-accordion-header.fechado {
+  background-color: var(--smar-bg-subtle);
+  border-bottom: none;
+}
+
+.smar-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.smar-accordion-title strong {
+  font-size: 0.9rem;
+}
+.smar-accordion-header.aberto .smar-accordion-title strong {
+  color: var(--smar-teal-dark);
+}
+.smar-accordion-header.fechado .smar-accordion-title strong {
+  color: var(--smar-text-primary);
+}
+
+.smar-accordion-icon {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.smar-accordion-header.aberto .smar-accordion-icon {
+  color: var(--smar-teal-dark);
+}
+.smar-accordion-header.fechado .smar-accordion-icon {
+  color: var(--smar-text-secondary);
+}
+
+.smar-accordion-content-wrapper {
+  transition:
+    max-height 0.35s ease,
+    opacity 0.25s ease,
+    padding 0.35s ease;
+  overflow: hidden;
+}
+
+.smar-accordion-content-open {
+  max-height: 2200px;
+  opacity: 1;
+  padding: 16px;
+}
+
+.smar-accordion-content-closed {
+  max-height: 0;
+  opacity: 0;
+  padding: 0 16px;
+}
+
+/* ==========================================================================
+   6. CARDS, SEÇÕES E DROPDOWNS
+   ========================================================================== */
+.smar-card {
+  background-color: var(--smar-bg-card);
+  border: 1px solid var(--smar-border-color);
+  border-radius: var(--smar-radius);
+  box-shadow: var(--smar-shadow-card);
+  overflow: hidden;
+}
+
+.smar-card-header-teal {
+  background-color: var(--smar-teal-light);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--smar-teal-border);
+  color: var(--smar-teal-dark);
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.smar-card-header-gray {
+  background-color: var(--smar-bg-alt);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--smar-border-color);
+  color: var(--smar-text-label);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.smar-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--smar-bg-card);
+  border: 1px solid var(--smar-border-dark);
+  border-radius: var(--smar-radius);
+  box-shadow: var(--smar-shadow-popover);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.smar-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--smar-border-light);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--smar-text-body);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.smar-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.smar-dropdown-item:hover {
+  background-color: var(--smar-bg-alt);
+  color: var(--smar-teal-dark);
+}
+
+.smar-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px solid var(--smar-border-color);
+}
+
+/* ==========================================================================
+   7. AVISOS, ALERTAS E SWITCH
+   ========================================================================== */
+.smar-alert {
+  border-radius: var(--smar-radius);
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  box-sizing: border-box;
+}
+
+.smar-alert-warning {
+  background-color: var(--smar-warning-bg);
+  border: 1px solid var(--smar-warning-border);
+  color: var(--smar-warning-text);
+}
+
+.smar-alert-info {
+  background-color: var(--smar-teal-light);
+  border: 1px solid var(--smar-teal-border);
+  color: var(--smar-teal-darker);
+}
+
+.smar-alert-danger {
+  background-color: var(--smar-danger-bg);
+  border: 1px solid var(--smar-danger-border);
+  color: var(--smar-danger-text);
+}
+
+.smar-alert-success {
+  background-color: var(--smar-success-bg);
+  border: 1px solid var(--smar-success-border);
+  color: var(--smar-success-text);
+}
+
+.smar-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.smar-switch-on {
+  background-color: var(--smar-teal-dark);
+}
+
+.smar-switch-off {
+  background-color: var(--smar-text-muted);
+}
+
+.smar-switch-thumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.smar-switch-on .smar-switch-thumb {
+  transform: translateX(20px);
+}
+
+.smar-switch-off .smar-switch-thumb {
+  transform: translateX(0px);
+}
+
+/* ==========================================================================
+   8. TABELAS E BLOQUEIOS DE TELA
+   ========================================================================== */
+.smar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.smar-table th {
+  background-color: var(--smar-teal-primary);
+  color: #ffffff;
+  text-align: left;
+  padding: 6px 8px;
+  font-weight: 700;
+}
+
+.smar-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--smar-border-light);
+  background-color: #ffffff;
+}
+
+.smar-overlay-loading {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: wait;
+  user-select: none;
+}
+
+.smar-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 4px solid var(--smar-teal-light);
+  border-top: 4px solid var(--smar-teal-dark);
+  animation: smar-spinner 0.85s linear infinite;
+}
+
+.smar-status-card {
+  background-color: var(--smar-bg-card);
+  border: 1px solid var(--smar-border-color);
+  border-radius: var(--smar-radius-lg);
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  min-width: 320px;
+  max-width: 400px;
+}
+
+/* ==========================================================================
+   9. CARDS DE KPIS (RESULTADO) E TELA DE ERRO DE CONEXÃO
+   ========================================================================== */
+.smar-kpi-card {
+  border-radius: var(--smar-radius);
+  padding: 12px;
+  border: 1px solid var(--smar-border-color);
+}
+
+.smar-kpi-card-teal {
+  background-color: var(--smar-teal-light);
+  border-color: var(--smar-teal-border);
+}
+.smar-kpi-card-teal .smar-kpi-title {
+  color: var(--smar-teal-darker);
+}
+.smar-kpi-card-teal .smar-kpi-value {
+  color: var(--smar-teal-dark);
+}
+
+.smar-kpi-card-green {
+  background-color: var(--smar-success-bg);
+  border-color: var(--smar-success-border);
+}
+.smar-kpi-card-green .smar-kpi-title {
+  color: var(--smar-success-dark);
+}
+.smar-kpi-card-green .smar-kpi-value {
+  color: var(--smar-success-text);
+}
+
+.smar-kpi-card-red {
+  background-color: var(--smar-danger-bg);
+  border-color: var(--smar-danger-border);
+}
+.smar-kpi-card-red .smar-kpi-title {
+  color: var(--smar-danger-dark);
+}
+.smar-kpi-card-red .smar-kpi-value {
+  color: var(--smar-danger-text);
+}
+
+.smar-kpi-card-gray {
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+}
+.smar-kpi-card-gray .smar-kpi-title {
+  color: #757575;
+}
+.smar-kpi-card-gray .smar-kpi-value {
+  color: #9e9e9e;
+}
+
+.smar-kpi-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: block;
+}
+
+.smar-kpi-value {
+  margin: 4px 0 0 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.smar-error-card {
+  max-width: 580px;
+  width: 100%;
+  background-color: var(--smar-bg-card);
+  border-radius: var(--smar-radius-lg);
+  border: 1px solid var(--smar-border-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 36px 32px;
+  text-align: center;
+}
+
+.smar-error-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 20px auto;
+  background-color: var(--smar-danger-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--smar-danger-text);
+  font-size: 2rem;
+  border: 1px solid var(--smar-danger-border);
+}
+
+.smar-error-callout {
+  background-color: #fafafa;
+  border-left: 4px solid var(--smar-danger-text);
+  border-top: 1px solid #eeeeee;
+  border-right: 1px solid #eeeeee;
+  border-bottom: 1px solid #eeeeee;
+  padding: 14px 16px;
+  text-align: left;
+  margin-bottom: 28px;
+  border-radius: 0 var(--smar-radius) var(--smar-radius) 0;
+}
+
+/* ==========================================================================
+   10. IMPRESSÃO
+   ========================================================================== */
+@media print {
+  body {
+    background-color: #ffffff !important;
+  }
+  #cabecalho-principal-empresa,
+  #barra-navegacao-fitas,
+  .area-botoes-resultado {
+    display: none !important;
+  }
+  #painel-resultado-auditoria {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}

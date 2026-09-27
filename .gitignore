@@ -1,0 +1,57 @@
+# =========================================
+# Node / React / Vite (Frontend)
+# =========================================
+frontend/node_modules/
+frontend/dist/
+frontend/.vscode/
+frontend/.env.local
+frontend/.env.*.local
+frontend/.vite/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================================
+# .NET / C# (Backend)
+# =========================================
+**/bin/
+**/obj/
+**/.vs/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+TestResults/
+*.nupkg
+
+# Configurações locais da API que não devem ser versionadas se contiverem senhas
+backend/SMARsvd.API/appsettings.Production.json
+
+# =========================================
+# Banco de Dados Local (SQLite)
+# =========================================
+# Ignora arquivos de banco, logs temporários (WAL) e a pasta local de dados
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+database/*.db
+database/*.db-shm
+database/*.db-wal
+database/temp/
+
+# =========================================
+# Sistema Operacional / Arquivos Temporários
+# =========================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# =========================================
+# Arquivos e Diretórios de Testes Locais
+# =========================================
+tests/
