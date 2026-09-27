@@ -5,7 +5,11 @@
   </ItemGroup>
 
   <PropertyGroup>
+<<<<<<< HEAD
     <TargetFramework>net6.0</TargetFramework>
+=======
+    <TargetFramework>net10.0</TargetFramework>
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

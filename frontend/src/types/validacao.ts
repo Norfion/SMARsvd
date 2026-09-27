@@ -74,6 +74,7 @@ export interface ValidacaoDetalhadaItem {
   Mensagem?: string;
 }
 
+<<<<<<< HEAD
 export interface FalhaProcessamentoItem {
   origem?: string;
   Origem?: string;
@@ -100,6 +101,8 @@ export interface FalhaProcessamentoItem {
   DataHora?: string | null;
 }
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 export interface ResultadoValidacaoLote {
   nomeArquivo?: string;
   NomeArquivo?: string;
@@ -125,12 +128,18 @@ export interface ResultadoValidacaoLote {
   guiasComInconsistencia?: number;
   GuiasComInconsistencia?: number;
 
+<<<<<<< HEAD
   percentualAmostragem?: number;
   PercentualAmostragem?: number;
+=======
+  amostragem?: number;
+  Amostragem?: number;
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
   usouOcr?: boolean;
   UsouOcr?: boolean;
 
+<<<<<<< HEAD
   dataHoraInicio?: string | null;
   DataHoraInicio?: string | null;
 
@@ -140,6 +149,8 @@ export interface ResultadoValidacaoLote {
   falhas?: FalhaProcessamentoItem[];
   Falhas?: FalhaProcessamentoItem[];
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   inconsistencias?: InconsistenciaItem[];
   Inconsistencias?: InconsistenciaItem[];
 

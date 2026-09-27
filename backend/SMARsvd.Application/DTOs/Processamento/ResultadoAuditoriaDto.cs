@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 using System;
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 using System.Collections.Generic;
 
 namespace SMARsvd.Application.DTOs.Processamento;
 
+<<<<<<< HEAD
 public class FalhaProcessamentoDto
 {
     public string Origem { get; set; } = string.Empty;
@@ -15,6 +19,8 @@ public class FalhaProcessamentoDto
     public DateTime? DataHora { get; set; }
 }
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 public class InconsistenciaItemDto
 {
     public int PaginaExtraido { get; set; }
@@ -31,6 +37,7 @@ public class ResultadoAuditoriaDto
     public int TotalDocumentosAnalisados { get; set; }
     public int DocumentosValidos { get; set; }
     public int DocumentosComInconsistencia { get; set; }
+<<<<<<< HEAD
     public decimal PercentualAmostragem { get; set; }
     public bool UsouOcr { get; set; }
 
@@ -38,6 +45,11 @@ public class ResultadoAuditoriaDto
     public DateTime DataHoraFim { get; set; }
 
     public List<FalhaProcessamentoDto> Falhas { get; set; } = new();
+=======
+    public decimal Amostragem { get; set; }
+    public bool UsouOcr { get; set; }
+
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     public List<InconsistenciaItemDto> Inconsistencias { get; set; } = new();
     public List<ValidacaoDetalhadaDto> Validacoes { get; set; } = new();
 }

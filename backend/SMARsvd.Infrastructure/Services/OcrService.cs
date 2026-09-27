@@ -7,7 +7,10 @@ using SMARsvd.Application.Interfaces;
 using Tesseract;
 using Docnet.Core;
 using Docnet.Core.Models;
+<<<<<<< HEAD
 using Docnet.Core.Readers;
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -22,6 +25,7 @@ public class OcrService : IOcrService, IDisposable
     private readonly bool _ocrEnabled;
     private static readonly object _syncLock = new();
 
+<<<<<<< HEAD
     // Documento e última página renderizada ficam em cache: vários campos da mesma página
     // reaproveitam a renderização e o PDF não é reaberto a cada chamada.
     private readonly object _renderLock = new();
@@ -32,6 +36,8 @@ public class OcrService : IOcrService, IDisposable
     private int _larguraPaginaRenderizada;
     private int _alturaPaginaRenderizada;
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     public OcrService(IConfiguration configuration, ILogger<OcrService> logger)
     {
         _configuration = configuration;
@@ -49,8 +55,11 @@ public class OcrService : IOcrService, IDisposable
             try
             {
                 _engine = new TesseractEngine(tessDataPath, language, EngineMode.Default);
+<<<<<<< HEAD
                 // Sem isso o Tesseract imprime estatísticas no console a cada região, degradando lotes grandes
                 _engine.SetVariable("debug_file", OperatingSystem.IsWindows() ? "NUL" : "/dev/null");
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 _logger.LogInformation("Tesseract OCR inicializado com sucesso no caminho: {Path}", tessDataPath);
             }
             catch (Exception ex)
@@ -97,9 +106,25 @@ public class OcrService : IOcrService, IDisposable
 
         try
         {
+<<<<<<< HEAD
             // 1. Renderiza a página preservando a proporção de 300 DPI (~11.81 px/mm)
             // Para A4: Retrato (2480x3508) ou Paisagem (3508x2480)
             var (rawBytes, renderWidth, renderHeight) = RenderizarPagina(caminhoArquivo, numeroPagina);
+=======
+            byte[] rawBytes;
+            int renderWidth;
+            int renderHeight;
+
+            // 1. Renderiza a página preservando a proporção de 300 DPI (~11.81 px/mm)
+            // Para A4: Retrato (2480x3508) ou Paisagem (3508x2480)
+            using (var docReader = DocLib.Instance.GetDocReader(caminhoArquivo, new PageDimensions(3508, 3508)))
+            {
+                using var pageReader = docReader.GetPageReader(numeroPagina - 1);
+                rawBytes = pageReader.GetImage();
+                renderWidth = pageReader.GetPageWidth();
+                renderHeight = pageReader.GetPageHeight();
+            }
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
             if (renderWidth <= 0 || renderHeight <= 0 || rawBytes == null || rawBytes.Length == 0)
                 return string.Empty;
@@ -184,6 +209,7 @@ public class OcrService : IOcrService, IDisposable
         }
     }
 
+<<<<<<< HEAD
     private (byte[] Bytes, int Largura, int Altura) RenderizarPagina(string caminhoArquivo, int numeroPagina)
     {
         lock (_renderLock)
@@ -234,6 +260,10 @@ public class OcrService : IOcrService, IDisposable
         {
             FecharDocumento();
         }
+=======
+    public void Dispose()
+    {
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         _engine?.Dispose();
     }
 }

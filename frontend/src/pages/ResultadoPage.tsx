@@ -3,9 +3,13 @@ import type {
   ResultadoValidacaoLote,
   InconsistenciaItem,
   ValidacaoDetalhadaItem,
+<<<<<<< HEAD
   FalhaProcessamentoItem,
 } from "../types/validacao";
 import { ModalFalhasProcessamento } from "../components/ModalFalhasProcessamento";
+=======
+} from "../types/validacao";
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { AgGridReact } from "ag-grid-react";
@@ -72,6 +76,7 @@ const AG_GRID_LOCALE_BR = {
   loadingOoo: "Carregando...",
 };
 
+<<<<<<< HEAD
 function formatarDuracao(ms: number): string {
   if (ms < 1000) return `${Math.round(ms)} ms`;
 
@@ -95,12 +100,17 @@ function converterData(valor?: string | null): Date | null {
   return isNaN(data.getTime()) ? null : data;
 }
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 export function ResultadoPage({
   resultadoAuditoria,
   onIrParaValidacao,
 }: ResultadoPageProps) {
   const [menuExportarAberto, setMenuExportarAberto] = useState(false);
+<<<<<<< HEAD
   const [modalFalhasAberto, setModalFalhasAberto] = useState(false);
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
   const nomeArquivo =
     resultadoAuditoria?.NomeArquivo ??
@@ -135,9 +145,13 @@ export function ResultadoPage({
     0;
 
   const percentual =
+<<<<<<< HEAD
     resultadoAuditoria?.PercentualAmostragem ??
     resultadoAuditoria?.percentualAmostragem ??
     100;
+=======
+    resultadoAuditoria?.Amostragem ?? resultadoAuditoria?.amostragem ?? 100;
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   const ehIntegral = percentual === 100;
   const usouOcr =
     resultadoAuditoria?.UsouOcr ?? resultadoAuditoria?.usouOcr ?? false;
@@ -150,6 +164,7 @@ export function ResultadoPage({
     ? `${textoAmostragemBase} [Extração via OCR/IA]`
     : textoAmostragemBase;
 
+<<<<<<< HEAD
   const dataHoraInicio = converterData(
     resultadoAuditoria?.DataHoraInicio ?? resultadoAuditoria?.dataHoraInicio,
   );
@@ -175,6 +190,8 @@ export function ResultadoPage({
   const falhasProcessamento: FalhaProcessamentoItem[] =
     resultadoAuditoria?.Falhas ?? resultadoAuditoria?.falhas ?? [];
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   const itensExibicao = useMemo<ItemTabelaExibicao[]>(() => {
     const listaValidacoesCompletas: ValidacaoDetalhadaItem[] =
       resultadoAuditoria?.Validacoes ?? resultadoAuditoria?.validacoes ?? [];
@@ -369,7 +386,10 @@ export function ResultadoPage({
     linhas.push(`Arquivo Analisado;${nomeArquivo}`);
     linhas.push(`Layout Utilizado;${layoutUtilizado}`);
     linhas.push(`Base de Dados;${baseDados}`);
+<<<<<<< HEAD
     linhas.push(`Tempo de Processamento;${textoTempoCompleto}`);
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     linhas.push(`Método de Validação;${textoAmostragem}`);
     if (usouOcr) {
       linhas.push(
@@ -444,10 +464,13 @@ export function ResultadoPage({
         <Cell><Data ss:Type="String">${escaparXml(baseDados)}</Data></Cell>
       </Row>
       <Row>
+<<<<<<< HEAD
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Tempo de Processamento:</Data></Cell>
         <Cell><Data ss:Type="String">${escaparXml(textoTempoCompleto)}</Data></Cell>
       </Row>
       <Row>
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Método de Validação:</Data></Cell>
         <Cell><Data ss:Type="String">${escaparXml(textoAmostragem)}</Data></Cell>
       </Row>`;
@@ -577,19 +600,31 @@ export function ResultadoPage({
     doc.text(`Arquivo Analisado: ${nomeArquivo}`, 14, 25);
     doc.text(`Layout Utilizado: ${layoutUtilizado}`, 14, 30);
     doc.text(`Base de Dados: ${baseDados}`, 14, 35);
+<<<<<<< HEAD
     doc.text(`Tempo de Processamento: ${textoTempoCompleto}`, 14, 40);
     doc.text(`Método: ${textoAmostragem}`, 14, 45);
 
     let posicaoYCards = 50;
+=======
+    doc.text(`Método: ${textoAmostragem}`, 14, 40);
+
+    let posicaoYCards = 45;
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     if (usouOcr) {
       doc.setFontSize(7.5);
       doc.setTextColor(198, 40, 40);
       doc.text(
         "Nota: Foi usada extração de dados via IA. A IA pode cometer erros.",
         14,
+<<<<<<< HEAD
         49,
       );
       posicaoYCards = 53;
+=======
+        44,
+      );
+      posicaoYCards = 48;
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     }
 
     doc.setFillColor(224, 242, 241);
@@ -811,6 +846,7 @@ export function ResultadoPage({
             <span>
               Base de Dados: <strong>{baseDados}</strong>
             </span>
+<<<<<<< HEAD
             <span id="info-tempo-processamento">
               Tempo de processamento:{" "}
               <strong>{textoTempoProcessamento}</strong>
@@ -822,6 +858,12 @@ export function ResultadoPage({
         </div>
 
         {/* ÁREA DE AÇÕES: FALHAS E EXPORTAR */}
+=======
+          </div>
+        </div>
+
+        {/* ÁREA DE AÇÕES: EXPORTAR */}
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         <div
           className="area-botoes-resultado"
           style={{
@@ -831,6 +873,7 @@ export function ResultadoPage({
             flexWrap: "wrap",
           }}
         >
+<<<<<<< HEAD
           {falhasProcessamento.length > 0 && (
             <button
               type="button"
@@ -842,6 +885,8 @@ export function ResultadoPage({
             </button>
           )}
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
           <div
             style={{ position: "relative" }}
             onMouseEnter={() => setMenuExportarAberto(true)}
@@ -990,12 +1035,15 @@ export function ResultadoPage({
           ></AgGridReact>
         </div>
       )}
+<<<<<<< HEAD
 
       <ModalFalhasProcessamento
         aberto={modalFalhasAberto}
         falhas={falhasProcessamento}
         aoFechar={() => setModalFalhasAberto(false)}
       />
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     </div>
   );
 }

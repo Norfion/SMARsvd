@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import axios from "axios";
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 import type { LayoutCliente } from "./types/layout";
 import type { ResultadoValidacaoLote } from "./types/validacao";
 import { useState, useEffect } from "react";
@@ -9,17 +12,21 @@ import { layoutService } from "./services/layoutService";
 import { logService } from "./services/logService";
 import { ErroConexaoPage } from "./pages/ErroConexaoPage";
 import { ModalInformativo } from "./components/ModalInformativo";
+<<<<<<< HEAD
 import { ModalLogin } from "./components/ModalLogin";
 import {
   INTERVALO_HEARTBEAT_MS,
   sessaoService,
 } from "./services/sessaoService";
 import { tokenSessao } from "./services/tokenSessao";
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 import logoImg from "./assets/logo-smartb.png";
 
 type AbaNavegacao = "parametrizacao" | "validacao" | "resultado";
 
 export function App() {
+<<<<<<< HEAD
   const [usuarioLogado, setUsuarioLogado] = useState<string | null>(null);
 
   // Ao recarregar a página, a sessão salva na aba é revalidada antes de exibir o login
@@ -30,6 +37,8 @@ export function App() {
   const [modalConfirmarSaidaAberto, setModalConfirmarSaidaAberto] =
     useState<boolean>(false);
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   const [abaAtiva, setAbaAtiva] = useState<AbaNavegacao>("validacao");
 
   // Controla se o sistema está sem comunicação com o banco de dados
@@ -89,6 +98,7 @@ export function App() {
     return () => window.removeEventListener("error", capturarErroGlobal);
   }, []);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (!tokenSessao.obter()) return;
 
@@ -139,6 +149,10 @@ export function App() {
   useEffect(() => {
     if (!usuarioLogado) return;
 
+=======
+  // Carrega os layouts salvos no banco de dados ao iniciar a aplicação
+  useEffect(() => {
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     layoutService
       .listarTodos()
       .then((dados) => {
@@ -149,15 +163,20 @@ export function App() {
       })
       .catch((erro: unknown) => {
         console.error("Falha ao carregar layouts da API:", erro);
+<<<<<<< HEAD
         const sessaoRecusada =
           axios.isAxiosError(erro) && erro.response?.status === 401;
         if (!sessaoRecusada) {
           setErroConexaoBanco(true);
         }
+=======
+        setErroConexaoBanco(true);
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       })
       .finally(() => {
         setCarregando(false);
       });
+<<<<<<< HEAD
   }, [usuarioLogado]);
 
   const lidarComLoginConcluido = (usuario: string) => {
@@ -174,6 +193,9 @@ export function App() {
     setLayoutsSalvos([]);
     setTemAlteracoesPendentesParametrizacao(false);
   };
+=======
+  }, []);
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
   // Centraliza o salvamento de layouts no backend
   const lidarComSalvarLayouts = async (novosLayouts: LayoutCliente[]) => {
@@ -245,6 +267,7 @@ export function App() {
     return <ErroConexaoPage></ErroConexaoPage>;
   }
 
+<<<<<<< HEAD
   if (verificandoSessao) {
     return null;
   }
@@ -257,6 +280,8 @@ export function App() {
     );
   }
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   return (
     <div
       id="root-app"
@@ -404,6 +429,7 @@ export function App() {
             </span>
           </div>
         </div>
+<<<<<<< HEAD
 
         <div
           style={{
@@ -435,6 +461,8 @@ export function App() {
             <span>Sair</span>
           </button>
         </div>
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       </header>
 
       {/* FITA DE NAVEGAÇÃO / BREADCRUMB: Configurações > Validação > Resultado */}
@@ -602,6 +630,7 @@ export function App() {
         }}
       ></ModalInformativo>
 
+<<<<<<< HEAD
       {/* MODAL DE CONFIRMAÇÃO PARA SAIR DO SISTEMA */}
       <ModalInformativo
         aberto={modalConfirmarSaidaAberto}
@@ -617,6 +646,8 @@ export function App() {
         aoFechar={() => setModalConfirmarSaidaAberto(false)}
       ></ModalInformativo>
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       {/* MODAL DE SUCESSO AO CONCLUIR VALIDAÇÃO */}
       <ModalInformativo
         aberto={modalSucessoValidacaoAberto}

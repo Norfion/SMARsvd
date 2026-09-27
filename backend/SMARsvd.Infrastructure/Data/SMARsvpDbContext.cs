@@ -56,8 +56,11 @@ public class SMARsvdDbContext : DbContext
             entity.Property(e => e.TextoEsperadoPagina).HasMaxLength(250);
             entity.Property(e => e.IdentificadorPagina).HasMaxLength(100);
             entity.Property(e => e.IdentificadorAnterior).HasMaxLength(150);
+<<<<<<< HEAD
             entity.Property(e => e.IdentificadorPosterior).HasMaxLength(150);
             entity.Property(e => e.TipoDado).IsRequired();
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         });
 
         modelBuilder.Entity<QueryValidacao>(entity =>

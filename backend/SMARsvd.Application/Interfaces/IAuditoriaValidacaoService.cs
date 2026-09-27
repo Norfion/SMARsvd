@@ -25,6 +25,10 @@ public interface IAuditoriaValidacaoService
         LayoutClienteDto layout,
         string nomeArquivo,
         bool utilizouOcr,
+<<<<<<< HEAD
         string pastaTemp,
         DateTime? inicioProcessamento = null);
+=======
+        string pastaTemp);
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 }

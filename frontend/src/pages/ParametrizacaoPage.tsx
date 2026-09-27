@@ -2,6 +2,7 @@ import {
   ModalInformativo,
   type TipoModalInformativo,
 } from "../components/ModalInformativo";
+<<<<<<< HEAD
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SqlCodeEditor } from "../components/SqlCodeEditor";
 import { processarArquivoPdfModelo } from "../utils/pdfModelReader";
@@ -10,11 +11,19 @@ import {
   OPCOES_TIPO_DADO,
   TipoClassificacaoCampo,
   TipoDadoCampo,
+=======
+import { useState, useRef, useEffect } from "react";
+import { SqlCodeEditor } from "../components/SqlCodeEditor";
+import { processarArquivoPdfModelo } from "../utils/pdfModelReader";
+import {
+  TipoClassificacaoCampo,
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   type RegiaoCampo,
   type LayoutCliente,
   type QueryValidacao,
   type RegraValidacao,
 } from "../types/layout";
+<<<<<<< HEAD
 import { layoutService } from "../services/layoutService";
 
 const COMANDOS_BLOQUEADOS =
@@ -42,6 +51,8 @@ const verificarSomenteSelect = (sql: string): string | null => {
 
   return null;
 };
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
 interface ParametrizacaoPageProps {
   layoutsSalvos: LayoutCliente[];
@@ -173,6 +184,7 @@ export function ParametrizacaoPage({
   const [textoEsperadoPagina, setTextoEsperadoPagina] = useState("");
   const [identificadorPagina, setIdentificadorPagina] = useState("");
   const [identificadorAnterior, setIdentificadorAnterior] = useState("");
+<<<<<<< HEAD
   const [identificadorPosterior, setIdentificadorPosterior] = useState("");
   const [tipoDado, setTipoDado] = useState<TipoDadoCampo>(TipoDadoCampo.Texto);
 
@@ -187,28 +199,44 @@ export function ParametrizacaoPage({
 
     const lidarComRodaMouse = (e: WheelEvent) => {
       if (!e.ctrlKey) return;
+=======
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+
+  const lidarComRodaMouse = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.ctrlKey) {
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       e.preventDefault();
       const delta = e.deltaY < 0 ? 10 : -10;
       setZoomNivel((nivelAtual) =>
         Math.min(300, Math.max(50, nivelAtual + delta)),
       );
+<<<<<<< HEAD
     };
 
     elemento.addEventListener("wheel", lidarComRodaMouse, { passive: false });
     removerListenerRodaMouseRef.current = () =>
       elemento.removeEventListener("wheel", lidarComRodaMouse);
   }, []);
+=======
+    }
+  };
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
   const [queries, setQueries] = useState<QueryValidacao[]>([]);
   const [queryEmEdicaoId, setQueryEmEdicaoId] = useState<string | null>(null);
   const [nomeQuery, setNomeQuery] = useState("");
   const [sqlQuery, setSqlQuery] = useState("");
   const [sqlAnalisado, setSqlAnalisado] = useState(false);
+<<<<<<< HEAD
   const [analisandoSql, setAnalisandoSql] = useState(false);
   const sqlQueryAtualRef = useRef("");
   useEffect(() => {
     sqlQueryAtualRef.current = sqlQuery;
   }, [sqlQuery]);
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   const [parametrosEncontrados, setParametrosEncontrados] = useState<string[]>(
     [],
   );
@@ -598,8 +626,11 @@ export function ParametrizacaoPage({
     setTextoEsperadoPagina(campo.textoEsperadoPagina || "");
     setIdentificadorPagina(campo.identificadorPagina || "");
     setIdentificadorAnterior(campo.identificadorAnterior || "");
+<<<<<<< HEAD
     setIdentificadorPosterior(campo.identificadorPosterior || "");
     setTipoDado(campo.tipoDado ?? TipoDadoCampo.Texto);
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
     setRetanguloAtualMm({
       xMm: campo.xMm,
@@ -617,6 +648,7 @@ export function ParametrizacaoPage({
     setTextoEsperadoDocumento("");
     setTextoEsperadoPagina("");
     setIdentificadorPagina("");
+<<<<<<< HEAD
     limparConfiguracaoValor();
     setRetanguloAtualMm(null);
   };
@@ -625,12 +657,24 @@ export function ParametrizacaoPage({
     setIdentificadorAnterior("");
     setIdentificadorPosterior("");
     setTipoDado(TipoDadoCampo.Texto);
+=======
+    setIdentificadorAnterior("");
+    setRetanguloAtualMm(null);
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   };
 
   const mudarClassificacao = (novoTipo: TipoClassificacaoCampo) => {
     setTipoClassificacao(novoTipo);
+<<<<<<< HEAD
     if (novoTipo !== TipoClassificacaoCampo.Nenhum) {
       limparConfiguracaoValor();
+=======
+    if (novoTipo === TipoClassificacaoCampo.IdentificadorDocumento) {
+      setIdentificadorAnterior("");
+      setIdentificadorPagina("");
+    } else if (novoTipo === TipoClassificacaoCampo.IdentificadorPagina) {
+      setIdentificadorAnterior("");
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       setIdentificadorPagina("");
     }
   };
@@ -718,10 +762,15 @@ export function ParametrizacaoPage({
       }
     }
 
+<<<<<<< HEAD
     const ehCampoNormal = tipoClassificacao === TipoClassificacaoCampo.Nenhum;
 
     const payloadCampo: RegiaoCampo = {
       id: campoEmEdicaoId || gerarId(),
+=======
+    const payloadCampo: RegiaoCampo = {
+      id: campoEmEdicaoId || crypto.randomUUID(),
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       nomeCampo: nomeCampo.trim(),
       pagina: Number(paginaCampo),
       xMm: retanguloAtualMm.xMm,
@@ -737,6 +786,7 @@ export function ParametrizacaoPage({
         tipoClassificacao === TipoClassificacaoCampo.IdentificadorPagina
           ? textoEsperadoPagina.trim()
           : undefined,
+<<<<<<< HEAD
       identificadorPagina: ehCampoNormal
         ? identificadorPagina.trim()
         : undefined,
@@ -749,6 +799,17 @@ export function ParametrizacaoPage({
           ? identificadorPosterior.trim()
           : undefined,
       tipoDado: ehCampoNormal ? tipoDado : TipoDadoCampo.Texto,
+=======
+      identificadorPagina:
+        tipoClassificacao === TipoClassificacaoCampo.Nenhum
+          ? identificadorPagina.trim()
+          : undefined,
+      identificadorAnterior:
+        tipoClassificacao === TipoClassificacaoCampo.Nenhum &&
+        identificadorAnterior.trim()
+          ? identificadorAnterior.trim()
+          : undefined,
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     };
 
     const novosCampos = campoEmEdicaoId
@@ -793,10 +854,22 @@ export function ParametrizacaoPage({
       return { sucesso: false, params: [], retornos: [] };
     }
 
+<<<<<<< HEAD
     const motivoBloqueio = verificarSomenteSelect(texto);
     if (motivoBloqueio) {
       if (exibirAvisos) {
         exibirMensagem("aviso", "Bloqueio de Segurança", motivoBloqueio);
+=======
+    const comandosBloqueados =
+      /\b(UPDATE|DELETE|INSERT|EXEC|EXECUTE|DROP|ALTER|CREATE|TRUNCATE|MERGE)\b/i;
+    if (comandosBloqueados.test(texto)) {
+      if (exibirAvisos) {
+        exibirMensagem(
+          "aviso",
+          "Bloqueio de Segurança",
+          "São permitidas apenas consultas somente leitura (SELECT).",
+        );
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       }
       return { sucesso: false, params: [], retornos: [] };
     }
@@ -857,6 +930,7 @@ export function ParametrizacaoPage({
     return { sucesso: true, params: paramsUnicos, retornos: retsUnicos };
   };
 
+<<<<<<< HEAD
   const analisarQuerySQL = async () => {
     const textoSql = sqlQuery.trim();
     if (!textoSql) {
@@ -898,6 +972,10 @@ export function ParametrizacaoPage({
     }
 
     executarAnaliseSQL(textoSql, true);
+=======
+  const analisarQuerySQL = () => {
+    executarAnaliseSQL(sqlQuery, true);
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   };
 
   const adicionarRegraValidacao = () => {
@@ -910,7 +988,11 @@ export function ParametrizacaoPage({
       return;
     }
     const novaRegra: RegraValidacao = {
+<<<<<<< HEAD
       id: gerarId(),
+=======
+      id: crypto.randomUUID(),
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       campoRetornado: regraCampoRetornado,
       operador: regraOperador,
       campoCarne: regraCampoCarne,
@@ -941,7 +1023,11 @@ export function ParametrizacaoPage({
     }
 
     const payload: QueryValidacao = {
+<<<<<<< HEAD
       id: queryEmEdicaoId || gerarId(),
+=======
+      id: queryEmEdicaoId || crypto.randomUUID(),
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       nome: nomeQuery.trim(),
       sql: sqlQuery.trim(),
       parametrosEncontrados,
@@ -1012,9 +1098,12 @@ export function ParametrizacaoPage({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+<<<<<<< HEAD
           overflow: "visible",
           position: "relative",
           zIndex: 20,
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         }}
       >
         <div
@@ -1431,6 +1520,10 @@ export function ParametrizacaoPage({
               <div
                 id="caixa-viewport-documento"
                 ref={viewportRef}
+<<<<<<< HEAD
+=======
+                onWheel={lidarComRodaMouse}
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 style={{
                   width: "100%",
                   height: "560px",
@@ -1893,6 +1986,7 @@ export function ParametrizacaoPage({
                             display: "block",
                           }}
                         >
+<<<<<<< HEAD
                           Texto que precede o valor dentro da área. Se não for
                           localizado, o campo é considerado ausente.
                         </span>
@@ -1957,6 +2051,9 @@ export function ParametrizacaoPage({
                           {tipoDado === TipoDadoCampo.Texto
                             ? "Usa todo o texto entre os identificadores."
                             : "Usa o primeiro trecho no formato escolhido. Se nenhum for encontrado, o valor é marcado como inválido e as consultas que o utilizam não são executadas."}
+=======
+                          Texto que precede o valor dentro da área.
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         </span>
                       </div>
                     </>
@@ -2085,6 +2182,7 @@ export function ParametrizacaoPage({
                                   `Estrutura: ${c.identificadorPagina || "Sem vínculo"} • Pg ref: ${c.pagina} • ${c.larguraMm}x${c.alturaMm}mm`}
                                 {c.identificadorAnterior &&
                                   ` • [Pré: "${c.identificadorAnterior}"]`}
+<<<<<<< HEAD
                                 {c.identificadorPosterior &&
                                   ` • [Pós: "${c.identificadorPosterior}"]`}
                                 {!ehDocId &&
@@ -2092,6 +2190,8 @@ export function ParametrizacaoPage({
                                   c.tipoDado !== undefined &&
                                   c.tipoDado !== TipoDadoCampo.Texto &&
                                   ` • [Tipo: ${OPCOES_TIPO_DADO.find((o) => o.valor === c.tipoDado)?.rotulo ?? c.tipoDado}]`}
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                               </span>
                             </div>
                             <div style={{ display: "flex", gap: "4px" }}>
@@ -2234,10 +2334,16 @@ export function ParametrizacaoPage({
                 <button
                   type="button"
                   onClick={analisarQuerySQL}
+<<<<<<< HEAD
                   disabled={analisandoSql}
                   className="smar-btn smar-btn-dark"
                 >
                   <span>{analisandoSql ? "Analisando..." : "Analisar"}</span>
+=======
+                  className="smar-btn smar-btn-dark"
+                >
+                  <span>Analisar</span>
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 </button>
               </div>
               {sqlAnalisado && (

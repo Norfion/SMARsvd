@@ -16,15 +16,19 @@ export interface RespostaExtracaoApi {
         valorExtraido?: string;
         paginaExtraido?: number;
         extracaoMetodo?: string;
+<<<<<<< HEAD
         situacao?: "Ok" | "Ausente" | "Invalido";
         mensagemValidacao?: string;
         textoRegiao?: string;
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       }>;
     }>;
   };
   status?: string;
 }
 
+<<<<<<< HEAD
 export interface RespostaTesteConexaoApi {
   status?: string;
   inicioProcessamento?: string;
@@ -41,6 +45,9 @@ export const processamentoService = {
     return resposta.data;
   },
 
+=======
+export const processamentoService = {
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   extrair: async (
     arquivo: File,
     layoutId: string,
@@ -79,7 +86,10 @@ export const processamentoService = {
     layoutId: string,
     nomeArquivo: string,
     usouOcr: boolean,
+<<<<<<< HEAD
     inicioProcessamento?: string,
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   ): Promise<ResultadoValidacaoLote> => {
     const resposta = await api.post<ResultadoValidacaoLote>(
       "/processamento/validar-regras",
@@ -87,7 +97,10 @@ export const processamentoService = {
         layoutId,
         nomeArquivo: nomeArquivo || "arquivo_importado.pdf",
         usouOcr,
+<<<<<<< HEAD
         inicioProcessamento,
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       },
     );
     return resposta.data;

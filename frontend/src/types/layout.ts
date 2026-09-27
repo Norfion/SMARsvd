@@ -1,5 +1,6 @@
 export type TipoProvedorBanco = "SQL Server";
 
+<<<<<<< HEAD
 export type FormatoPapel = "A4" | "Carta" | "Personalizado";
 
 export type OrientacaoPagina = "Retrato" | "Paisagem";
@@ -36,6 +37,13 @@ export const OPCOES_TIPO_DADO: {
   { valor: TipoDadoCampo.CpfCnpj, rotulo: "CPF/CNPJ", exemplo: "123.456.789-00 ou 12.345.678/0001-90" },
   { valor: TipoDadoCampo.Cep, rotulo: "CEP", exemplo: "12345-678" },
 ];
+=======
+export enum TipoClassificacaoCampo {
+  Nenhum = 0,
+  IdentificadorDocumento = 1,
+  IdentificadorPagina = 2,
+}
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
 export interface RegiaoCampo {
   id: string;
@@ -58,12 +66,17 @@ export interface RegiaoCampo {
   // Vínculo para campo normal: nome do identificador de página
   identificadorPagina?: string;
 
+<<<<<<< HEAD
   // Identificadores anterior/posterior (somente para campo normal)
   identificadorAnterior?: string;
   identificadorPosterior?: string;
 
   // Formato esperado do valor (somente para campo normal)
   tipoDado?: TipoDadoCampo;
+=======
+  // Identificador anterior (somente para campo normal)
+  identificadorAnterior?: string;
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
   consultaSql?: string;
 }
 
@@ -83,6 +96,7 @@ export interface QueryValidacao {
   regras: RegraValidacao[];
 }
 
+<<<<<<< HEAD
 export interface ErroSql {
   linha: number;
   coluna: number;
@@ -94,6 +108,8 @@ export interface ResultadoValidacaoSql {
   erros: ErroSql[];
 }
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 // Configuração temporária preenchida apenas no momento da validação
 export interface ConfiguracaoBanco {
   provedor: TipoProvedorBanco;

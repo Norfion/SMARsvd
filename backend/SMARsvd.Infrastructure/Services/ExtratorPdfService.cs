@@ -1,10 +1,14 @@
 using System;
+<<<<<<< HEAD
 using System.Collections.Generic;
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 using System.Linq;
 using System.Threading.Tasks;
 using SMARsvd.Application.DTOs.Layout;
 using SMARsvd.Application.Interfaces;
 using UglyToad.PdfPig;
+<<<<<<< HEAD
 using UglyToad.PdfPig.Content;
 
 namespace SMARsvd.Infrastructure.Services;
@@ -45,15 +49,33 @@ public class ExtratorPdfService : IExtratorPdfService, IDisposable
     public Task<int> ObterTotalPaginasAsync(string caminhoArquivo)
     {
         return Task.FromResult(ObterDocumento(caminhoArquivo).NumberOfPages);
+=======
+
+namespace SMARsvd.Infrastructure.Services;
+
+public class ExtratorPdfService : IExtratorPdfService
+{
+    private const double FatorMmParaPontos = 72.0 / 25.4;
+
+    public Task<int> ObterTotalPaginasAsync(string caminhoArquivo)
+    {
+        using var pdf = PdfDocument.Open(caminhoArquivo);
+        return Task.FromResult(pdf.NumberOfPages);
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     }
 
     public Task<string?> ExtrairTextoDigitalRegiaoAsync(string caminhoArquivo, int numeroPagina, RegiaoCampoDto regiao)
     {
+<<<<<<< HEAD
         var pdf = ObterDocumento(caminhoArquivo);
+=======
+        using var pdf = PdfDocument.Open(caminhoArquivo);
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
         if (numeroPagina < 1 || numeroPagina > pdf.NumberOfPages)
             return Task.FromResult<string?>(null);
 
+<<<<<<< HEAD
         if (_palavrasEmCache == null || _paginaEmCache != numeroPagina)
         {
             var paginaPdf = pdf.GetPage(numeroPagina);
@@ -63,13 +85,22 @@ public class ExtratorPdfService : IExtratorPdfService, IDisposable
         }
 
         double alturaPaginaPt = _alturaPaginaEmCache;
+=======
+        var pagina = pdf.GetPage(numeroPagina);
+
+        double alturaPaginaPt = pagina.Height;
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         double xMinPt = (double)regiao.XMm * FatorMmParaPontos;
         double xMaxPt = ((double)regiao.XMm + (double)regiao.LarguraMm) * FatorMmParaPontos;
 
         double yTopPt = alturaPaginaPt - ((double)regiao.YMm * FatorMmParaPontos);
         double yBottomPt = yTopPt - ((double)regiao.AlturaMm * FatorMmParaPontos);
 
+<<<<<<< HEAD
         var palavras = _palavrasEmCache
+=======
+        var palavras = pagina.GetWords()
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
             .Where(w =>
             {
                 bool horizontalValida = w.BoundingBox.Right >= xMinPt && w.BoundingBox.Left <= xMaxPt;
@@ -105,6 +136,7 @@ public class ExtratorPdfService : IExtratorPdfService, IDisposable
 
         return Task.FromResult<string?>(string.IsNullOrWhiteSpace(textoExtraido) ? null : textoExtraido);
     }
+<<<<<<< HEAD
 
     public void LiberarArquivo(string caminhoArquivo)
     {
@@ -117,3 +149,6 @@ public class ExtratorPdfService : IExtratorPdfService, IDisposable
         FecharDocumento();
     }
 }
+=======
+}
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38

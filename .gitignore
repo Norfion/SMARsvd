@@ -41,7 +41,10 @@ backend/SMARsvd.API/appsettings.Production.json
 database/*.db
 database/*.db-shm
 database/*.db-wal
+<<<<<<< HEAD
 database/temp/
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
 # =========================================
 # Sistema Operacional / Arquivos Temporários

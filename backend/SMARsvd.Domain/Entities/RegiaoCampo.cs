@@ -28,12 +28,15 @@ public class RegiaoCampo
     // Campo normal: texto que precede o valor dentro da área demarcada
     public string? IdentificadorAnterior { get; set; }
 
+<<<<<<< HEAD
     // Campo normal: texto que encerra o valor dentro da área demarcada (opcional)
     public string? IdentificadorPosterior { get; set; }
 
     // Campo normal: formato esperado do valor; o primeiro trecho compatível é o valor extraído
     public TipoDadoCampo TipoDado { get; set; } = TipoDadoCampo.Texto;
 
+=======
+>>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     public string? ConsultaSql { get; set; }
 
     public LayoutCliente? LayoutCliente { get; set; }
