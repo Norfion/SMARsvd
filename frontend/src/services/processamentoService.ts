@@ -30,7 +30,29 @@ export interface RespostaTesteConexaoApi {
   inicioProcessamento?: string;
 }
 
+export interface SituacaoFilaProcessamento {
+  liberado: boolean;
+  naFila: boolean;
+  // Na fila: quantas validações serão atendidas até a do usuário (1 = a próxima).
+  // Fora dela: a posição que o usuário ocuparia se entrasse.
+  posicao: number;
+}
+
 export const processamentoService = {
+  entrarNaFila: async (
+    aguardarNaFila: boolean,
+  ): Promise<SituacaoFilaProcessamento> => {
+    const resposta = await api.post<SituacaoFilaProcessamento>(
+      "/processamento/fila/entrar",
+      { aguardarNaFila },
+    );
+    return resposta.data;
+  },
+
+  sairDaFila: async (): Promise<void> => {
+    await api.post("/processamento/fila/sair");
+  },
+
   testarConexao: async (
     conexaoBanco: ConfiguracaoBanco,
   ): Promise<RespostaTesteConexaoApi> => {

@@ -136,7 +136,7 @@ fieldset > .panel > .panel-heading {
   }
 
   .info-card-valor {
-    font-size: 15px;
+    font-size: 25px;
     font-weight: bold;
     color: #fff;
   }
@@ -199,6 +199,13 @@ fieldset > .panel > .panel-heading {
     color: #fff;
     font-size: 1.1em;
     margin-top: 15px;
+    max-width: 600px;
+    text-align: center;
+  }
+
+  > .btn {
+    margin-top: 20px;
+    cursor: pointer;
   }
 }
 

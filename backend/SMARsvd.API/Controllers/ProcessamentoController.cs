@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SMARsvd.API.Filters;
 using SMARsvd.API.Middlewares;
 using SMARsvd.API.Models;
 using SMARsvd.Application.DTOs.Layout;
@@ -24,6 +25,11 @@ public class EtapaProcessamentoRequest
     public DateTime? InicioProcessamento { get; set; }
 }
 
+public class EntrarFilaRequest
+{
+    public bool AguardarNaFila { get; set; }
+}
+
 [ApiController]
 [Route("api/[controller]")]
 public class ProcessamentoController : ControllerBase
@@ -32,6 +38,7 @@ public class ProcessamentoController : ControllerBase
     private readonly IAuditoriaValidacaoService _auditoriaService;
     private readonly IBancoDadosExecutorFactory _bancoFactory;
     private readonly IPastaTemporariaService _pastaTemporaria;
+    private readonly IFilaProcessamentoService _fila;
     private readonly SMARsvdDbContext _context;
 
     private static readonly JsonSerializerOptions OpcoesJson = new()
@@ -44,12 +51,14 @@ public class ProcessamentoController : ControllerBase
         IAuditoriaValidacaoService auditoriaService,
         IBancoDadosExecutorFactory bancoFactory,
         IPastaTemporariaService pastaTemporaria,
+        IFilaProcessamentoService fila,
         SMARsvdDbContext context)
     {
         _processadorService = processadorService;
         _auditoriaService = auditoriaService;
         _bancoFactory = bancoFactory;
         _pastaTemporaria = pastaTemporaria;
+        _fila = fila;
         _context = context;
     }
 
@@ -104,8 +113,39 @@ public class ProcessamentoController : ControllerBase
 
     private string ObterPastaTemp() => _pastaTemporaria.ObterPastaUsuario(HttpContext.ObterUsuarioSessao());
 
+    // Apenas um usuário processa por vez. Com aguardarNaFila = false, quem encontrar outra pessoa processando
+    // apenas é informado; o front-end chama novamente com true (e repete a chamada) para aguardar a vez.
+    [HttpPost("fila/entrar")]
+    public IActionResult EntrarNaFila([FromBody] EntrarFilaRequest request)
+    {
+        var situacao = _fila.Entrar(HttpContext.ObterUsuarioSessao(), request.AguardarNaFila);
+
+        if (situacao.Situacao == SituacaoFila.ProcessamentoEmAndamento)
+        {
+            return Conflict(new
+            {
+                mensagem = "Você já possui uma validação em andamento. Aguarde a conclusão antes de iniciar outra."
+            });
+        }
+
+        return Ok(new
+        {
+            liberado = situacao.Situacao == SituacaoFila.Liberado,
+            naFila = situacao.Situacao == SituacaoFila.NaFila,
+            posicao = situacao.Posicao
+        });
+    }
+
+    [HttpPost("fila/sair")]
+    public IActionResult SairDaFila()
+    {
+        _fila.Sair(HttpContext.ObterUsuarioSessao());
+        return NoContent();
+    }
+
     // Etapa 0 - Validação das credenciais antes de iniciar a extração
     [HttpPost("testar-conexao")]
+    [ExigeVezNaFila]
     public async Task<IActionResult> TestarConexao([FromBody] ConfiguracaoBancoDto conexaoBanco)
     {
         // Primeira etapa do processo: o horário é devolvido ao front-end e reenviado na etapa final,
@@ -131,6 +171,7 @@ public class ProcessamentoController : ControllerBase
     // Etapa 1 - Extração
     // Lotes com milhares de páginas ultrapassam os limites padrão de upload (30 MB no Kestrel, 128 MB no multipart)
     [HttpPost("extrair")]
+    [ExigeVezNaFila]
     [Consumes("multipart/form-data")]
     [DisableRequestSizeLimit]
     [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
@@ -180,6 +221,7 @@ public class ProcessamentoController : ControllerBase
 
     // Etapa 2 - Montagem e Execução das Consultas (recebe as credenciais da tela)
     [HttpPost("buscar-banco")]
+    [ExigeVezNaFila]
     public async Task<IActionResult> ConstruirQueriesEBuscar([FromBody] EtapaProcessamentoRequest request)
     {
         var layoutDto = await ObterLayoutCompletoAsync(request.LayoutId);
@@ -215,6 +257,7 @@ public class ProcessamentoController : ControllerBase
 
     // Etapa 3 - Validação e Comparação Final
     [HttpPost("validar-regras")]
+    [ExigeVezNaFila]
     public async Task<IActionResult> ValidarRegrasLote([FromBody] EtapaProcessamentoRequest request)
     {
         var layoutDto = await ObterLayoutCompletoAsync(request.LayoutId);

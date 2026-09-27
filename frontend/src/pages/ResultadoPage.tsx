@@ -265,7 +265,7 @@ export function ResultadoPage({
     if (!resultadoAuditoria) return;
 
     const linhas: string[] = [];
-    linhas.push(`RELATÓRIO DE AUDITORIA - SMARrsvp`);
+    linhas.push(`RELATÓRIO DE AUDITORIA - SMARsvd`);
     linhas.push(`Arquivo Analisado;${nomeArquivo}`);
     linhas.push(`Layout Utilizado;${layoutUtilizado}`);
     linhas.push(`Base de Dados;${baseDados}`);
@@ -328,7 +328,7 @@ export function ResultadoPage({
 
     let linhasXml = `
       <Row>
-        <Cell ss:StyleID="Titulo"><Data ss:Type="String">RELATÓRIO DE AUDITORIA - SMARrsvp</Data></Cell>
+        <Cell ss:StyleID="Titulo"><Data ss:Type="String">RELATÓRIO DE AUDITORIA - SMARsvd</Data></Cell>
       </Row>
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Arquivo Analisado:</Data></Cell>

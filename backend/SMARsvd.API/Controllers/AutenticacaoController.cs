@@ -32,7 +32,16 @@ public class AutenticacaoController : ControllerBase
             return Unauthorized(new { mensagem = resultado.Mensagem });
         }
 
-        string token = _sessoes.CriarSessao(resultado.Usuario);
+        string? token = _sessoes.CriarSessao(resultado.Usuario);
+        if (token == null)
+        {
+            return Conflict(new
+            {
+                mensagem = "Este usuário já está conectado ao sistema em outra aba ou computador. " +
+                           "Saia da outra sessão ou aguarde alguns minutos e tente novamente."
+            });
+        }
+
         return Ok(new { token, usuario = resultado.Usuario, dominio = _autenticacao.Dominio });
     }
 

@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -18,19 +21,21 @@ public class OcrService : IOcrService, IDisposable
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<OcrService> _logger;
-    private readonly TesseractEngine? _engine;
     private readonly bool _ocrEnabled;
-    private static readonly object _syncLock = new();
+    private readonly string _tessDataPath = string.Empty;
+    private readonly string _idioma = string.Empty;
+    private readonly bool _motorDisponivel;
 
-    // Documento e última página renderizada ficam em cache: vários campos da mesma página
+    // Um TesseractEngine só reconhece uma imagem por vez. O pool mantém um motor por região em paralelo,
+    // criados sob demanda até o limite, para não recarregar o modelo a cada chamada.
+    private readonly ConcurrentBag<TesseractEngine> _motoresLivres = new();
+    private readonly SemaphoreSlim _vagasMotor;
+
+    // Documento e páginas renderizadas ficam em cache por arquivo: vários campos da mesma página
     // reaproveitam a renderização e o PDF não é reaberto a cada chamada.
-    private readonly object _renderLock = new();
-    private string? _caminhoRenderizado;
-    private IDocReader? _docReader;
-    private int _paginaRenderizada;
-    private byte[]? _bytesPaginaRenderizada;
-    private int _larguraPaginaRenderizada;
-    private int _alturaPaginaRenderizada;
+    private readonly Dictionary<string, DocumentoRenderizado> _documentos = new(StringComparer.OrdinalIgnoreCase);
+
+    public int MaximoParalelismo { get; }
 
     public OcrService(IConfiguration configuration, ILogger<OcrService> logger)
     {
@@ -38,27 +43,41 @@ public class OcrService : IOcrService, IDisposable
         _logger = logger;
         _ocrEnabled = _configuration.GetValue<bool>("OCR:Enabled");
 
+        // Cada motor e cada página renderizada em cache ocupam dezenas de MB, por isso o padrão é conservador
+        int paralelismoConfigurado = _configuration.GetValue("OCR:MaximoParalelismo", 0);
+        MaximoParalelismo = paralelismoConfigurado > 0
+            ? paralelismoConfigurado
+            : Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
+        _vagasMotor = new SemaphoreSlim(MaximoParalelismo, MaximoParalelismo);
+
         if (_ocrEnabled)
         {
             string tessConfigPath = _configuration.GetValue<string>("OCR:ModelPath") ?? "./tessdata";
-            string language = _configuration.GetValue<string>("OCR:Language") ?? "por";
+            _idioma = _configuration.GetValue<string>("OCR:Language") ?? "por";
 
             // Localiza a pasta tessdata de forma resiliente subindo diretórios até a raiz da solução
-            string tessDataPath = ResolverCaminhoTessdata(tessConfigPath);
+            _tessDataPath = ResolverCaminhoTessdata(tessConfigPath);
 
             try
             {
-                _engine = new TesseractEngine(tessDataPath, language, EngineMode.Default);
-                // Sem isso o Tesseract imprime estatísticas no console a cada região, degradando lotes grandes
-                _engine.SetVariable("debug_file", OperatingSystem.IsWindows() ? "NUL" : "/dev/null");
-                _logger.LogInformation("Tesseract OCR inicializado com sucesso no caminho: {Path}", tessDataPath);
+                _motoresLivres.Add(CriarMotor());
+                _motorDisponivel = true;
+                _logger.LogInformation("Tesseract OCR inicializado com sucesso no caminho: {Path} (até {Paralelismo} regiões em paralelo)",
+                    _tessDataPath, MaximoParalelismo);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Falha ao inicializar o modelo Tesseract no caminho: {Path}", tessDataPath);
-                _engine = null;
+                _logger.LogError(ex, "Falha ao inicializar o modelo Tesseract no caminho: {Path}", _tessDataPath);
             }
         }
+    }
+
+    private TesseractEngine CriarMotor()
+    {
+        var motor = new TesseractEngine(_tessDataPath, _idioma, EngineMode.Default);
+        // Sem isso o Tesseract imprime estatísticas no console a cada região, degradando lotes grandes
+        motor.SetVariable("debug_file", OperatingSystem.IsWindows() ? "NUL" : "/dev/null");
+        return motor;
     }
 
     private static string ResolverCaminhoTessdata(string caminhoConfigurado)
@@ -89,7 +108,7 @@ public class OcrService : IOcrService, IDisposable
 
     public async Task<string> ExtrairTextoPorOcrAsync(string caminhoArquivo, int numeroPagina, decimal x, decimal y, decimal largura, decimal altura)
     {
-        if (!_ocrEnabled || _engine == null)
+        if (!_ocrEnabled || !_motorDisponivel)
         {
             _logger.LogWarning("Tentativa de OCR abortada. O serviço está desabilitado ou o modelo não foi carregado.");
             return string.Empty;
@@ -99,13 +118,15 @@ public class OcrService : IOcrService, IDisposable
         {
             // 1. Renderiza a página preservando a proporção de 300 DPI (~11.81 px/mm)
             // Para A4: Retrato (2480x3508) ou Paisagem (3508x2480)
-            var (rawBytes, renderWidth, renderHeight) = RenderizarPagina(caminhoArquivo, numeroPagina);
+            var pagina = ObterDocumento(caminhoArquivo).Renderizar(numeroPagina);
+            int renderWidth = pagina.Largura;
+            int renderHeight = pagina.Altura;
 
-            if (renderWidth <= 0 || renderHeight <= 0 || rawBytes == null || rawBytes.Length == 0)
+            if (renderWidth <= 0 || renderHeight <= 0 || pagina.Bytes.Length == 0)
                 return string.Empty;
 
             // 2. Carrega a imagem da página
-            using var imagem = Image.LoadPixelData<Bgra32>(rawBytes, renderWidth, renderHeight);
+            using var imagem = Image.LoadPixelData<Bgra32>(pagina.Bytes, renderWidth, renderHeight);
 
             // 3. Define as dimensões reais em mm da folha conforme a orientação detectada
             double paginaLarguraMm = renderWidth >= renderHeight ? 297.0 : 210.0;
@@ -150,32 +171,16 @@ public class OcrService : IOcrService, IDisposable
             await imagem.SaveAsPngAsync(ms);
             var bytesPng = ms.ToArray();
 
-            // 6. Execução do OCR com descarte imediato do Page e proteção contra concorrência
-            return await Task.Run(() =>
+            // 6. Execução do OCR com um motor exclusivo do pool, descartando o Page imediatamente
+            var motor = await ObterMotorAsync();
+            try
             {
-                lock (_syncLock)
-                {
-                    using var pix = Pix.LoadFromMemory(bytesPng);
-                    string texto = string.Empty;
-
-                    // Tentativa 1: SingleBlock (resiliente para blocos e múltiplas palavras)
-                    using (var page = _engine.Process(pix, PageSegMode.SingleBlock))
-                    {
-                        texto = page.GetText()?.Trim() ?? string.Empty;
-                    } // page é descartada imediatamente aqui, liberando a engine
-
-                    // Fallback: se retornar vazio, tenta SingleLine garantindo a engine livre
-                    if (string.IsNullOrWhiteSpace(texto))
-                    {
-                        using (var pageLinha = _engine.Process(pix, PageSegMode.SingleLine))
-                        {
-                            texto = pageLinha.GetText()?.Trim() ?? string.Empty;
-                        }
-                    }
-
-                    return texto;
-                }
-            });
+                return await Task.Run(() => Reconhecer(motor, bytesPng));
+            }
+            finally
+            {
+                DevolverMotor(motor);
+            }
         }
         catch (Exception ex)
         {
@@ -184,56 +189,144 @@ public class OcrService : IOcrService, IDisposable
         }
     }
 
-    private (byte[] Bytes, int Largura, int Altura) RenderizarPagina(string caminhoArquivo, int numeroPagina)
+    private static string Reconhecer(TesseractEngine motor, byte[] bytesPng)
     {
-        lock (_renderLock)
+        using var pix = Pix.LoadFromMemory(bytesPng);
+        string texto;
+
+        // Tentativa 1: SingleBlock (resiliente para blocos e múltiplas palavras)
+        using (var page = motor.Process(pix, PageSegMode.SingleBlock))
         {
-            if (_docReader == null || !string.Equals(_caminhoRenderizado, caminhoArquivo, StringComparison.OrdinalIgnoreCase))
-            {
-                FecharDocumento();
-                _docReader = DocLib.Instance.GetDocReader(caminhoArquivo, new PageDimensions(3508, 3508));
-                _caminhoRenderizado = caminhoArquivo;
-            }
+            texto = page.GetText()?.Trim() ?? string.Empty;
+        } // page é descartada imediatamente aqui, liberando o motor
 
-            if (_bytesPaginaRenderizada == null || _paginaRenderizada != numeroPagina)
-            {
-                using var pageReader = _docReader.GetPageReader(numeroPagina - 1);
-                _bytesPaginaRenderizada = pageReader.GetImage();
-                _larguraPaginaRenderizada = pageReader.GetPageWidth();
-                _alturaPaginaRenderizada = pageReader.GetPageHeight();
-                _paginaRenderizada = numeroPagina;
-            }
+        // Fallback: se retornar vazio, tenta SingleLine garantindo o motor livre
+        if (string.IsNullOrWhiteSpace(texto))
+        {
+            using var pageLinha = motor.Process(pix, PageSegMode.SingleLine);
+            texto = pageLinha.GetText()?.Trim() ?? string.Empty;
+        }
 
-            return (_bytesPaginaRenderizada, _larguraPaginaRenderizada, _alturaPaginaRenderizada);
+        return texto;
+    }
+
+    private async Task<TesseractEngine> ObterMotorAsync()
+    {
+        await _vagasMotor.WaitAsync();
+
+        if (_motoresLivres.TryTake(out var motor))
+            return motor;
+
+        try
+        {
+            return CriarMotor();
+        }
+        catch
+        {
+            _vagasMotor.Release();
+            throw;
         }
     }
 
-    private void FecharDocumento()
+    private void DevolverMotor(TesseractEngine motor)
     {
-        _docReader?.Dispose();
-        _docReader = null;
-        _caminhoRenderizado = null;
-        _paginaRenderizada = 0;
-        _bytesPaginaRenderizada = null;
-        _larguraPaginaRenderizada = 0;
-        _alturaPaginaRenderizada = 0;
+        _motoresLivres.Add(motor);
+        _vagasMotor.Release();
+    }
+
+    private DocumentoRenderizado ObterDocumento(string caminhoArquivo)
+    {
+        lock (_documentos)
+        {
+            if (!_documentos.TryGetValue(caminhoArquivo, out var documento))
+            {
+                // Mantém em cache as páginas sendo lidas em paralelo, mais uma folga para as vizinhas
+                documento = new DocumentoRenderizado(caminhoArquivo, MaximoParalelismo + 2);
+                _documentos[caminhoArquivo] = documento;
+            }
+
+            return documento;
+        }
     }
 
     public void LiberarArquivo(string caminhoArquivo)
     {
-        lock (_renderLock)
+        DocumentoRenderizado? documento;
+        lock (_documentos)
         {
-            if (string.Equals(_caminhoRenderizado, caminhoArquivo, StringComparison.OrdinalIgnoreCase))
-                FecharDocumento();
+            if (!_documentos.Remove(caminhoArquivo, out documento))
+                return;
         }
+
+        documento.Dispose();
     }
 
     public void Dispose()
     {
-        lock (_renderLock)
+        lock (_documentos)
         {
-            FecharDocumento();
+            foreach (var documento in _documentos.Values)
+                documento.Dispose();
+            _documentos.Clear();
         }
-        _engine?.Dispose();
+
+        while (_motoresLivres.TryTake(out var motor))
+            motor.Dispose();
+    }
+
+    private sealed record PaginaRenderizada(byte[] Bytes, int Largura, int Altura);
+
+    // O PDFium não é seguro para uso concorrente: a renderização de um mesmo documento é serializada,
+    // enquanto o recorte e o reconhecimento das regiões seguem em paralelo.
+    private sealed class DocumentoRenderizado : IDisposable
+    {
+        private readonly object _sync = new();
+        private readonly IDocReader _leitor;
+        private readonly int _limitePaginasEmCache;
+        private readonly Dictionary<int, PaginaRenderizada> _paginas = new();
+        private readonly Queue<int> _ordemRenderizacao = new();
+        private bool _descartado;
+
+        public DocumentoRenderizado(string caminhoArquivo, int limitePaginasEmCache)
+        {
+            _leitor = DocLib.Instance.GetDocReader(caminhoArquivo, new PageDimensions(3508, 3508));
+            _limitePaginasEmCache = limitePaginasEmCache;
+        }
+
+        public PaginaRenderizada Renderizar(int numeroPagina)
+        {
+            lock (_sync)
+            {
+                if (_descartado)
+                    throw new ObjectDisposedException(nameof(DocumentoRenderizado));
+
+                if (_paginas.TryGetValue(numeroPagina, out var paginaEmCache))
+                    return paginaEmCache;
+
+                using var pageReader = _leitor.GetPageReader(numeroPagina - 1);
+                var pagina = new PaginaRenderizada(pageReader.GetImage(), pageReader.GetPageWidth(), pageReader.GetPageHeight());
+
+                _paginas[numeroPagina] = pagina;
+                _ordemRenderizacao.Enqueue(numeroPagina);
+                while (_ordemRenderizacao.Count > _limitePaginasEmCache)
+                    _paginas.Remove(_ordemRenderizacao.Dequeue());
+
+                return pagina;
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (_sync)
+            {
+                if (_descartado)
+                    return;
+
+                _descartado = true;
+                _paginas.Clear();
+                _ordemRenderizacao.Clear();
+                _leitor.Dispose();
+            }
+        }
     }
 }

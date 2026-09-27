@@ -34,6 +34,7 @@ builder.Services.AddSingleton<IOcrService, OcrService>();
 builder.Services.AddSingleton<IAutenticacaoRedeService, AutenticacaoWindowsService>();
 builder.Services.AddSingleton<ISessaoUsuarioService, SessaoUsuarioService>();
 builder.Services.AddSingleton<IPastaTemporariaService, PastaTemporariaService>();
+builder.Services.AddSingleton<IFilaProcessamentoService, FilaProcessamentoService>();
 builder.Services.AddHostedService<LimpezaDadosTemporariosService>();
 
 builder.Services.AddControllers();
@@ -53,6 +54,19 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// No modo WAL as leituras não bloqueiam as gravações (e vice-versa), permitindo que vários usuários
+// gravem logs enquanto outros consultam o banco. A configuração fica persistida no próprio arquivo.
+try
+{
+    using var escopo = app.Services.CreateScope();
+    var contexto = escopo.ServiceProvider.GetRequiredService<SMARsvdDbContext>();
+    contexto.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Não foi possível ativar o modo WAL no banco SQLite.");
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

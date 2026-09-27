@@ -2,7 +2,9 @@ namespace SMARsvd.Application.Interfaces;
 
 public interface ISessaoUsuarioService
 {
-    string CriarSessao(string usuario);
+    // Cada usuário só pode ter uma sessão ativa: retorna null quando já existe outra sessão em uso para ele.
+    // Sessões encerradas ou abandonadas do mesmo usuário são descartadas ao criar a nova.
+    string? CriarSessao(string usuario);
 
     // Valida o token, reativa a sessão caso tenha sido encerrada e contabiliza a requisição em andamento.
     // Retorna null quando o token não corresponde a nenhuma sessão.

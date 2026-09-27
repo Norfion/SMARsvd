@@ -22,20 +22,38 @@ public class SessaoUsuarioService : ISessaoUsuarioService
         public DateTime InativaDesdeUtc => EncerradaEmUtc ?? UltimaAtividadeUtc;
     }
 
+    // O front-end envia heartbeat a cada 45 s, mas navegadores espaçam os timers de abas em segundo plano
+    private static readonly TimeSpan TempoMaximoSemAtividadeEmUso = TimeSpan.FromMinutes(2);
+
     private readonly Dictionary<string, SessaoUsuario> _sessoes = new(StringComparer.Ordinal);
     private readonly object _sync = new();
 
-    public string CriarSessao(string usuario)
+    public string? CriarSessao(string usuario)
     {
         string token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 
         lock (_sync)
         {
+            var agora = DateTime.UtcNow;
+            var sessoesDoUsuario = _sessoes
+                .Where(s => string.Equals(s.Value.Usuario, usuario, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (sessoesDoUsuario.Any(s => EstaEmUso(s.Value, agora)))
+                return null;
+
+            foreach (var sessaoAnterior in sessoesDoUsuario)
+                _sessoes.Remove(sessaoAnterior.Key);
+
             _sessoes[token] = new SessaoUsuario(usuario);
         }
 
         return token;
     }
+
+    private static bool EstaEmUso(SessaoUsuario sessao, DateTime agora) =>
+        sessao.RequisicoesEmAndamento > 0
+        || (sessao.EncerradaEmUtc == null && agora - sessao.UltimaAtividadeUtc < TempoMaximoSemAtividadeEmUso);
 
     public string? IniciarRequisicao(string token)
     {

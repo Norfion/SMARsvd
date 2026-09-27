@@ -1,10 +1,13 @@
 import axios from "axios";
-import { processamentoService } from "../services/processamentoService";
+import {
+  processamentoService,
+  type SituacaoFilaProcessamento,
+} from "../services/processamentoService";
 import {
   ModalInformativo,
   type TipoModalInformativo,
 } from "../components/ModalInformativo";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { CarregandoTela } from "../components/CarregandoTela";
 import { Painel } from "../components/Painel";
 import type {
@@ -29,6 +32,20 @@ function extrairMensagemErroApi(erro: unknown): string | null {
 
   if (typeof dados === "string") return dados || null;
   return dados?.erro ?? dados?.detalhe ?? dados?.mensagem ?? null;
+}
+
+// O servidor libera o lugar de quem fica 2 minutos sem consultar a fila
+const INTERVALO_CONSULTA_FILA_MS = 3000;
+
+const esperar = (ms: number) =>
+  new Promise<void>((resolver) => window.setTimeout(resolver, ms));
+
+interface DadosValidacao {
+  arquivo: File;
+  layoutId: string;
+  nomeModelo: string;
+  conexao: ConfiguracaoBanco;
+  percentualAmostragem: number;
 }
 
 interface ValidacaoPageProps {
@@ -58,6 +75,23 @@ export function ValidacaoPage({
   const [processando, setProcessando] = useState<boolean>(false);
 
   const [etapaAtual, setEtapaAtual] = useState<number>(0);
+
+  // Preenchida enquanto o usuário aguarda outra pessoa terminar de validar
+  const [posicaoFila, setPosicaoFila] = useState<number | null>(null);
+
+  // Cada espera na fila recebe um número; cancelar ou sair da tela invalida a espera em andamento
+  const esperaFilaAtualRef = useRef(0);
+  const aguardandoFilaRef = useRef(false);
+
+  useEffect(() => {
+    const esperaFilaAtual = esperaFilaAtualRef;
+    const aguardandoFila = aguardandoFilaRef;
+    return () => {
+      if (!aguardandoFila.current) return;
+      esperaFilaAtual.current++;
+      processamentoService.sairDaFila().catch(() => {});
+    };
+  }, []);
 
   const descricoesEtapas: Record<number, string> = {
     0: "Validando conexão com o banco de dados...",
@@ -107,6 +141,7 @@ export function ValidacaoPage({
     titulo: string;
     mensagem: string;
     textoConfirmar?: string;
+    textoCancelar?: string;
     exigeSenha?: boolean;
     valorSenha?: string;
     aoConfirmar?: () => void;
@@ -144,7 +179,7 @@ export function ValidacaoPage({
     setArquivo(arquivoSelecionado);
   };
 
-  const executarValidacao = async () => {
+  const obterDadosValidacao = (): DadosValidacao | null => {
     if (!dbServidor.trim()) {
       setAcordeonConexaoAberto(true);
       exibirMensagem(
@@ -152,7 +187,7 @@ export function ValidacaoPage({
         "Servidor Obrigatório",
         "Informe o endereço do Servidor de banco de dados na seção de Conexão.",
       );
-      return;
+      return null;
     }
 
     if (!dbNomeBanco.trim()) {
@@ -162,7 +197,7 @@ export function ValidacaoPage({
         "Base de Dados Obrigatória",
         "Informe o nome da Base de dados na seção de Conexão.",
       );
-      return;
+      return null;
     }
 
     if (!dbUsuario.trim()) {
@@ -172,7 +207,7 @@ export function ValidacaoPage({
         "Usuário Obrigatório",
         "Informe o Usuário de acesso ao banco de dados na seção de Conexão.",
       );
-      return;
+      return null;
     }
 
     if (!layoutSelecionadoId) {
@@ -182,7 +217,7 @@ export function ValidacaoPage({
         "Layout Obrigatório",
         "Selecione o modelo de layout para validar os documentos.",
       );
-      return;
+      return null;
     }
 
     if (!arquivo) {
@@ -192,7 +227,7 @@ export function ValidacaoPage({
         "Documento Pendente",
         "Faça o upload de um arquivo PDF para validação primeiro.",
       );
-      return;
+      return null;
     }
 
     const layoutEncontrado = layoutsDisponiveis.find(
@@ -205,41 +240,159 @@ export function ValidacaoPage({
         "Layout Não Identificado",
         "Não foi possível obter o identificador do layout. Certifique-se de salvá-lo no banco primeiro.",
       );
-      return;
+      return null;
     }
+
+    return {
+      arquivo,
+      layoutId: layoutEncontrado.id,
+      nomeModelo: layoutEncontrado.nomeModelo,
+      conexao: {
+        provedor: dbProvedor,
+        servidor: dbServidor.trim(),
+        porta: Number(dbPorta) || 1433,
+        baseDados: dbNomeBanco.trim(),
+        usuario: dbUsuario.trim(),
+        senha: dbSenha,
+      },
+      percentualAmostragem: percentualAmostragem ?? 100,
+    };
+  };
+
+  const exibirErroFila = (erro: unknown) => {
+    const validacaoPropriaEmAndamento =
+      axios.isAxiosError(erro) && erro.response?.status === 409;
+
+    exibirMensagem(
+      validacaoPropriaEmAndamento ? "aviso" : "erro",
+      validacaoPropriaEmAndamento
+        ? "Validação em Andamento"
+        : "Fila de Validação Indisponível",
+      extrairMensagemErroApi(erro) ??
+        "Não foi possível verificar a fila de validação. Tente novamente.",
+    );
+  };
+
+  // Apenas uma validação é processada por vez no servidor; se outra pessoa estiver validando,
+  // o usuário decide se entra na fila
+  const executarValidacao = async () => {
+    const dados = obterDadosValidacao();
+    if (!dados) return;
 
     setProcessando(true);
 
-    const configuracaoConexao: ConfiguracaoBanco = {
-      provedor: dbProvedor,
-      servidor: dbServidor.trim(),
-      porta: Number(dbPorta) || 1433,
-      baseDados: dbNomeBanco.trim(),
-      usuario: dbUsuario.trim(),
-      senha: dbSenha,
-    };
+    let situacao: SituacaoFilaProcessamento;
+    try {
+      situacao = await processamentoService.entrarNaFila(false);
+    } catch (erro: unknown) {
+      setProcessando(false);
+      exibirErroFila(erro);
+      return;
+    }
+
+    if (situacao.liberado) {
+      await processarValidacao(dados);
+      return;
+    }
+
+    setProcessando(false);
+
+    const outrasAguardando = situacao.posicao - 1;
+    const complementoFila =
+      outrasAguardando > 0
+        ? ` Além dela, ${
+            outrasAguardando === 1
+              ? "há 1 validação aguardando"
+              : `há ${outrasAguardando} validações aguardando`
+          } na fila.`
+        : "";
+
+    setModalInfo({
+      aberto: true,
+      tipo: "confirmacao",
+      titulo: "Validação em Andamento",
+      mensagem: `Outra pessoa já está validando um arquivo neste momento.${complementoFila}\n\nSe desejar prosseguir, sua validação entrará na fila e o arquivo será processado automaticamente assim que a outra pessoa terminar.\n\nDeseja entrar na fila?`,
+      textoConfirmar: "Entrar na fila",
+      textoCancelar: "Cancelar",
+      aoConfirmar: () => aguardarVezNaFila(dados),
+    });
+  };
+
+  const aguardarVezNaFila = async (dados: DadosValidacao) => {
+    const idEspera = ++esperaFilaAtualRef.current;
+    const esperaAtiva = () => esperaFilaAtualRef.current === idEspera;
+
+    aguardandoFilaRef.current = true;
+    setProcessando(true);
+
+    try {
+      for (;;) {
+        const situacao = await processamentoService.entrarNaFila(true);
+
+        if (!esperaAtiva()) {
+          // A resposta chegou depois do cancelamento e pode ter recolocado o usuário na fila
+          processamentoService.sairDaFila().catch(() => {});
+          return;
+        }
+
+        if (situacao.liberado) break;
+
+        setPosicaoFila(situacao.posicao);
+        await esperar(INTERVALO_CONSULTA_FILA_MS);
+        if (!esperaAtiva()) return;
+      }
+    } catch (erro: unknown) {
+      if (!esperaAtiva()) return;
+      aguardandoFilaRef.current = false;
+      setPosicaoFila(null);
+      setProcessando(false);
+      exibirErroFila(erro);
+      processamentoService.sairDaFila().catch(() => {});
+      return;
+    }
+
+    aguardandoFilaRef.current = false;
+    setPosicaoFila(null);
+    await processarValidacao(dados);
+  };
+
+  const cancelarEsperaNaFila = () => {
+    esperaFilaAtualRef.current++;
+    aguardandoFilaRef.current = false;
+    setPosicaoFila(null);
+    setProcessando(false);
+    processamentoService.sairDaFila().catch(() => {});
+  };
+
+  const processarValidacao = async ({
+    arquivo,
+    layoutId,
+    nomeModelo,
+    conexao,
+    percentualAmostragem,
+  }: DadosValidacao) => {
+    setProcessando(true);
 
     let etapaEmExecucao = 0;
 
     try {
       setEtapaAtual(0);
-      const respostaConexao =
-        await processamentoService.testarConexao(configuracaoConexao);
+      const respostaConexao = await processamentoService.testarConexao(conexao);
       const inicioProcessamento = respostaConexao?.inicioProcessamento;
 
       etapaEmExecucao = 1;
       setEtapaAtual(1);
       const respostaExtracao = await processamentoService.extrair(
         arquivo,
-        layoutEncontrado.id,
-        percentualAmostragem ?? 100,
+        layoutId,
+        percentualAmostragem,
       );
 
       etapaEmExecucao = 2;
       setEtapaAtual(2);
       await processamentoService.buscarBanco(
-        layoutEncontrado.id,
-        configuracaoConexao,
+        layoutId,
+        conexao,
         arquivo.name,
         Boolean(respostaExtracao?.extracao?.usouOcr),
       );
@@ -248,7 +401,7 @@ export function ValidacaoPage({
       setEtapaAtual(3);
       const utilizouOcr = Boolean(respostaExtracao?.extracao?.usouOcr);
       const dadosApi = await processamentoService.validarRegras(
-        layoutEncontrado.id,
+        layoutId,
         arquivo.name,
         utilizouOcr,
         inicioProcessamento,
@@ -294,8 +447,8 @@ export function ValidacaoPage({
         layoutUtilizado:
           dadosApi.LayoutUtilizado ??
           dadosApi.layoutUtilizado ??
-          layoutEncontrado.nomeModelo,
-        baseDados: dbNomeBanco.trim(),
+          nomeModelo,
+        baseDados: conexao.baseDados,
         totalDocumentosAnalisados: totalDocs,
         documentosValidos: documentosValidos,
         documentosComInconsistencia: documentosInconsistentes,
@@ -304,8 +457,7 @@ export function ValidacaoPage({
         percentualAmostragem:
           dadosApi.PercentualAmostragem ??
           dadosApi.percentualAmostragem ??
-          percentualAmostragem ??
-          100,
+          percentualAmostragem,
         usouOcr: dadosApi.UsouOcr ?? dadosApi.usouOcr ?? utilizouOcr,
         dataHoraInicio: dadosApi.DataHoraInicio ?? dadosApi.dataHoraInicio,
         dataHoraFim: dadosApi.DataHoraFim ?? dadosApi.dataHoraFim,
@@ -331,20 +483,39 @@ export function ValidacaoPage({
     } finally {
       setProcessando(false);
       setEtapaAtual(0);
+      processamentoService.sairDaFila().catch(() => {});
     }
   };
+
+  const textoCarregamento =
+    posicaoFila !== null
+      ? `Outra pessoa está validando um arquivo. ${
+          posicaoFila <= 1
+            ? "Sua validação é a próxima da fila"
+            : `Sua validação é a ${posicaoFila}ª da fila`
+        } e começará automaticamente assim que chegar a sua vez.`
+      : etapaAtual > 0
+        ? `(${etapaAtual}/3) ${descricoesEtapas[etapaAtual] ?? "Processando"}`
+        : descricoesEtapas[0];
 
   return (
     <div id="container-validacao-pdf" className="row">
       {processando && (
         <CarregandoTela
           id="overlay-bloqueio-processamento"
-          texto={
-            etapaAtual > 0
-              ? `(${etapaAtual}/3) ${descricoesEtapas[etapaAtual] ?? "Processando"}`
-              : descricoesEtapas[0]
-          }
-        />
+          texto={textoCarregamento}
+        >
+          {posicaoFila !== null && (
+            <button
+              type="button"
+              id="btn-sair-fila-validacao"
+              className="btn btn-cancel"
+              onClick={cancelarEsperaNaFila}
+            >
+              <i className="fa fa-ban"></i> Sair da fila
+            </button>
+          )}
+        </CarregandoTela>
       )}
 
       <div className="col">
@@ -680,7 +851,11 @@ export function ValidacaoPage({
                     processando ? "fas fa-spinner fa-spin" : "fas fa-check"
                   }
                 ></i>{" "}
-                {processando ? "Auditando..." : "Validar"}
+                {!processando
+                  ? "Validar"
+                  : posicaoFila !== null
+                    ? "Aguardando na fila..."
+                    : "Auditando..."}
               </button>
             </div>
           </div>
@@ -693,6 +868,7 @@ export function ValidacaoPage({
         titulo={modalInfo.titulo}
         mensagem={modalInfo.mensagem}
         textoConfirmar={modalInfo.textoConfirmar}
+        textoCancelar={modalInfo.textoCancelar}
         exigeSenha={modalInfo.exigeSenha}
         valorSenha={modalInfo.valorSenha}
         aoMudarSenha={(novaSenha) =>

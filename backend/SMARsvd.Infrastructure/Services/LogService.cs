@@ -10,6 +10,10 @@ public class LogService : ILogService
 {
     private static readonly string[] TiposDeFalha = { "Erro", "Exceção", "Aviso" };
 
+    // O SQLite aceita um único escritor por vez: as gravações de log de todos os usuários passam por aqui
+    // em sequência, sem disputar o bloqueio do arquivo entre si.
+    private static readonly SemaphoreSlim GravacaoLog = new(1, 1);
+
     private readonly SMARsvdDbContext _context;
 
     public LogService(SMARsvdDbContext context)
@@ -29,8 +33,25 @@ public class LogService : ILogService
             DataHora = DateTime.UtcNow // Padrão recomendado para logs
         };
 
-        _context.Logs.Add(log);
-        await _context.SaveChangesAsync();
+        await GravacaoLog.WaitAsync();
+        try
+        {
+            _context.Logs.Add(log);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                // Sem isso, o log que falhou seria regravado no próximo SaveChanges da mesma requisição
+                _context.Entry(log).State = EntityState.Detached;
+                throw;
+            }
+        }
+        finally
+        {
+            GravacaoLog.Release();
+        }
     }
 
     public async Task<List<LogRegistroDto>> ListarFalhasPorPeriodoAsync(DateTime inicioUtc, DateTime fimUtc)
