@@ -1,0 +1,477 @@
+// Painel (fieldset > .card.panel) — Common/src/components/panel
+fieldset > .panel {
+  margin: 15px 0 0;
+}
+
+fieldset > .panel-default {
+  border-color: lighten($form-bg, 5%);
+
+  > .panel-heading {
+    background-color: lighten($form-bg, 5%);
+    border-color: lighten($form-bg, 5%);
+  }
+}
+
+fieldset > .panel .panel-title {
+  font-size: 13px;
+  line-height: 1.5;
+  color: $brand-primary;
+}
+
+fieldset > .panel .panel-body label,
+fieldset > .panel .card-body label {
+  margin: 10px 0 5px;
+}
+
+fieldset > .panel > .panel-heading {
+  display: flex;
+  align-items: center;
+
+  .panel-title {
+    flex: 1;
+    margin: 0;
+  }
+
+  .painel-resumo {
+    font-size: 12px;
+    color: #6c757d;
+  }
+
+  .painel-icone {
+    margin-left: 12px;
+    color: $brand-primary;
+    font-size: 14px;
+  }
+}
+
+.panel-heading.painel-recolhivel {
+  cursor: pointer;
+  user-select: none;
+}
+
+.panel.painel-fechado > .panel-heading {
+  border-bottom: 0;
+}
+
+.panel.painel-desabilitado {
+  opacity: 0.65;
+
+  > .panel-heading.painel-recolhivel {
+    cursor: not-allowed;
+  }
+}
+
+// Cabeçalho de página (SlimHeader do Common)
+.slim-header {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 10px;
+  background-color: #fff;
+  border-top: 1px solid #70707015;
+  border-bottom: 1px solid #70707015;
+}
+
+.slim-header-titulo {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  font-weight: bold;
+  color: $brand-primary;
+  background-color: $breadcrumb;
+}
+
+.slim-header-conteudo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 4px;
+}
+
+.slim-header-campo {
+  padding: 4px 8px;
+  margin-right: 8px;
+  border-right: 1px solid #70707015;
+
+  &:last-child {
+    border-right: 0;
+  }
+
+  label {
+    padding: 4px;
+  }
+
+  .slim-header-valor {
+    font-weight: bold;
+  }
+}
+
+// InfoCard do Common (indicadores com fundo na cor do tema)
+.info-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 16px;
+  background-color: $brand-primary;
+  @include arredondar(4px);
+
+  &.info-card-success {
+    background-color: $brand-success;
+  }
+
+  &.info-card-danger {
+    background-color: $brand-danger;
+  }
+
+  &.info-card-neutro {
+    background-color: $btn-cancel-bg;
+  }
+
+  .info-card-titulo {
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: 200;
+    color: #fff;
+  }
+
+  .info-card-valor {
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+  }
+}
+
+// Modais (modal.scss)
+.modal {
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.modal-content {
+  margin-top: 88px;
+  padding: $modal-content-padding;
+}
+
+.modal-header {
+  padding: 10px;
+}
+
+.modal-title {
+  line-height: 1.5;
+}
+
+.modal-body {
+  word-wrap: break-word;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  margin-top: 4px;
+  padding: 10px 20px;
+}
+
+.modal-content .box-form-cadastro {
+  background-color: #fff;
+}
+
+// Bloqueio de tela / carregando (loading.scss)
+.loading-screen-blocker {
+  background-color: rgba(4, 4, 4, 0.4);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999999999;
+  cursor: wait;
+}
+
+.loadingContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  height: 100vh;
+
+  > span {
+    color: #fff;
+    font-size: 1.1em;
+    margin-top: 15px;
+  }
+}
+
+.loader {
+  border: 8px solid transparent;
+  border-radius: 50%;
+  border-top: 10px solid $brand-primary;
+  border-bottom: 10px solid $brand-primary;
+  width: 80px;
+  height: 80px;
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// Switch liga/desliga (switches.scss)
+.onoffswitch {
+  position: relative;
+  width: 52px;
+  user-select: none;
+}
+
+.onoffswitch-checkbox {
+  display: none;
+}
+
+.onoffswitch-label {
+  display: block;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid #999;
+  border-radius: 16px;
+  margin: 0 !important;
+}
+
+.onoffswitch-inner {
+  display: block;
+  width: 200%;
+  margin-left: -100%;
+  transition: margin 0.3s ease-in 0s;
+
+  &::before,
+  &::after {
+    display: block;
+    float: left;
+    width: 50%;
+    height: 15px;
+    padding: 0;
+    line-height: 15px;
+    font-size: 14px;
+    color: white;
+    font-weight: bold;
+    box-sizing: border-box;
+  }
+
+  &::before {
+    content: '';
+    padding-left: 10px;
+    background-color: #00ab89;
+  }
+
+  &::after {
+    content: '';
+    padding-right: 10px;
+    background-color: #eee;
+    text-align: right;
+  }
+}
+
+.onoffswitch-switch {
+  display: block;
+  width: 25px;
+  margin: -5px;
+  background: #fff;
+  border: 2px solid #999;
+  border-radius: 16px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 33px;
+  transition: all 0.3s ease-in 0s;
+}
+
+.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
+  margin-left: 0;
+}
+
+.onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
+  right: 0;
+}
+
+.onoffswitch-checkbox:disabled + .onoffswitch-label {
+  opacity: 0.5;
+  cursor: default;
+}
+
+// Tabelas no padrão da grid da empresa
+.table-grid {
+  width: 100%;
+  margin-bottom: 0;
+  font-size: 13px;
+  border-collapse: collapse;
+
+  thead th {
+    padding: 10px 8px;
+    font-weight: 500;
+    color: #fafafa;
+    text-align: left;
+    background-color: $brand-primary;
+    border: 0;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 8px;
+    vertical-align: middle;
+    background-color: #fff;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  tbody tr:nth-child(even) td {
+    background-color: #f9f9f9;
+  }
+
+  tbody tr:hover td {
+    background-color: #c3c3c3;
+    color: #fafafa;
+  }
+}
+
+// Avisos dentro do formulário. O .alert do tema é flutuante, então os avisos fixos usam esta variação.
+.alert.alert-inline {
+  position: relative;
+  width: auto;
+  left: auto;
+  top: auto;
+  margin: 0 0 10px;
+  z-index: auto;
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+
+  > i {
+    margin: 3px 10px 0 0;
+    color: inherit;
+  }
+
+  &.alert-info {
+    @include alert-variant(theme-color-level('info', -10), theme-color-level('info', -9), theme-color-level('info', 6));
+  }
+
+  &.alert-warning {
+    @include alert-variant(theme-color-level('warning', -10), theme-color-level('warning', -9), theme-color-level('warning', 6));
+  }
+
+  &.alert-danger {
+    @include alert-variant(theme-color-level('danger', -10), theme-color-level('danger', -9), theme-color-level('danger', 6));
+  }
+
+  &.alert-success {
+    @include alert-variant(theme-color-level('success', -10), theme-color-level('success', -9), theme-color-level('success', 6));
+  }
+}
+
+// Menu suspenso ancorado em um botão (aberto pelo componente ao passar o mouse)
+.dropdown-hover {
+  position: relative;
+  display: inline-block;
+
+  > .dropdown-menu {
+    top: 100%;
+    right: 0;
+    left: auto;
+    margin: 0;
+    min-width: 190px;
+    z-index: 1000;
+  }
+
+  .dropdown-item {
+    cursor: pointer;
+
+    i {
+      width: 18px;
+      margin-right: 6px;
+    }
+  }
+}
+
+// Etiqueta (tag) para listas de parâmetros/colunas
+.tag-padrao {
+  display: inline-block;
+  padding: 3px 8px;
+  margin: 0 5px 5px 0;
+  font-size: 12px;
+  color: $brand-primary;
+  background-color: lighten($form-bg, 5%);
+  border: 1px solid $form-bg;
+  @include arredondar(4px);
+}
+
+// Login (login.scss)
+.login-container {
+  margin-top: 70px;
+
+  .form {
+    max-width: 500px;
+    margin: 10px auto 0;
+    padding: 30px;
+    background-color: $login-frame;
+    border: 1px solid darken($login-frame, 5%);
+    @include arredondar(5px);
+    @include sombra(0 2px 3px rgba(0, 0, 0, 0.2));
+  }
+
+  form h2 {
+    margin-bottom: 15px;
+  }
+
+  label {
+    padding-bottom: 4px;
+    margin: 10px 0 0;
+    display: block;
+  }
+}
+
+.main-logo {
+  width: 500px;
+  margin: auto;
+  text-align: center;
+
+  img {
+    max-height: 400px;
+    max-width: 500px;
+    margin-bottom: 25px;
+  }
+}
+
+.login-button {
+  height: 40px !important;
+}
+
+.erro-conexao {
+  line-height: 1.5;
+
+  > p {
+    margin-bottom: 15px;
+  }
+}
+
+.erro-conexao-orientacoes {
+  margin-bottom: 20px;
+  padding: 10px 15px;
+  background-color: $fundo-claro;
+  border-left: 4px solid $brand-danger;
+  @include arredondar(0 4px 4px 0);
+
+  ul {
+    margin-top: 5px;
+    padding-left: 18px;
+    list-style: disc;
+  }
+}
+
+// Mensagens do SweetAlert com quebras de linha
+.swal-texto-multilinha {
+  white-space: pre-line;
+}

@@ -4,6 +4,7 @@ import {
 } from "../components/ModalInformativo";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SqlCodeEditor } from "../components/SqlCodeEditor";
+import { Painel } from "../components/Painel";
 import { processarArquivoPdfModelo } from "../utils/pdfModelReader";
 import { gerarId } from "../utils/gerarId";
 import {
@@ -993,987 +994,622 @@ export function ParametrizacaoPage({
   };
 
   return (
-    <div id="container-parametrizacao">
+    <div id="container-parametrizacao" className="row">
       <input
         ref={fileInputRef}
         type="file"
         accept="application/pdf"
         onChange={lidarComArquivoModelo}
-        style={{ display: "none" }}
+        className="d-none"
       ></input>
 
-      {/* SELETOR GLOBAL DE LAYOUT */}
-      <div
-        id="cabecalho-seletor-global"
-        className="smar-card"
-        style={{
-          padding: "12px 16px",
-          marginBottom: "16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          overflow: "visible",
-          position: "relative",
-          zIndex: 20,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            flex: 1,
-          }}
-        >
-          <div style={{ flex: 1, maxWidth: "420px" }}>
-            <select
-              id="select-layout-global"
-              className="smar-select"
-              value={layoutSelecionadoId}
-              onChange={(e) => carregarLayout(e.target.value)}
-              style={{ fontWeight: 600, height: "32px" }}
-            >
-              <option value="">(Selecione um layout)</option>
-              {layoutsSalvos.map((layout) => (
-                <option key={layout.nomeModelo} value={layout.nomeModelo}>
-                  {layout.nomeModelo} ({layout.cliente})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {criandoNovoLayout ? (
-          <button
-            type="button"
-            onClick={cancelarCriacaoNovoLayout}
-            title="Descartar alterações"
-            className="smar-btn smar-btn-danger"
-            style={{ marginRight: "8px" }}
+      <div className="col">
+        <div className="box-form-cadastro">
+          <Painel
+            id="cabecalho-seletor-global"
+            titulo="Layout"
+            className="painel-seletor-layout"
           >
-            <span>Cancelar</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={removerLayoutAtual}
-            disabled={!layoutSelecionadoId}
-            title={
-              !layoutSelecionadoId
-                ? "Selecione um layout para remover"
-                : `Excluir o layout "${layoutSelecionadoId}"`
-            }
-            className="smar-btn smar-btn-danger"
-            style={{ marginRight: "8px" }}
-          >
-            <span>Remover</span>
-          </button>
-        )}
-
-        {!criandoNovoLayout && (
-          <div
-            style={{ position: "relative" }}
-            onMouseEnter={() => setModalNovoLayoutAberto(true)}
-            onMouseLeave={() => setModalNovoLayoutAberto(false)}
-          >
-            <button
-              type="button"
-              disabled={carregandoPdfModelo}
-              className="smar-btn smar-btn-primary"
-            >
-              <span>{carregandoPdfModelo ? "Processando..." : "Novo"}</span>
-              <span style={{ fontSize: "0.65rem" }}>▼</span>
-            </button>
-            {modalNovoLayoutAberto && (
-              <div className="smar-dropdown-menu" style={{ width: "220px" }}>
-                <button
-                  type="button"
-                  className="smar-dropdown-item"
-                  onClick={iniciarCriacaoManual}
+            <div className="row align-items-end">
+              <div className="col-lg-6">
+                <label htmlFor="select-layout-global">Layout</label>
+                <select
+                  id="select-layout-global"
+                  className="form-control"
+                  value={layoutSelecionadoId}
+                  onChange={(e) => carregarLayout(e.target.value)}
                 >
-                  <span>Criar Manualmente</span>
-                </button>
-                <button
-                  type="button"
-                  className="smar-dropdown-item"
-                  onClick={dispararUploadModelo}
-                >
-                  <span>Importar Modelo (PDF)</span>
-                </button>
+                  <option value="">Selecione</option>
+                  {layoutsSalvos.map((layout) => (
+                    <option key={layout.nomeModelo} value={layout.nomeModelo}>
+                      {layout.nomeModelo} ({layout.cliente})
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* 1. CONFIGURAÇÕES DO DOCUMENTO */}
-      <div
-        id="accordion-layout"
-        className="smar-accordion"
-        style={{ opacity: semLayoutSelecionado || emModoEdicao ? 0.65 : 1 }}
-      >
-        <div
-          onClick={() => {
-            if (!semLayoutSelecionado && !emModoEdicao) alternarEtapa("layout");
-          }}
-          className={`smar-accordion-header ${etapaAberta === "layout" ? "aberto" : "fechado"}`}
-          style={{
-            cursor:
-              !semLayoutSelecionado && !emModoEdicao
-                ? "pointer"
-                : "not-allowed",
-          }}
-        >
-          <div className="smar-accordion-title">
-            <span className="smar-accordion-icon">
-              {etapaAberta === "layout" ? "▼" : "▶"}
-            </span>
-            <strong>1. Configurações do documento</strong>
-          </div>
-          {nomeArquivoModelo && (
-            <span
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--smar-teal-dark)",
-                fontWeight: 600,
-                backgroundColor: "#ffffff",
-                padding: "2px 8px",
-                borderRadius: "3px",
-                border: "1px solid var(--smar-teal-border)",
-              }}
-            >
-              Modelo: {nomeArquivoModelo}
-            </span>
-          )}
-        </div>
-        <div
-          className={`smar-accordion-content-wrapper ${etapaAberta === "layout" && !semLayoutSelecionado ? "smar-accordion-content-open" : "smar-accordion-content-closed"}`}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 2fr",
-              gap: "16px",
-              marginBottom: "14px",
-            }}
-          >
-            <div>
-              <label className="smar-label">Cliente</label>
-              <select
-                value={cliente}
-                onChange={(e) => setCliente(e.target.value)}
-                className="smar-select"
-              >
-                {CLIENTES_DISPONIVEIS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="smar-label">Nome do Layout</label>
-              <input
-                type="text"
-                value={nomeModelo}
-                onChange={(e) => setNomeModelo(e.target.value)}
-                placeholder="Ex: IPTU Padrão 2026"
-                className="smar-input"
-              ></input>
-            </div>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "14px",
-            }}
-          >
-            <div>
-              <label className="smar-label">Largura (mm)</label>
-              <input
-                type="number"
-                value={larguraMm}
-                onChange={(e) => setLarguraMm(Number(e.target.value))}
-                className="smar-input"
-              ></input>
-            </div>
-            <div>
-              <label className="smar-label">Altura (mm)</label>
-              <input
-                type="number"
-                value={alturaMm}
-                onChange={(e) => setAlturaMm(Number(e.target.value))}
-                className="smar-input"
-              ></input>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. MAPEAMENTO DOS CAMPOS */}
-      <div
-        id="accordion-campos"
-        className="smar-accordion"
-        style={{
-          opacity:
-            semLayoutSelecionado || (emModoEdicao && etapaAberta !== "campos")
-              ? 0.65
-              : 1,
-        }}
-      >
-        <div
-          onClick={() => {
-            if (!semLayoutSelecionado && !emModoEdicao) alternarEtapa("campos");
-          }}
-          className={`smar-accordion-header ${etapaAberta === "campos" ? "aberto" : "fechado"}`}
-          style={{
-            cursor:
-              !semLayoutSelecionado && !emModoEdicao
-                ? "pointer"
-                : "not-allowed",
-          }}
-        >
-          <div className="smar-accordion-title">
-            <span className="smar-accordion-icon">
-              {etapaAberta === "campos" ? "▼" : "▶"}
-            </span>
-            <strong>2. Mapeamento dos campos</strong>
-          </div>
-          <span
-            style={{ fontSize: "0.75rem", color: "var(--smar-text-secondary)" }}
-          >
-            {campos.length} campos parametrizados
-          </span>
-        </div>
-        <div
-          className={`smar-accordion-content-wrapper ${etapaAberta === "campos" && !semLayoutSelecionado ? "smar-accordion-content-open" : "smar-accordion-content-closed"}`}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: "16px",
-              alignItems: "flex-start",
-              flexWrap: "wrap",
-            }}
-          >
-            <div
-              id="coluna-canvas-documento"
-              style={{
-                flex: "1 1 650px",
-                maxWidth: "calc(100% - 340px)",
-                minWidth: "320px",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div
-                id="barra-navegacao-paginas-canvas"
-                style={{
-                  marginBottom: "10px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                  backgroundColor: "var(--smar-bg-alt)",
-                  padding: "6px 10px",
-                  borderRadius: "var(--smar-radius)",
-                  border: "1px solid var(--smar-border-color)",
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 600,
-                    color: "var(--smar-text-body)",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  {larguraMm} x {alturaMm} (mm)
-                </div>
-                {paginasModelo.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
+              <div className="col-lg-6 text-right acoes-seletor-layout">
+                {criandoNovoLayout ? (
+                  <button
+                    type="button"
+                    onClick={cancelarCriacaoNovoLayout}
+                    title="Descartar alterações"
+                    className="btn btn-cancel"
                   >
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--smar-text-secondary)",
-                        fontWeight: 600,
-                      }}
+                    <i className="fa fa-ban"></i> Cancelar
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={removerLayoutAtual}
+                    disabled={!layoutSelecionadoId}
+                    title={
+                      !layoutSelecionadoId
+                        ? "Selecione um layout para remover"
+                        : `Excluir o layout "${layoutSelecionadoId}"`
+                    }
+                    className="btn btn-danger"
+                  >
+                    <i className="fas fa-trash"></i> Remover
+                  </button>
+                )}
+
+                {!criandoNovoLayout && (
+                  <div
+                    className="dropdown-hover ml-2"
+                    onMouseEnter={() => setModalNovoLayoutAberto(true)}
+                    onMouseLeave={() => setModalNovoLayoutAberto(false)}
+                  >
+                    <button
+                      type="button"
+                      disabled={carregandoPdfModelo}
+                      className="btn btn-primary"
                     >
-                      Opacidade:
-                    </span>
-                    <input
-                      type="range"
-                      min="10"
-                      max="100"
-                      value={opacidadeModelo}
-                      onChange={(e) =>
-                        setOpacidadeModelo(Number(e.target.value))
-                      }
-                      style={{ width: "70px", cursor: "pointer" }}
-                    ></input>
-                    <span
-                      style={{
-                        fontSize: "0.7rem",
-                        color: "var(--smar-text-body)",
-                      }}
-                    >
-                      {opacidadeModelo}%
-                    </span>
+                      <i
+                        className={
+                          carregandoPdfModelo
+                            ? "fas fa-spinner fa-spin"
+                            : "fas fa-plus"
+                        }
+                      ></i>{" "}
+                      {carregandoPdfModelo ? "Processando..." : "Novo"}{" "}
+                      <i className="fas fa-caret-down"></i>
+                    </button>
+                    {modalNovoLayoutAberto && (
+                      <div className="dropdown-menu show">
+                        <a
+                          className="dropdown-item"
+                          onClick={iniciarCriacaoManual}
+                        >
+                          <i className="fas fa-pen-square"></i>Criar manualmente
+                        </a>
+                        <a
+                          className="dropdown-item"
+                          onClick={dispararUploadModelo}
+                        >
+                          <i className="fas fa-file-import"></i>Importar modelo
+                          (PDF)
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setZoomNivel(Math.max(10, zoomNivel - 15))}
-                    className="smar-btn smar-btn-secondary"
-                    style={{ width: "24px", height: "24px", padding: 0 }}
-                  >
-                    -
-                  </button>
-                  <span
-                    title="Zoom do documento"
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 700,
-                      minWidth: "36px",
-                      textAlign: "center",
-                      cursor: "help",
-                    }}
-                  >
-                    {zoomNivel}%
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setZoomNivel(Math.min(500, zoomNivel + 15))}
-                    className="smar-btn smar-btn-secondary"
-                    style={{ width: "24px", height: "24px", padding: 0 }}
-                  >
-                    +
-                  </button>
-                </div>
-                <div style={{ display: "flex", gap: "4px" }}>
-                  {Array.from(
-                    {
-                      length: Math.max(
-                        paginasModelo.length || 1,
-                        paginaCampo,
-                        ...campos.map((c) => c.pagina || 1),
-                      ),
-                    },
-                    (_, i) => i + 1,
-                  ).map((numPagina) => {
-                    const estaAtiva = paginaAtivaCanvas === numPagina;
-                    const qtdCamposNestaPagina = campos.filter(
-                      (c) => (c.pagina || 1) === numPagina,
-                    ).length;
-                    return (
-                      <button
-                        key={numPagina}
-                        type="button"
-                        onClick={() => {
-                          setPaginaAtivaCanvas(numPagina);
-                          setPaginaCampo(numPagina);
-                          setRetanguloAtualMm(null);
-                        }}
-                        style={{
-                          padding: "3px 8px",
-                          borderRadius: "3px",
-                          border: estaAtiva
-                            ? "1px solid var(--smar-teal-dark)"
-                            : "1px solid var(--smar-border-color)",
-                          backgroundColor: estaAtiva
-                            ? "var(--smar-teal-primary)"
-                            : "#ffffff",
-                          color: estaAtiva
-                            ? "#ffffff"
-                            : "var(--smar-text-label)",
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}
-                      >
-                        <span>Página {numPagina}</span>
-                        {qtdCamposNestaPagina > 0 && (
-                          <span
-                            style={{
-                              backgroundColor: estaAtiva
-                                ? "rgba(255,255,255,0.3)"
-                                : "var(--smar-border-light)",
-                              color: estaAtiva
-                                ? "#ffffff"
-                                : "var(--smar-text-body)",
-                              borderRadius: "10px",
-                              padding: "0 4px",
-                              fontSize: "0.65rem",
-                            }}
-                          >
-                            {qtdCamposNestaPagina}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div
-                id="caixa-viewport-documento"
-                ref={viewportRef}
-                style={{
-                  width: "100%",
-                  height: "560px",
-                  backgroundColor: "var(--smar-border-color)",
-                  border: "1px solid var(--smar-text-muted)",
-                  borderRadius: "var(--smar-radius)",
-                  overflow: "auto",
-                  position: "relative",
-                  boxSizing: "border-box",
-                  padding: "16px",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "flex-start",
-                }}
-              >
-                <div
-                  id="canvas-area-demarcacao"
-                  ref={containerRef}
-                  onMouseDown={iniciarSelecao}
-                  onMouseMove={atualizandoSelecao}
-                  onMouseUp={finalizarSelecao}
-                  style={{
-                    position: "relative",
-                    width: `${larguraVisualPx}px`,
-                    height: `${alturaVisualPx}px`,
-                    minWidth: `${larguraVisualPx}px`,
-                    minHeight: `${alturaVisualPx}px`,
-                    backgroundColor: "#ffffff",
-                    border: "1px solid var(--smar-text-muted)",
-                    borderRadius: "2px",
-                    cursor: "crosshair",
-                    userSelect: "none",
-                    boxShadow: "0 3px 10px rgba(0,0,0,0.25)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {paginasModelo.length >= paginaAtivaCanvas ? (
-                    <img
-                      src={paginasModelo[paginaAtivaCanvas - 1]}
-                      alt={`Gabarito - Página ${paginaAtivaCanvas}`}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "fill",
-                        opacity: opacidadeModelo / 100,
-                        pointerEvents: "none",
-                      }}
-                    ></img>
-                  ) : (
-                    <div
-                      style={{
-                        padding: "16px",
-                        color: "var(--smar-border-dark)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          borderBottom: "1px dashed var(--smar-border-color)",
-                          paddingBottom: "4px",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: "0.8rem",
-                        }}
-                      >
-                        <span>PREFEITURA MUNICIPAL — GUIA ARRECADATÓRIA</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {campos
-                    .filter(
-                      (campo) => (campo.pagina || 1) === paginaAtivaCanvas,
-                    )
-                    .map((campo) => {
-                      const ativo = campo.id === campoEmEdicaoId;
-                      const ehDocId =
-                        campo.tipoClassificacao ===
-                        TipoClassificacaoCampo.IdentificadorDocumento;
-                      const ehPagId =
-                        campo.tipoClassificacao ===
-                        TipoClassificacaoCampo.IdentificadorPagina;
-
-                      return (
-                        <div
-                          key={campo.id}
-                          id={`box-campo-${campo.id}`}
-                          style={{
-                            position: "absolute",
-                            left: `${campo.xMm * escalaPxPorMm}px`,
-                            top: `${campo.yMm * escalaPxPorMm}px`,
-                            width: `${campo.larguraMm * escalaPxPorMm}px`,
-                            height: `${campo.alturaMm * escalaPxPorMm}px`,
-                            border: ativo
-                              ? "2px solid #f57c00"
-                              : ehDocId
-                                ? "2px solid #3f51b5"
-                                : ehPagId
-                                  ? "2px solid #8e24aa"
-                                  : "2px solid #009688",
-                            backgroundColor: ativo
-                              ? "rgba(245, 124, 0, 0.25)"
-                              : ehDocId
-                                ? "rgba(63, 81, 181, 0.2)"
-                                : ehPagId
-                                  ? "rgba(142, 36, 170, 0.2)"
-                                  : "rgba(0, 150, 136, 0.2)",
-                            color: ativo
-                              ? "#e65100"
-                              : ehDocId
-                                ? "#1a237e"
-                                : ehPagId
-                                  ? "#4a148c"
-                                  : "#004d40",
-                            fontSize: "0.7rem",
-                            fontWeight: 700,
-                            padding: "2px 4px",
-                            pointerEvents: "none",
-                            boxSizing: "border-box",
-                          }}
-                        >
-                          {ehDocId
-                            ? `🚩 [DOC] ${campo.nomeCampo}`
-                            : ehPagId
-                              ? `📌 [PÁG] ${campo.nomeCampo}`
-                              : campo.nomeCampo}
-                        </div>
-                      );
-                    })}
-
-                  {retanguloAtualMm && paginaCampo === paginaAtivaCanvas && (
-                    <div
-                      id="retangulo-selecao-ativa"
-                      style={{
-                        position: "absolute",
-                        left: `${retanguloAtualMm.xMm * escalaPxPorMm}px`,
-                        top: `${retanguloAtualMm.yMm * escalaPxPorMm}px`,
-                        width: `${retanguloAtualMm.larguraMm * escalaPxPorMm}px`,
-                        height: `${retanguloAtualMm.alturaMm * escalaPxPorMm}px`,
-                        border: "2px dashed #d32f2f",
-                        backgroundColor: "rgba(211, 47, 47, 0.2)",
-                        pointerEvents: "none",
-                        boxSizing: "border-box",
-                      }}
-                    ></div>
-                  )}
-                </div>
               </div>
             </div>
+          </Painel>
 
-            <div
-              style={{
-                flex: "1 1 320px",
-                minWidth: "280px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "14px",
-              }}
-            >
-              <div className="smar-card">
-                <div className="smar-card-header-teal">
-                  <span>
-                    {campoEmEdicaoId ? "Editar Campo" : "Criar Campo"}
+          <Painel
+            id="accordion-layout"
+            titulo="1. Configurações do documento"
+            resumo={
+              nomeArquivoModelo ? `Modelo: ${nomeArquivoModelo}` : undefined
+            }
+            aberto={etapaAberta === "layout" && !semLayoutSelecionado}
+            desabilitado={semLayoutSelecionado || emModoEdicao}
+            aoAlternar={() => {
+              if (!semLayoutSelecionado && !emModoEdicao)
+                alternarEtapa("layout");
+            }}
+          >
+            <div className="row">
+              <div className="col-lg-4">
+                <label htmlFor="select-cliente-layout">
+                  Cliente
+                  <span className="required-star"></span>
+                </label>
+                <select
+                  id="select-cliente-layout"
+                  value={cliente}
+                  onChange={(e) => setCliente(e.target.value)}
+                  className="form-control"
+                >
+                  {CLIENTES_DISPONIVEIS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-lg-8">
+                <label htmlFor="input-nome-layout">
+                  Nome do Layout
+                  <span className="required-star"></span>
+                </label>
+                <input
+                  id="input-nome-layout"
+                  type="text"
+                  value={nomeModelo}
+                  onChange={(e) => setNomeModelo(e.target.value)}
+                  placeholder="Ex: IPTU Padrão 2026"
+                  className="form-control"
+                ></input>
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-lg-4">
+                <label htmlFor="input-largura-layout">Largura (mm)</label>
+                <input
+                  id="input-largura-layout"
+                  type="number"
+                  value={larguraMm}
+                  onChange={(e) => setLarguraMm(Number(e.target.value))}
+                  className="form-control"
+                ></input>
+              </div>
+              <div className="col-lg-4">
+                <label htmlFor="input-altura-layout">Altura (mm)</label>
+                <input
+                  id="input-altura-layout"
+                  type="number"
+                  value={alturaMm}
+                  onChange={(e) => setAlturaMm(Number(e.target.value))}
+                  className="form-control"
+                ></input>
+              </div>
+            </div>
+          </Painel>
+
+          <Painel
+            id="accordion-campos"
+            titulo="2. Mapeamento dos campos"
+            resumo={`${campos.length} campos parametrizados`}
+            aberto={etapaAberta === "campos" && !semLayoutSelecionado}
+            desabilitado={
+              semLayoutSelecionado || (emModoEdicao && etapaAberta !== "campos")
+            }
+            aoAlternar={() => {
+              if (!semLayoutSelecionado && !emModoEdicao)
+                alternarEtapa("campos");
+            }}
+          >
+            <div className="row">
+              <div id="coluna-canvas-documento" className="col-lg-8">
+                <div
+                  id="barra-navegacao-paginas-canvas"
+                  className="barra-canvas"
+                >
+                  <span className="barra-canvas-dimensoes">
+                    <i className="fas fa-ruler-combined"></i> {larguraMm} x{" "}
+                    {alturaMm} (mm)
                   </span>
-                  {campoEmEdicaoId && (
-                    <button
-                      onClick={cancelarEdicaoCampo}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "var(--smar-text-muted)",
-                        cursor: "pointer",
-                        fontSize: "0.75rem",
-                        textDecoration: "underline",
-                      }}
-                    >
-                      Cancelar
-                    </button>
+                  {paginasModelo.length > 0 && (
+                    <span className="barra-canvas-grupo">
+                      <span>Opacidade</span>
+                      <input
+                        type="range"
+                        min="10"
+                        max="100"
+                        value={opacidadeModelo}
+                        onChange={(e) =>
+                          setOpacidadeModelo(Number(e.target.value))
+                        }
+                        className="custom-range barra-canvas-opacidade"
+                      ></input>
+                      <span>{opacidadeModelo}%</span>
+                    </span>
                   )}
+                  <span className="barra-canvas-grupo">
+                    <button
+                      type="button"
+                      title="Diminuir zoom"
+                      onClick={() => setZoomNivel(Math.max(10, zoomNivel - 15))}
+                      className="btn btn-cancel btn-xxs"
+                    >
+                      <i className="fas fa-search-minus"></i>
+                    </button>
+                    <span
+                      title="Zoom do documento"
+                      className="barra-canvas-zoom"
+                    >
+                      {zoomNivel}%
+                    </span>
+                    <button
+                      type="button"
+                      title="Aumentar zoom"
+                      onClick={() =>
+                        setZoomNivel(Math.min(500, zoomNivel + 15))
+                      }
+                      className="btn btn-cancel btn-xxs"
+                    >
+                      <i className="fas fa-search-plus"></i>
+                    </button>
+                  </span>
+                  <span className="barra-canvas-grupo">
+                    {Array.from(
+                      {
+                        length: Math.max(
+                          paginasModelo.length || 1,
+                          paginaCampo,
+                          ...campos.map((c) => c.pagina || 1),
+                        ),
+                      },
+                      (_, i) => i + 1,
+                    ).map((numPagina) => {
+                      const estaAtiva = paginaAtivaCanvas === numPagina;
+                      const qtdCamposNestaPagina = campos.filter(
+                        (c) => (c.pagina || 1) === numPagina,
+                      ).length;
+                      return (
+                        <button
+                          key={numPagina}
+                          type="button"
+                          onClick={() => {
+                            setPaginaAtivaCanvas(numPagina);
+                            setPaginaCampo(numPagina);
+                            setRetanguloAtualMm(null);
+                          }}
+                          className={`btn btn-xxs ${estaAtiva ? "btn-primary" : "btn-light"}`}
+                        >
+                          Página {numPagina}
+                          {qtdCamposNestaPagina > 0 && (
+                            <span
+                              className={`badge ml-1 ${estaAtiva ? "badge-light" : "badge-secondary"}`}
+                            >
+                              {qtdCamposNestaPagina}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </span>
                 </div>
 
-                <div style={{ padding: "12px" }}>
-                  <div style={{ marginBottom: "12px" }}>
-                    <label className="smar-label">Classificação do Campo</label>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "6px",
-                        backgroundColor: "var(--smar-bg-alt)",
-                        padding: "8px 10px",
-                        borderRadius: "var(--smar-radius)",
-                        border: "1px solid var(--smar-border-color)",
-                      }}
-                    >
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          cursor: "pointer",
-                          fontSize: "0.8rem",
-                          fontWeight:
-                            tipoClassificacao ===
-                            TipoClassificacaoCampo.IdentificadorDocumento
-                              ? 700
-                              : 500,
-                          color:
-                            tipoClassificacao ===
-                            TipoClassificacaoCampo.IdentificadorDocumento
-                              ? "#1a237e"
-                              : "var(--smar-text-body)",
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="classificacaoCampo"
-                          checked={
-                            tipoClassificacao ===
-                            TipoClassificacaoCampo.IdentificadorDocumento
-                          }
-                          onChange={() =>
-                            mudarClassificacao(
-                              TipoClassificacaoCampo.IdentificadorDocumento,
-                            )
-                          }
-                        ></input>
-                        <span>Identificador de documento</span>
-                      </label>
+                <div
+                  id="caixa-viewport-documento"
+                  ref={viewportRef}
+                  className="viewport-documento"
+                >
+                  <div
+                    id="canvas-area-demarcacao"
+                    ref={containerRef}
+                    onMouseDown={iniciarSelecao}
+                    onMouseMove={atualizandoSelecao}
+                    onMouseUp={finalizarSelecao}
+                    className="canvas-demarcacao"
+                    style={{
+                      width: `${larguraVisualPx}px`,
+                      height: `${alturaVisualPx}px`,
+                      minWidth: `${larguraVisualPx}px`,
+                      minHeight: `${alturaVisualPx}px`,
+                    }}
+                  >
+                    {paginasModelo.length >= paginaAtivaCanvas ? (
+                      <img
+                        src={paginasModelo[paginaAtivaCanvas - 1]}
+                        alt={`Gabarito - Página ${paginaAtivaCanvas}`}
+                        className="canvas-imagem-modelo"
+                        style={{ opacity: opacidadeModelo / 100 }}
+                      ></img>
+                    ) : (
+                      <div className="canvas-sem-modelo">
+                        <span>PREFEITURA MUNICIPAL — GUIA ARRECADATÓRIA</span>
+                      </div>
+                    )}
 
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          cursor: "pointer",
-                          fontSize: "0.8rem",
-                          fontWeight:
-                            tipoClassificacao ===
-                            TipoClassificacaoCampo.IdentificadorPagina
-                              ? 700
-                              : 500,
-                          color:
-                            tipoClassificacao ===
-                            TipoClassificacaoCampo.IdentificadorPagina
-                              ? "#4a148c"
-                              : "var(--smar-text-body)",
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="classificacaoCampo"
-                          checked={
-                            tipoClassificacao ===
-                            TipoClassificacaoCampo.IdentificadorPagina
-                          }
-                          onChange={() =>
-                            mudarClassificacao(
-                              TipoClassificacaoCampo.IdentificadorPagina,
-                            )
-                          }
-                        ></input>
-                        <span>Identificador de página</span>
-                      </label>
+                    {campos
+                      .filter(
+                        (campo) => (campo.pagina || 1) === paginaAtivaCanvas,
+                      )
+                      .map((campo) => {
+                        const ativo = campo.id === campoEmEdicaoId;
+                        const ehDocId =
+                          campo.tipoClassificacao ===
+                          TipoClassificacaoCampo.IdentificadorDocumento;
+                        const ehPagId =
+                          campo.tipoClassificacao ===
+                          TipoClassificacaoCampo.IdentificadorPagina;
 
-                      <label
+                        return (
+                          <div
+                            key={campo.id}
+                            id={`box-campo-${campo.id}`}
+                            className={`caixa-campo ${
+                              ativo
+                                ? "caixa-campo-ativo"
+                                : ehDocId
+                                  ? "caixa-campo-documento"
+                                  : ehPagId
+                                    ? "caixa-campo-pagina"
+                                    : ""
+                            }`}
+                            style={{
+                              left: `${campo.xMm * escalaPxPorMm}px`,
+                              top: `${campo.yMm * escalaPxPorMm}px`,
+                              width: `${campo.larguraMm * escalaPxPorMm}px`,
+                              height: `${campo.alturaMm * escalaPxPorMm}px`,
+                            }}
+                          >
+                            {ehDocId && <i className="fas fa-flag mr-1"></i>}
+                            {ehPagId && (
+                              <i className="fas fa-thumbtack mr-1"></i>
+                            )}
+                            {ehDocId
+                              ? `[DOC] ${campo.nomeCampo}`
+                              : ehPagId
+                                ? `[PÁG] ${campo.nomeCampo}`
+                                : campo.nomeCampo}
+                          </div>
+                        );
+                      })}
+
+                    {retanguloAtualMm && paginaCampo === paginaAtivaCanvas && (
+                      <div
+                        id="retangulo-selecao-ativa"
+                        className="retangulo-selecao"
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          cursor: "pointer",
-                          fontSize: "0.8rem",
-                          fontWeight:
-                            tipoClassificacao === TipoClassificacaoCampo.Nenhum
-                              ? 700
-                              : 500,
-                          color:
-                            tipoClassificacao === TipoClassificacaoCampo.Nenhum
-                              ? "var(--smar-teal-darker)"
-                              : "var(--smar-text-body)",
+                          left: `${retanguloAtualMm.xMm * escalaPxPorMm}px`,
+                          top: `${retanguloAtualMm.yMm * escalaPxPorMm}px`,
+                          width: `${retanguloAtualMm.larguraMm * escalaPxPorMm}px`,
+                          height: `${retanguloAtualMm.alturaMm * escalaPxPorMm}px`,
                         }}
+                      ></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-lg-4 coluna-edicao-campo">
+                <Painel
+                  titulo={campoEmEdicaoId ? "Editar campo" : "Criar campo"}
+                  className="painel-interno"
+                  resumo={
+                    campoEmEdicaoId && (
+                      <button
+                        type="button"
+                        className="btn btn-link btn-xxs p-0"
+                        onClick={cancelarEdicaoCampo}
                       >
-                        <input
-                          type="radio"
-                          name="classificacaoCampo"
-                          checked={
-                            tipoClassificacao === TipoClassificacaoCampo.Nenhum
-                          }
-                          onChange={() =>
-                            mudarClassificacao(TipoClassificacaoCampo.Nenhum)
-                          }
-                        ></input>
-                        <span>Campo comum</span>
+                        <i className="fa fa-ban"></i> Cancelar edição
+                      </button>
+                    )
+                  }
+                >
+                  <label>
+                    Classificação do campo
+                    <span className="required-star"></span>
+                  </label>
+                  <div className="opcoes-classificacao">
+                    <div className="custom-control custom-radio">
+                      <input
+                        type="radio"
+                        id="radio-classificacao-documento"
+                        name="classificacaoCampo"
+                        className="custom-control-input"
+                        checked={
+                          tipoClassificacao ===
+                          TipoClassificacaoCampo.IdentificadorDocumento
+                        }
+                        onChange={() =>
+                          mudarClassificacao(
+                            TipoClassificacaoCampo.IdentificadorDocumento,
+                          )
+                        }
+                      ></input>
+                      <label
+                        className="custom-control-label"
+                        htmlFor="radio-classificacao-documento"
+                      >
+                        Identificador de documento
+                      </label>
+                    </div>
+
+                    <div className="custom-control custom-radio">
+                      <input
+                        type="radio"
+                        id="radio-classificacao-pagina"
+                        name="classificacaoCampo"
+                        className="custom-control-input"
+                        checked={
+                          tipoClassificacao ===
+                          TipoClassificacaoCampo.IdentificadorPagina
+                        }
+                        onChange={() =>
+                          mudarClassificacao(
+                            TipoClassificacaoCampo.IdentificadorPagina,
+                          )
+                        }
+                      ></input>
+                      <label
+                        className="custom-control-label"
+                        htmlFor="radio-classificacao-pagina"
+                      >
+                        Identificador de página
+                      </label>
+                    </div>
+
+                    <div className="custom-control custom-radio">
+                      <input
+                        type="radio"
+                        id="radio-classificacao-comum"
+                        name="classificacaoCampo"
+                        className="custom-control-input"
+                        checked={
+                          tipoClassificacao === TipoClassificacaoCampo.Nenhum
+                        }
+                        onChange={() =>
+                          mudarClassificacao(TipoClassificacaoCampo.Nenhum)
+                        }
+                      ></input>
+                      <label
+                        className="custom-control-label"
+                        htmlFor="radio-classificacao-comum"
+                      >
+                        Campo comum
                       </label>
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: "10px" }}>
-                    <label className="smar-label">Nome do Campo</label>
-                    <input
-                      type="text"
-                      value={nomeCampo}
-                      onChange={(e) => setNomeCampo(e.target.value)}
-                      placeholder={
-                        tipoClassificacao ===
-                        TipoClassificacaoCampo.IdentificadorPagina
-                          ? "Ex: Débitos, Identificação, Resumo"
-                          : "Ex: Total, Contribuinte, Inscrição"
-                      }
-                      className="smar-input"
-                      style={{ height: "32px" }}
-                    ></input>
-                  </div>
+                  <label htmlFor="input-nome-campo">
+                    Nome do campo
+                    <span className="required-star"></span>
+                  </label>
+                  <input
+                    id="input-nome-campo"
+                    type="text"
+                    value={nomeCampo}
+                    onChange={(e) => setNomeCampo(e.target.value)}
+                    placeholder={
+                      tipoClassificacao ===
+                      TipoClassificacaoCampo.IdentificadorPagina
+                        ? "Ex: Débitos, Identificação, Resumo"
+                        : "Ex: Total, Contribuinte, Inscrição"
+                    }
+                    className="form-control"
+                  ></input>
 
                   {tipoClassificacao ===
                     TipoClassificacaoCampo.IdentificadorDocumento && (
-                    <div
-                      style={{
-                        marginBottom: "10px",
-                        backgroundColor: "#e8eaf6",
-                        padding: "8px",
-                        borderRadius: "var(--smar-radius)",
-                        border: "1px solid #c5cae9",
-                      }}
-                    >
-                      <label
-                        className="smar-label"
-                        style={{ color: "#1a237e", fontSize: "0.7rem" }}
-                      >
+                    <div className="bloco-identificador bloco-identificador-documento">
+                      <label htmlFor="input-texto-esperado-documento">
+                        <i className="fas fa-flag mr-1"></i>
                         Texto esperado no documento
                       </label>
                       <input
+                        id="input-texto-esperado-documento"
                         type="text"
                         value={textoEsperadoDocumento}
                         onChange={(e) =>
                           setTextoEsperadoDocumento(e.target.value)
                         }
                         placeholder="Ex: PREFEITURA MUNICIPAL"
-                        className="smar-input"
-                        style={{
-                          height: "30px",
-                          fontSize: "0.75rem",
-                          borderColor: "#9fa8da",
-                        }}
+                        className="form-control"
                       ></input>
-                      <span
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#3949ab",
-                          marginTop: "2px",
-                          display: "block",
-                        }}
-                      >
+                      <small className="form-text text-muted">
                         Texto que identifica onde o carnê começa/termina no PDF.
-                      </span>
+                      </small>
                     </div>
                   )}
 
                   {tipoClassificacao ===
                     TipoClassificacaoCampo.IdentificadorPagina && (
-                    <div
-                      style={{
-                        marginBottom: "10px",
-                        backgroundColor: "#f3e5f5",
-                        padding: "8px",
-                        borderRadius: "var(--smar-radius)",
-                        border: "1px solid #e1bee7",
-                      }}
-                    >
-                      <label
-                        className="smar-label"
-                        style={{ color: "#4a148c", fontSize: "0.7rem" }}
-                      >
+                    <div className="bloco-identificador bloco-identificador-pagina">
+                      <label htmlFor="input-texto-esperado-pagina">
+                        <i className="fas fa-thumbtack mr-1"></i>
                         Texto esperado na página
                       </label>
                       <input
+                        id="input-texto-esperado-pagina"
                         type="text"
                         value={textoEsperadoPagina}
                         onChange={(e) => setTextoEsperadoPagina(e.target.value)}
                         placeholder="Ex: DEMONSTRATIVO DE DÉBITOS"
-                        className="smar-input"
-                        style={{
-                          height: "30px",
-                          fontSize: "0.75rem",
-                          borderColor: "#ba68c8",
-                        }}
+                        className="form-control"
                       ></input>
-                      <span
-                        style={{
-                          fontSize: "0.68rem",
-                          color: "#6a1b9a",
-                          marginTop: "2px",
-                          display: "block",
-                        }}
-                      >
+                      <small className="form-text text-muted">
                         Texto que comprova que a página é deste tipo.
-                      </span>
+                      </small>
                     </div>
                   )}
 
                   {tipoClassificacao === TipoClassificacaoCampo.Nenhum && (
                     <>
-                      <div style={{ marginBottom: "10px" }}>
-                        <label className="smar-label">
-                          Identificador de página
-                        </label>
-                        <select
-                          value={identificadorPagina}
-                          onChange={(e) =>
-                            setIdentificadorPagina(e.target.value)
-                          }
-                          className="smar-select"
-                          style={{ height: "32px", fontWeight: 600 }}
-                        >
-                          <option value="">
-                            (Selecione o Identificador de página)
+                      <label htmlFor="select-identificador-pagina">
+                        Identificador de página
+                      </label>
+                      <select
+                        id="select-identificador-pagina"
+                        value={identificadorPagina}
+                        onChange={(e) => setIdentificadorPagina(e.target.value)}
+                        className="form-control"
+                      >
+                        <option value="">Selecione</option>
+                        {identificadoresDePaginaDisponiveis.map((idPag) => (
+                          <option key={idPag} value={idPag}>
+                            {idPag}
                           </option>
-                          {identificadoresDePaginaDisponiveis.map((idPag) => (
-                            <option key={idPag} value={idPag}>
-                              {idPag}
-                            </option>
-                          ))}
-                        </select>
-                        {identificadoresDePaginaDisponiveis.length === 0 && (
-                          <span
-                            style={{
-                              fontSize: "0.68rem",
-                              color: "var(--smar-danger-text)",
-                              marginTop: "2px",
-                              display: "block",
-                            }}
-                          >
-                            Nenhum identificador de página cadastrado. Cadastre
-                            um primeiro marcando a opção acima.
-                          </span>
-                        )}
-                      </div>
+                        ))}
+                      </select>
+                      {identificadoresDePaginaDisponiveis.length === 0 && (
+                        <small className="form-text text-danger">
+                          Nenhum identificador de página cadastrado. Cadastre um
+                          primeiro marcando a opção acima.
+                        </small>
+                      )}
 
-                      <div style={{ marginBottom: "10px" }}>
-                        <label className="smar-label">
-                          Identificador anterior (opcional)
-                        </label>
-                        <input
-                          type="text"
-                          value={identificadorAnterior}
-                          onChange={(e) =>
-                            setIdentificadorAnterior(e.target.value)
-                          }
-                          placeholder="Ex: TOTAL:, VALOR:"
-                          className="smar-input"
-                          style={{ height: "32px" }}
-                        ></input>
-                        <span
-                          style={{
-                            fontSize: "0.68rem",
-                            color: "var(--smar-text-muted)",
-                            marginTop: "2px",
-                            display: "block",
-                          }}
-                        >
-                          Texto que precede o valor dentro da área. Se não for
-                          localizado, o campo é considerado ausente.
-                        </span>
-                      </div>
+                      <label htmlFor="input-identificador-anterior">
+                        Identificador anterior (opcional)
+                      </label>
+                      <input
+                        id="input-identificador-anterior"
+                        type="text"
+                        value={identificadorAnterior}
+                        onChange={(e) =>
+                          setIdentificadorAnterior(e.target.value)
+                        }
+                        placeholder="Ex: TOTAL:, VALOR:"
+                        className="form-control"
+                      ></input>
+                      <small className="form-text text-muted">
+                        Texto que precede o valor dentro da área. Se não for
+                        localizado, o campo é considerado ausente.
+                      </small>
 
-                      <div style={{ marginBottom: "10px" }}>
-                        <label className="smar-label">
-                          Identificador posterior (opcional)
-                        </label>
-                        <input
-                          type="text"
-                          value={identificadorPosterior}
-                          onChange={(e) =>
-                            setIdentificadorPosterior(e.target.value)
-                          }
-                          placeholder="Ex: InscrMunicipal, VENCIMENTO"
-                          className="smar-input"
-                          style={{ height: "32px" }}
-                        ></input>
-                        <span
-                          style={{
-                            fontSize: "0.68rem",
-                            color: "var(--smar-text-muted)",
-                            marginTop: "2px",
-                            display: "block",
-                          }}
-                        >
-                          Texto que encerra o valor. Se não for localizado, o
-                          valor vai até o fim da área.
-                        </span>
-                      </div>
+                      <label htmlFor="input-identificador-posterior">
+                        Identificador posterior (opcional)
+                      </label>
+                      <input
+                        id="input-identificador-posterior"
+                        type="text"
+                        value={identificadorPosterior}
+                        onChange={(e) =>
+                          setIdentificadorPosterior(e.target.value)
+                        }
+                        placeholder="Ex: InscrMunicipal, VENCIMENTO"
+                        className="form-control"
+                      ></input>
+                      <small className="form-text text-muted">
+                        Texto que encerra o valor. Se não for localizado, o
+                        valor vai até o fim da área.
+                      </small>
 
-                      <div style={{ marginBottom: "10px" }}>
-                        <label className="smar-label">Tipo de dado</label>
-                        <select
-                          value={tipoDado}
-                          onChange={(e) =>
-                            setTipoDado(
-                              Number(e.target.value) as TipoDadoCampo,
-                            )
-                          }
-                          className="smar-select"
-                          style={{ height: "32px" }}
-                        >
-                          {OPCOES_TIPO_DADO.map((opcao) => (
-                            <option key={opcao.valor} value={opcao.valor}>
-                              {opcao.exemplo &&
-                              opcao.valor !== TipoDadoCampo.Texto
-                                ? `${opcao.rotulo} (ex: ${opcao.exemplo})`
-                                : opcao.rotulo}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          style={{
-                            fontSize: "0.68rem",
-                            color: "var(--smar-text-muted)",
-                            marginTop: "2px",
-                            display: "block",
-                          }}
-                        >
-                          {tipoDado === TipoDadoCampo.Texto
-                            ? "Usa todo o texto entre os identificadores."
-                            : "Usa o primeiro trecho no formato escolhido. Se nenhum for encontrado, o valor é marcado como inválido e as consultas que o utilizam não são executadas."}
-                        </span>
-                      </div>
+                      <label htmlFor="select-tipo-dado">Tipo de dado</label>
+                      <select
+                        id="select-tipo-dado"
+                        value={tipoDado}
+                        onChange={(e) =>
+                          setTipoDado(Number(e.target.value) as TipoDadoCampo)
+                        }
+                        className="form-control"
+                      >
+                        {OPCOES_TIPO_DADO.map((opcao) => (
+                          <option key={opcao.valor} value={opcao.valor}>
+                            {opcao.exemplo &&
+                            opcao.valor !== TipoDadoCampo.Texto
+                              ? `${opcao.rotulo} (ex: ${opcao.exemplo})`
+                              : opcao.rotulo}
+                          </option>
+                        ))}
+                      </select>
+                      <small className="form-text text-muted">
+                        {tipoDado === TipoDadoCampo.Texto
+                          ? "Usa todo o texto entre os identificadores."
+                          : "Usa o primeiro trecho no formato escolhido. Se nenhum for encontrado, o valor é marcado como inválido e as consultas que o utilizam não são executadas."}
+                      </small>
                     </>
                   )}
 
                   {retanguloAtualMm && (
-                    <div
-                      style={{
-                        backgroundColor: "var(--smar-bg-alt)",
-                        padding: "6px 8px",
-                        borderRadius: "var(--smar-radius-sm)",
-                        fontSize: "0.7rem",
-                        color: "var(--smar-text-secondary)",
-                        marginBottom: "10px",
-                        border: "1px solid var(--smar-border-light)",
-                      }}
-                    >
+                    <div className="coordenadas-campo">
                       <strong>Coordenadas (mm):</strong> Pg: {paginaCampo} | X:{" "}
                       {retanguloAtualMm.xMm.toFixed(1)} | Y:{" "}
                       {retanguloAtualMm.yMm.toFixed(1)} | L:{" "}
@@ -1983,54 +1619,32 @@ export function ParametrizacaoPage({
                   )}
 
                   <button
+                    type="button"
                     onClick={salvarRegiaoCampo}
-                    className="smar-btn"
-                    style={{
-                      width: "100%",
-                      backgroundColor: campoEmEdicaoId
-                        ? "#f57c00"
-                        : "var(--smar-teal-primary)",
-                      color: "#ffffff",
-                      height: "34px",
-                    }}
+                    className="btn btn-primary btn-block mt-3"
                   >
-                    {campoEmEdicaoId ? "Atualizar Campo" : "Criar Campo"}
+                    <i
+                      className={
+                        campoEmEdicaoId ? "fas fa-check" : "fas fa-plus"
+                      }
+                    ></i>{" "}
+                    {campoEmEdicaoId ? "Atualizar campo" : "Criar campo"}
                   </button>
-                </div>
-              </div>
+                </Painel>
 
-              <div className="smar-card">
-                <div className="smar-card-header-gray">
-                  CAMPOS DO MODELO ({campos.length})
-                </div>
-                <div
-                  style={{
-                    padding: "8px",
-                    maxHeight: "250px",
-                    overflowY: "auto",
-                  }}
+                <Painel
+                  titulo="Campos do modelo"
+                  className="painel-interno"
+                  resumo={
+                    <span className="badge badge-secondary">
+                      {campos.length}
+                    </span>
+                  }
                 >
                   {campos.length === 0 ? (
-                    <p
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--smar-text-muted)",
-                        margin: "8px",
-                      }}
-                    >
-                      Nenhum campo demarcado.
-                    </p>
+                    <p className="lista-itens-vazia">Nenhum campo demarcado.</p>
                   ) : (
-                    <ul
-                      style={{
-                        listStyle: "none",
-                        padding: 0,
-                        margin: 0,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "6px",
-                      }}
-                    >
+                    <ul className="lista-itens lista-itens-rolavel">
                       {campos.map((c) => {
                         const ehDocId =
                           c.tipoClassificacao ===
@@ -2040,42 +1654,30 @@ export function ParametrizacaoPage({
                           TipoClassificacaoCampo.IdentificadorPagina;
 
                         return (
-                          <li
-                            key={c.id}
-                            style={{
-                              border: "1px solid var(--smar-border-light)",
-                              backgroundColor: "#fafafa",
-                              borderRadius: "var(--smar-radius-sm)",
-                              padding: "6px 8px",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
-                            <div>
+                          <li key={c.id} className="lista-itens-item">
+                            <div className="lista-itens-texto">
                               <strong
-                                style={{
-                                  display: "block",
-                                  fontSize: "0.8rem",
-                                  color: ehDocId
-                                    ? "#3f51b5"
+                                className={
+                                  ehDocId
+                                    ? "texto-identificador-documento"
                                     : ehPagId
-                                      ? "#8e24aa"
-                                      : "var(--smar-text-primary)",
-                                }}
+                                      ? "texto-identificador-pagina"
+                                      : ""
+                                }
                               >
+                                {ehDocId && (
+                                  <i className="fas fa-flag mr-1"></i>
+                                )}
+                                {ehPagId && (
+                                  <i className="fas fa-thumbtack mr-1"></i>
+                                )}
                                 {ehDocId
-                                  ? `🚩 [DOC] ${c.nomeCampo}`
+                                  ? `[DOC] ${c.nomeCampo}`
                                   : ehPagId
-                                    ? `📌 [PÁG] ${c.nomeCampo}`
+                                    ? `[PÁG] ${c.nomeCampo}`
                                     : c.nomeCampo}
                               </strong>
-                              <span
-                                style={{
-                                  fontSize: "0.65rem",
-                                  color: "var(--smar-text-muted)",
-                                }}
-                              >
+                              <small>
                                 {ehDocId &&
                                   `Identificador de Documento • "${c.textoEsperadoDocumento}"`}
                                 {ehPagId &&
@@ -2092,35 +1694,26 @@ export function ParametrizacaoPage({
                                   c.tipoDado !== undefined &&
                                   c.tipoDado !== TipoDadoCampo.Texto &&
                                   ` • [Tipo: ${OPCOES_TIPO_DADO.find((o) => o.valor === c.tipoDado)?.rotulo ?? c.tipoDado}]`}
-                              </span>
+                              </small>
                             </div>
-                            <div style={{ display: "flex", gap: "4px" }}>
+                            <div className="lista-itens-acoes">
                               <button
+                                type="button"
                                 onClick={() => iniciarEdicaoCampo(c)}
                                 title="Editar"
-                                className="smar-btn smar-btn-secondary"
-                                style={{
-                                  padding: "3px 6px",
-                                  height: "auto",
-                                  fontSize: "0.7rem",
-                                  color: "var(--smar-teal-dark)",
-                                }}
+                                className="btn btn-primary btn-custom btn-xxs"
                               >
-                                ✎
+                                <i className="fas fa-pen"></i>
                               </button>
                               <button
+                                type="button"
                                 onClick={() =>
                                   removerRegiaoCampo(c.id, c.nomeCampo)
                                 }
                                 title="Remover"
-                                className="smar-btn smar-btn-danger"
-                                style={{
-                                  padding: "3px 6px",
-                                  height: "auto",
-                                  fontSize: "0.7rem",
-                                }}
+                                className="btn btn-danger btn-custom btn-xxs"
                               >
-                                ✕
+                                <i className="fas fa-trash"></i>
                               </button>
                             </div>
                           </li>
@@ -2128,493 +1721,321 @@ export function ParametrizacaoPage({
                       })}
                     </ul>
                   )}
-                </div>
+                </Painel>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </Painel>
 
-      {/* 3. REGRAS DE VALIDAÇÃO */}
-      <div
-        id="accordion-validacoes"
-        className="smar-accordion"
-        style={{
-          opacity:
-            semLayoutSelecionado ||
-            (emModoEdicao && etapaAberta !== "validacoes")
-              ? 0.65
-              : 1,
-        }}
-      >
-        <div
-          onClick={() => {
-            if (!semLayoutSelecionado && !emModoEdicao)
-              alternarEtapa("validacoes");
-          }}
-          className={`smar-accordion-header ${etapaAberta === "validacoes" ? "aberto" : "fechado"}`}
-          style={{
-            cursor:
-              !semLayoutSelecionado && !emModoEdicao
-                ? "pointer"
-                : "not-allowed",
-          }}
-        >
-          <div className="smar-accordion-title">
-            <span className="smar-accordion-icon">
-              {etapaAberta === "validacoes" ? "▼" : "▶"}
-            </span>
-            <strong>3. Regras de validação</strong>
-          </div>
-          <span
-            style={{ fontSize: "0.75rem", color: "var(--smar-text-secondary)" }}
-          >
-            {queries.length} validações ativas
-          </span>
-        </div>
-        <div
-          className={`smar-accordion-content-wrapper ${etapaAberta === "validacoes" && !semLayoutSelecionado ? "smar-accordion-content-open" : "smar-accordion-content-closed"}`}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: "16px",
-              alignItems: "flex-start",
-              flexWrap: "wrap",
+          <Painel
+            id="accordion-validacoes"
+            titulo="3. Regras de validação"
+            resumo={`${queries.length} validações ativas`}
+            aberto={etapaAberta === "validacoes" && !semLayoutSelecionado}
+            desabilitado={
+              semLayoutSelecionado ||
+              (emModoEdicao && etapaAberta !== "validacoes")
+            }
+            aoAlternar={() => {
+              if (!semLayoutSelecionado && !emModoEdicao)
+                alternarEtapa("validacoes");
             }}
           >
-            <div
-              className="smar-card"
-              style={{
-                flex: "2 1 500px",
-                padding: "14px",
-              }}
-            >
-              <div
-                className="smar-card-header-teal"
-                style={{
-                  margin: "-14px -14px 14px -14px",
-                  padding: "8px 14px",
-                }}
-              >
-                <span>
-                  {queryEmEdicaoId ? "EDITAR QUERY" : "NOVA VALIDAÇÃO"}
-                </span>
-              </div>
-              <div style={{ marginBottom: "12px" }}>
-                <label className="smar-label">Nome</label>
-                <input
-                  type="text"
-                  value={nomeQuery}
-                  onChange={(e) => setNomeQuery(e.target.value)}
-                  placeholder="Ex: Nome do contribuinte"
-                  className="smar-input"
-                  style={{ height: "32px" }}
-                ></input>
-              </div>
-              <div style={{ marginBottom: "12px" }}>
-                <label className="smar-label">Regra para validar</label>
-                <SqlCodeEditor
-                  value={sqlQuery}
-                  onChange={(novoSql) => {
-                    setSqlQuery(novoSql);
-                    setSqlAnalisado(false);
-                  }}
-                  camposDisponiveis={campos.map((c) => c.nomeCampo)}
-                ></SqlCodeEditor>
-              </div>
-              <div
-                id="container-botao-analisar"
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  marginBottom: "16px",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={analisarQuerySQL}
-                  disabled={analisandoSql}
-                  className="smar-btn smar-btn-dark"
+            <div className="row">
+              <div className="col-lg-8">
+                <Painel
+                  titulo={
+                    queryEmEdicaoId ? "Editar validação" : "Nova validação"
+                  }
+                  className="painel-interno"
                 >
-                  <span>{analisandoSql ? "Analisando..." : "Analisar"}</span>
-                </button>
-              </div>
-              {sqlAnalisado && (
-                <div
-                  style={{
-                    backgroundColor: "var(--smar-bg-alt)",
-                    border: "1px solid var(--smar-border-color)",
-                    padding: "12px",
-                    borderRadius: "var(--smar-radius)",
-                  }}
-                >
-                  <div
-                    style={{
-                      marginBottom: "12px",
-                      display: "flex",
-                      gap: "16px",
-                    }}
-                  >
-                    <div>
-                      <strong
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--smar-teal-dark)",
-                          display: "block",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        Parâmetros de Entrada ($):
-                      </strong>
-                      {parametrosEncontrados.length > 0 ? (
-                        parametrosEncontrados.map((p) => (
-                          <span
-                            key={p}
-                            style={{
-                              display: "inline-block",
-                              backgroundColor: "var(--smar-teal-light)",
-                              color: "var(--smar-teal-dark)",
-                              padding: "2px 6px",
-                              borderRadius: "var(--smar-radius-sm)",
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                              marginRight: "4px",
-                              border: "1px solid var(--smar-teal-border)",
-                            }}
-                          >
-                            {p.includes(" ") ? `\${${p}}` : `$${p}`}
-                          </span>
-                        ))
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "var(--smar-text-muted)",
-                          }}
-                        >
-                          Nenhum
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <strong
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--smar-teal-dark)",
-                          display: "block",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        Retornos Apurados (AS):
-                      </strong>
-                      {camposRetornados.length > 0 ? (
-                        camposRetornados.map((c) => (
-                          <span
-                            key={c}
-                            style={{
-                              display: "inline-block",
-                              backgroundColor: "#e8eaf6",
-                              color: "#283593",
-                              padding: "2px 6px",
-                              borderRadius: "var(--smar-radius-sm)",
-                              fontSize: "0.75rem",
-                              fontWeight: 700,
-                              marginRight: "4px",
-                              border: "1px solid #c5cae9",
-                            }}
-                          >
-                            {c}
-                          </span>
-                        ))
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "var(--smar-text-muted)",
-                          }}
-                        >
-                          Nenhum
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "8px",
-                      alignItems: "flex-end",
-                      marginBottom: "12px",
-                      backgroundColor: "#ffffff",
-                      padding: "8px",
-                      borderRadius: "var(--smar-radius-sm)",
-                      border: "1px solid var(--smar-border-color)",
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <label
-                        className="smar-label"
-                        style={{ fontSize: "0.7rem" }}
-                      >
-                        Campo Retornado (Banco)
-                      </label>
-                      <select
-                        value={regraCampoRetornado}
-                        onChange={(e) => setRegraCampoRetornado(e.target.value)}
-                        className="smar-select"
-                        style={{ height: "28px", padding: "4px 8px" }}
-                      >
-                        {camposRetornados.map((cr) => (
-                          <option key={cr} value={cr}>
-                            {cr}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div style={{ width: "70px" }}>
-                      <label
-                        className="smar-label"
-                        style={{ fontSize: "0.7rem" }}
-                      >
-                        Operador
-                      </label>
-                      <select
-                        value={regraOperador}
-                        onChange={(e) => setRegraOperador(e.target.value)}
-                        className="smar-select"
-                        style={{ height: "28px", padding: "4px 8px" }}
-                      >
-                        <option value="=">=</option>
-                        <option value="<>">&lt;&gt;</option>
-                      </select>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label
-                        className="smar-label"
-                        style={{ fontSize: "0.7rem" }}
-                      >
-                        Campo no Documento
-                      </label>
-                      <select
-                        value={regraCampoCarne}
-                        onChange={(e) => setRegraCampoCarne(e.target.value)}
-                        className="smar-select"
-                        style={{ height: "28px", padding: "4px 8px" }}
-                      >
-                        {camposNormaisDisponiveis.map((c) => (
-                          <option key={c.id} value={c.nomeCampo}>
-                            {c.nomeCampo}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      onClick={adicionarRegraValidacao}
-                      className="smar-btn smar-btn-primary"
-                      style={{ height: "28px", padding: "0 12px" }}
-                    >
-                      + Vincular
-                    </button>
-                  </div>
-                  <table
-                    className="smar-table"
-                    style={{ marginBottom: "12px" }}
-                  >
-                    <thead>
-                      <tr>
-                        <th>Campo Banco de Dados</th>
-                        <th style={{ textAlign: "center" }}>Operador</th>
-                        <th>Campo Documento</th>
-                        <th style={{ textAlign: "center" }}>Ação</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {regrasAtuais.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            style={{
-                              padding: "8px",
-                              textAlign: "center",
-                              color: "var(--smar-text-muted)",
-                              backgroundColor: "#ffffff",
-                              borderBottom:
-                                "1px solid var(--smar-border-color)",
-                            }}
-                          >
-                            Nenhuma regra configurada
-                          </td>
-                        </tr>
-                      )}
-                      {regrasAtuais.map((r) => (
-                        <tr key={r.id}>
-                          <td style={{ fontWeight: 700, color: "#283593" }}>
-                            {r.campoRetornado}
-                          </td>
-                          <td style={{ textAlign: "center", fontWeight: 700 }}>
-                            {r.operador}
-                          </td>
-                          <td
-                            style={{
-                              fontWeight: 700,
-                              color: "var(--smar-teal-dark)",
-                            }}
-                          >
-                            {r.campoCarne}
-                          </td>
-                          <td style={{ textAlign: "center" }}>
-                            <button
-                              onClick={() => removerRegraValidacao(r.id)}
-                              style={{
-                                border: "none",
-                                background: "none",
-                                color: "var(--smar-danger-text)",
-                                cursor: "pointer",
-                                fontWeight: 700,
-                              }}
-                            >
-                              ✕
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: "6px",
-                    }}
-                  >
-                    {queryEmEdicaoId && (
-                      <button
-                        onClick={cancelarEdicaoQuery}
-                        className="smar-btn"
-                        style={{
-                          backgroundColor: "transparent",
-                          color: "var(--smar-text-secondary)",
-                          boxShadow: "none",
-                        }}
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                    <button
-                      onClick={salvarQueryCompleta}
-                      className="smar-btn smar-btn-primary"
-                    >
-                      Salvar Validação
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                  <label htmlFor="input-nome-validacao">
+                    Nome
+                    <span className="required-star"></span>
+                  </label>
+                  <input
+                    id="input-nome-validacao"
+                    type="text"
+                    value={nomeQuery}
+                    onChange={(e) => setNomeQuery(e.target.value)}
+                    placeholder="Ex: Nome do contribuinte"
+                    className="form-control"
+                  ></input>
 
-            <div style={{ flex: "1 1 280px", minWidth: "260px" }}>
-              <div className="smar-card">
-                <div className="smar-card-header-gray">
-                  VALIDAÇÕES CONFIGURADAS ({queries.length})
-                </div>
-                <div
-                  style={{
-                    padding: "10px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
+                  <label>
+                    Regra para validar
+                    <span className="required-star"></span>
+                  </label>
+                  <SqlCodeEditor
+                    value={sqlQuery}
+                    onChange={(novoSql) => {
+                      setSqlQuery(novoSql);
+                      setSqlAnalisado(false);
+                    }}
+                    camposDisponiveis={campos.map((c) => c.nomeCampo)}
+                  ></SqlCodeEditor>
+
+                  <div
+                    id="container-botao-analisar"
+                    className="text-right mt-2"
+                  >
+                    <button
+                      type="button"
+                      onClick={analisarQuerySQL}
+                      disabled={analisandoSql}
+                      className="btn btn-primary"
+                    >
+                      <i
+                        className={
+                          analisandoSql
+                            ? "fas fa-spinner fa-spin"
+                            : "fas fa-search"
+                        }
+                      ></i>{" "}
+                      {analisandoSql ? "Analisando..." : "Analisar"}
+                    </button>
+                  </div>
+
+                  {sqlAnalisado && (
+                    <div className="analise-sql">
+                      <div className="row">
+                        <div className="col">
+                          <label>Parâmetros de entrada ($)</label>
+                          <div>
+                            {parametrosEncontrados.length > 0 ? (
+                              parametrosEncontrados.map((p) => (
+                                <span key={p} className="tag-padrao">
+                                  {p.includes(" ") ? `\${${p}}` : `$${p}`}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-muted">Nenhum</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="col">
+                          <label>Retornos apurados (AS)</label>
+                          <div>
+                            {camposRetornados.length > 0 ? (
+                              camposRetornados.map((c) => (
+                                <span
+                                  key={c}
+                                  className="tag-padrao tag-retorno"
+                                >
+                                  {c}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-muted">Nenhum</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="row align-items-end">
+                        <div className="col">
+                          <label htmlFor="select-regra-campo-retornado">
+                            Campo retornado (banco)
+                          </label>
+                          <select
+                            id="select-regra-campo-retornado"
+                            value={regraCampoRetornado}
+                            onChange={(e) =>
+                              setRegraCampoRetornado(e.target.value)
+                            }
+                            className="form-control"
+                          >
+                            {camposRetornados.map((cr) => (
+                              <option key={cr} value={cr}>
+                                {cr}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-auto">
+                          <label htmlFor="select-regra-operador">
+                            Operador
+                          </label>
+                          <select
+                            id="select-regra-operador"
+                            value={regraOperador}
+                            onChange={(e) => setRegraOperador(e.target.value)}
+                            className="form-control"
+                          >
+                            <option value="=">=</option>
+                            <option value="<>">&lt;&gt;</option>
+                          </select>
+                        </div>
+                        <div className="col">
+                          <label htmlFor="select-regra-campo-documento">
+                            Campo no documento
+                          </label>
+                          <select
+                            id="select-regra-campo-documento"
+                            value={regraCampoCarne}
+                            onChange={(e) => setRegraCampoCarne(e.target.value)}
+                            className="form-control"
+                          >
+                            {camposNormaisDisponiveis.map((c) => (
+                              <option key={c.id} value={c.nomeCampo}>
+                                {c.nomeCampo}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-auto">
+                          <button
+                            type="button"
+                            onClick={adicionarRegraValidacao}
+                            className="btn btn-primary"
+                          >
+                            <i className="fas fa-link"></i> Vincular
+                          </button>
+                        </div>
+                      </div>
+
+                      <table className="table table-grid mt-3">
+                        <thead>
+                          <tr>
+                            <th>Campo banco de dados</th>
+                            <th className="text-center">Operador</th>
+                            <th>Campo documento</th>
+                            <th className="text-center">Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {regrasAtuais.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="text-center text-muted"
+                              >
+                                Nenhuma regra configurada
+                              </td>
+                            </tr>
+                          )}
+                          {regrasAtuais.map((r) => (
+                            <tr key={r.id}>
+                              <td className="font-weight-bold">
+                                {r.campoRetornado}
+                              </td>
+                              <td className="text-center font-weight-bold">
+                                {r.operador}
+                              </td>
+                              <td className="font-weight-bold text-primary">
+                                {r.campoCarne}
+                              </td>
+                              <td className="text-center">
+                                <button
+                                  type="button"
+                                  title="Remover regra"
+                                  onClick={() => removerRegraValidacao(r.id)}
+                                  className="btn btn-danger btn-custom btn-xxs"
+                                >
+                                  <i className="fas fa-trash"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      <div className="d-flex justify-content-end mt-3">
+                        {queryEmEdicaoId && (
+                          <button
+                            type="button"
+                            onClick={cancelarEdicaoQuery}
+                            className="btn btn-cancel mr-2"
+                          >
+                            <i className="fa fa-ban"></i> Cancelar
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={salvarQueryCompleta}
+                          className="btn btn-primary"
+                        >
+                          <i className="fas fa-check"></i> Salvar validação
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </Painel>
+              </div>
+
+              <div className="col-lg-4">
+                <Painel
+                  titulo="Validações configuradas"
+                  className="painel-interno"
+                  resumo={
+                    <span className="badge badge-secondary">
+                      {queries.length}
+                    </span>
+                  }
                 >
                   {queries.length === 0 && (
-                    <p
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--smar-text-muted)",
-                        margin: "4px",
-                      }}
-                    >
+                    <p className="lista-itens-vazia">
                       Nenhuma query configurada.
                     </p>
                   )}
-                  {queries.map((q) => (
-                    <div
-                      key={q.id}
-                      style={{
-                        border: "1px solid var(--smar-border-color)",
-                        borderRadius: "var(--smar-radius-sm)",
-                        padding: "10px",
-                        backgroundColor: "#fafafa",
-                      }}
-                    >
-                      <h4
-                        style={{
-                          margin: "0 0 4px 0",
-                          fontSize: "0.85rem",
-                          color: "var(--smar-teal-dark)",
-                        }}
-                      >
-                        {q.nome}
-                      </h4>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--smar-text-secondary)",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        {q.regras.length} regras vinculadas
-                      </div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button
-                          onClick={() => editarQuery(q)}
-                          className="smar-btn smar-btn-secondary"
-                          style={{
-                            flex: 1,
-                            height: "26px",
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => removerQuery(q.id, q.nome)}
-                          className="smar-btn smar-btn-danger"
-                          style={{
-                            flex: 1,
-                            height: "26px",
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          Remover
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  {queries.length > 0 && (
+                    <ul className="lista-itens">
+                      {queries.map((q) => (
+                        <li key={q.id} className="lista-itens-item">
+                          <div className="lista-itens-texto">
+                            <strong className="text-primary">{q.nome}</strong>
+                            <small>{q.regras.length} regras vinculadas</small>
+                          </div>
+                          <div className="lista-itens-acoes">
+                            <button
+                              type="button"
+                              onClick={() => editarQuery(q)}
+                              title="Editar"
+                              className="btn btn-primary btn-custom btn-xxs"
+                            >
+                              <i className="fas fa-pen"></i>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removerQuery(q.id, q.nome)}
+                              title="Remover"
+                              className="btn btn-danger btn-custom btn-xxs"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Painel>
               </div>
+            </div>
+          </Painel>
+
+          <div id="rodape-salvar-tudo" className="row">
+            <div className="btn-forms col">
+              <button
+                type="button"
+                onClick={salvarTudo}
+                disabled={
+                  semLayoutSelecionado || emModoEdicao || !houveAlteracao
+                }
+                title={
+                  semLayoutSelecionado
+                    ? "Selecione ou crie um layout antes de salvar"
+                    : emModoEdicao
+                      ? "Finalize as edições pendentes antes de salvar tudo"
+                      : !houveAlteracao
+                        ? "Nenhuma alteração foi realizada para salvar"
+                        : "Salvar todas as alterações"
+                }
+                className="btn btn-primary"
+              >
+                <i className="fas fa-check"></i> Salvar
+              </button>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* RODAPÉ PRINCIPAL: SALVAR TUDO */}
-      <div id="rodape-salvar-tudo" className="smar-footer-actions">
-        <button
-          type="button"
-          onClick={salvarTudo}
-          disabled={semLayoutSelecionado || emModoEdicao || !houveAlteracao}
-          title={
-            semLayoutSelecionado
-              ? "Selecione ou crie um layout antes de salvar"
-              : emModoEdicao
-                ? "Finalize as edições pendentes antes de salvar tudo"
-                : !houveAlteracao
-                  ? "Nenhuma alteração foi realizada para salvar"
-                  : "Salvar todas as alterações"
-          }
-          className="smar-btn smar-btn-save"
-        >
-          <span>Salvar</span>
-        </button>
       </div>
 
       <ModalInformativo

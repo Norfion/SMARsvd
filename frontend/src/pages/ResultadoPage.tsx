@@ -12,12 +12,39 @@ import { AgGridReact } from "ag-grid-react";
 import {
   AllCommunityModule,
   ModuleRegistry,
+  themeQuartz,
   type ColDef,
   type ICellRendererParams,
-  type CellStyle,
 } from "ag-grid-community";
+import { Painel } from "../components/Painel";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+// Grid no padrão das tabelas dos sistemas da empresa (cabeçalho na cor do tema, linhas zebradas)
+const TEMA_GRID = themeQuartz.withParams({
+  accentColor: "#0cae89",
+  fontFamily: "'Lucida Sans Unicode', 'Lucida Grande', sans-serif",
+  fontSize: 13,
+  foregroundColor: "#333333",
+  borderColor: "#dee2e6",
+  borderRadius: 4,
+  wrapperBorderRadius: 4,
+  headerBackgroundColor: "#0cae89",
+  headerTextColor: "#fafafa",
+  headerFontWeight: 500,
+  headerCellHoverBackgroundColor: "#27c6a2",
+  headerColumnResizeHandleColor: "#fafafa",
+  oddRowBackgroundColor: "#f9f9f9",
+  rowHoverColor: "#c3c3c3",
+  selectedRowBackgroundColor: "#d7e0e2",
+});
+
+// Cores do tema usadas nos arquivos exportados
+const RGB_PRIMARIA: [number, number, number] = [12, 174, 137];
+const RGB_SUCESSO: [number, number, number] = [87, 196, 69];
+const RGB_ERRO: [number, number, number] = [167, 55, 43];
+const RGB_NEUTRO: [number, number, number] = [110, 127, 123];
+const RGB_TEXTO: [number, number, number] = [51, 51, 51];
 
 interface ResultadoPageProps {
   resultadoAuditoria: ResultadoValidacaoLote | null;
@@ -73,20 +100,13 @@ const AG_GRID_LOCALE_BR = {
 };
 
 function formatarDuracao(ms: number): string {
-  if (ms < 1000) return `${Math.round(ms)} ms`;
-
-  const totalSegundos = Math.floor(ms / 1000);
+  const totalSegundos = Math.round(ms / 1000);
   const horas = Math.floor(totalSegundos / 3600);
   const minutos = Math.floor((totalSegundos % 3600) / 60);
   const segundos = totalSegundos % 60;
+  const doisDigitos = (valor: number) => String(valor).padStart(2, "0");
 
-  if (horas > 0) return `${horas}h ${minutos}min ${segundos}s`;
-  if (minutos > 0) return `${minutos}min ${segundos}s`;
-  return `${(ms / 1000).toFixed(1).replace(".", ",")}s`;
-}
-
-function formatarHorario(data: Date | null): string {
-  return data ? data.toLocaleTimeString("pt-BR") : "—";
+  return `${doisDigitos(horas)} hrs ${doisDigitos(minutos)} min ${doisDigitos(segundos)} s`;
 }
 
 function converterData(valor?: string | null): Date | null {
@@ -164,13 +184,6 @@ export function ResultadoPage({
     tempoProcessamentoMs !== null
       ? formatarDuracao(tempoProcessamentoMs)
       : "Não informado";
-  const textoPeriodoProcessamento =
-    dataHoraInicio && dataHoraFim
-      ? `${formatarHorario(dataHoraInicio)} às ${formatarHorario(dataHoraFim)}`
-      : "";
-  const textoTempoCompleto = textoPeriodoProcessamento
-    ? `${textoTempoProcessamento} (${textoPeriodoProcessamento})`
-    : textoTempoProcessamento;
 
   const falhasProcessamento: FalhaProcessamentoItem[] =
     resultadoAuditoria?.Falhas ?? resultadoAuditoria?.falhas ?? [];
@@ -250,13 +263,6 @@ export function ResultadoPage({
   }, [resultadoAuditoria]);
 
   const definicoesColunas = useMemo<ColDef<ItemTabelaExibicao>[]>(() => {
-    const estiloBase: CellStyle = {
-      display: "flex",
-      alignItems: "center",
-      userSelect: "text",
-      WebkitUserSelect: "text",
-    };
-
     return [
       {
         headerName: "Página",
@@ -273,7 +279,7 @@ export function ResultadoPage({
           return valorA.localeCompare(valorB);
         },
         filter: true,
-        cellStyle: { ...estiloBase, fontWeight: "700" },
+        cellClass: "celula-negrito",
       },
       {
         headerName: "Campo",
@@ -281,11 +287,7 @@ export function ResultadoPage({
         width: 170,
         sortable: true,
         filter: true,
-        cellStyle: {
-          ...estiloBase,
-          color: "var(--smar-teal-dark)",
-          fontWeight: "600",
-        },
+        cellClass: "celula-campo",
       },
       {
         headerName: "Valor Esperado (Banco)",
@@ -293,11 +295,7 @@ export function ResultadoPage({
         width: 200,
         sortable: true,
         filter: true,
-        cellStyle: {
-          ...estiloBase,
-          color: "var(--smar-success-text)",
-          fontWeight: "600",
-        },
+        cellClass: "celula-esperado",
       },
       {
         headerName: "Valor Extraído (Arquivo)",
@@ -305,14 +303,8 @@ export function ResultadoPage({
         width: 200,
         sortable: true,
         filter: true,
-        cellStyle: (params) => ({
-          ...estiloBase,
-          color:
-            params.data?.status === "OK"
-              ? "var(--smar-text-primary)"
-              : "var(--smar-danger-text)",
-          fontWeight: "600",
-        }),
+        cellClass: (params) =>
+          params.data?.status === "OK" ? "celula-negrito" : "celula-divergente",
       },
       {
         headerName: "Status",
@@ -323,23 +315,12 @@ export function ResultadoPage({
         cellRenderer: (params: ICellRendererParams<ItemTabelaExibicao>) => {
           const ehOk = params.value === "OK";
           return (
-            <div
-              style={{ display: "flex", alignItems: "center", height: "100%" }}
+            <span
+              className={`badge ${ehOk ? "badge-success" : "badge-danger"}`}
             >
-              <span
-                style={{
-                  fontWeight: 700,
-                  fontSize: "0.82rem",
-                  color: ehOk
-                    ? "var(--smar-success-text)"
-                    : "var(--smar-danger-text)",
-                  userSelect: "text",
-                  WebkitUserSelect: "text",
-                }}
-              >
-                {ehOk ? "OK" : "DIVERGÊNCIA"}
-              </span>
-            </div>
+              <i className={ehOk ? "fas fa-check" : "fas fa-times"}></i>{" "}
+              {ehOk ? "OK" : "DIVERGÊNCIA"}
+            </span>
           );
         },
       },
@@ -350,13 +331,10 @@ export function ResultadoPage({
         minWidth: 260,
         sortable: true,
         filter: true,
-        cellStyle: (params) => ({
-          ...estiloBase,
-          color:
-            params.data?.status === "OK"
-              ? "var(--smar-text-secondary)"
-              : "var(--smar-danger-dark)",
-        }),
+        cellClass: (params) =>
+          params.data?.status === "OK"
+            ? "celula-secundaria"
+            : "celula-divergente-texto",
       },
     ];
   }, []);
@@ -369,7 +347,7 @@ export function ResultadoPage({
     linhas.push(`Arquivo Analisado;${nomeArquivo}`);
     linhas.push(`Layout Utilizado;${layoutUtilizado}`);
     linhas.push(`Base de Dados;${baseDados}`);
-    linhas.push(`Tempo de Processamento;${textoTempoCompleto}`);
+    linhas.push(`Tempo de Processamento;${textoTempoProcessamento}`);
     linhas.push(`Método de Validação;${textoAmostragem}`);
     if (usouOcr) {
       linhas.push(
@@ -445,7 +423,7 @@ export function ResultadoPage({
       </Row>
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Tempo de Processamento:</Data></Cell>
-        <Cell><Data ss:Type="String">${escaparXml(textoTempoCompleto)}</Data></Cell>
+        <Cell><Data ss:Type="String">${escaparXml(textoTempoProcessamento)}</Data></Cell>
       </Row>
       <Row>
         <Cell ss:StyleID="Negrito"><Data ss:Type="String">Método de Validação:</Data></Cell>
@@ -516,14 +494,14 @@ export function ResultadoPage({
             <Font ss:FontName="Calibri" ss:Size="11" ss:Color="#000000"/>
           </Style>
           <Style ss:ID="Titulo">
-            <Font ss:FontName="Calibri" ss:Size="14" ss:Bold="1" ss:Color="#00796b"/>
+            <Font ss:FontName="Calibri" ss:Size="14" ss:Bold="1" ss:Color="#0CAE89"/>
           </Style>
           <Style ss:ID="Negrito">
-            <Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#37474f"/>
+            <Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#333333"/>
           </Style>
           <Style ss:ID="Cabecalho">
-            <Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#FFFFFF"/>
-            <Interior ss:Color="#00796b" ss:Pattern="Solid"/>
+            <Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#FAFAFA"/>
+            <Interior ss:Color="#0CAE89" ss:Pattern="Solid"/>
           </Style>
         </Styles>
         <Worksheet ss:Name="Auditoria">
@@ -564,26 +542,26 @@ export function ResultadoPage({
       format: "a4",
     });
 
-    doc.setFillColor(0, 121, 107);
+    doc.setFillColor(...RGB_PRIMARIA);
     doc.rect(14, 12, 182, 8, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(250, 250, 250);
     doc.text("SMARrsvp — RELATÓRIO DE AUDITORIA DE DOCUMENTOS", 16, 17.5);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(55, 71, 79);
+    doc.setTextColor(...RGB_TEXTO);
     doc.text(`Arquivo Analisado: ${nomeArquivo}`, 14, 25);
     doc.text(`Layout Utilizado: ${layoutUtilizado}`, 14, 30);
     doc.text(`Base de Dados: ${baseDados}`, 14, 35);
-    doc.text(`Tempo de Processamento: ${textoTempoCompleto}`, 14, 40);
+    doc.text(`Tempo de Processamento: ${textoTempoProcessamento}`, 14, 40);
     doc.text(`Método: ${textoAmostragem}`, 14, 45);
 
     let posicaoYCards = 50;
     if (usouOcr) {
       doc.setFontSize(7.5);
-      doc.setTextColor(198, 40, 40);
+      doc.setTextColor(...RGB_ERRO);
       doc.text(
         "Nota: Foi usada extração de dados via IA. A IA pode cometer erros.",
         14,
@@ -592,36 +570,26 @@ export function ResultadoPage({
       posicaoYCards = 53;
     }
 
-    doc.setFillColor(224, 242, 241);
+    doc.setFillColor(...RGB_PRIMARIA);
     doc.roundedRect(14, posicaoYCards, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 77, 64);
+    doc.setTextColor(255, 255, 255);
     doc.text("TOTAL DE DOCUMENTOS", 17, posicaoYCards + 5);
     doc.setFontSize(14);
     doc.text(String(totalDocumentos), 17, posicaoYCards + 13);
 
-    doc.setFillColor(232, 245, 233);
+    doc.setFillColor(...RGB_SUCESSO);
     doc.roundedRect(77, posicaoYCards, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
-    doc.setTextColor(27, 94, 32);
     doc.text("DOCUMENTOS VÁLIDOS", 80, posicaoYCards + 5);
     doc.setFontSize(14);
     doc.text(String(documentosValidos), 80, posicaoYCards + 13);
 
     const temErro = documentosInconsistentes > 0;
-    doc.setFillColor(
-      temErro ? 255 : 245,
-      temErro ? 235 : 245,
-      temErro ? 238 : 245,
-    );
+    doc.setFillColor(...(temErro ? RGB_ERRO : RGB_NEUTRO));
     doc.roundedRect(140, posicaoYCards, 56, 16, 2, 2, "F");
     doc.setFontSize(7.5);
-    doc.setTextColor(
-      temErro ? 183 : 117,
-      temErro ? 28 : 117,
-      temErro ? 28 : 117,
-    );
     doc.text("INCONSISTÊNCIAS DETECTADAS", 143, posicaoYCards + 5);
     doc.setFontSize(14);
     doc.text(String(documentosInconsistentes), 143, posicaoYCards + 13);
@@ -653,20 +621,23 @@ export function ResultadoPage({
       body: dadosTabela,
       theme: "grid",
       headStyles: {
-        fillColor: [0, 150, 136],
-        textColor: [255, 255, 255],
+        fillColor: RGB_PRIMARIA,
+        textColor: [250, 250, 250],
         fontSize: 8,
         fontStyle: "bold",
       },
       bodyStyles: {
         fontSize: 7.5,
-        textColor: [55, 71, 79],
+        textColor: RGB_TEXTO,
+      },
+      alternateRowStyles: {
+        fillColor: [249, 249, 249],
       },
       columnStyles: {
         0: { cellWidth: 26, fontStyle: "bold" },
-        1: { cellWidth: 28, textColor: [0, 121, 107] },
-        2: { cellWidth: 28, textColor: [46, 125, 50] },
-        3: { cellWidth: 28, textColor: [198, 40, 40] },
+        1: { cellWidth: 28, textColor: RGB_PRIMARIA },
+        2: { cellWidth: 28, textColor: [58, 143, 44] },
+        3: { cellWidth: 28, textColor: RGB_ERRO },
         4: { cellWidth: 22, fontStyle: "bold" },
         5: { cellWidth: "auto" },
       },
@@ -686,13 +657,13 @@ export function ResultadoPage({
         const alturaPagina = doc.internal.pageSize.getHeight();
         const larguraPagina = doc.internal.pageSize.getWidth();
 
-        doc.setDrawColor(207, 216, 220);
+        doc.setDrawColor(204, 204, 204);
         doc.setLineWidth(0.2);
         doc.line(14, alturaPagina - 12, larguraPagina - 14, alturaPagina - 12);
 
         doc.setFontSize(7.5);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(120, 144, 156);
+        doc.setTextColor(...RGB_NEUTRO);
         doc.text(`Gerado em: ${dataHoraFormatada}`, 14, alturaPagina - 7);
 
         doc.text(
@@ -710,286 +681,207 @@ export function ResultadoPage({
 
   if (!resultadoAuditoria) {
     return (
-      <div
-        id="resultado-vazio"
-        className="smar-card"
-        style={{
-          padding: "48px 24px",
-          textAlign: "center",
-          maxWidth: "700px",
-          margin: "40px auto",
-        }}
-      >
-        <h2
-          style={{
-            fontSize: "1.2rem",
-            color: "var(--smar-text-body)",
-            marginBottom: "8px",
-          }}
-        >
-          Nenhuma validação realizada
-        </h2>
-        <p
-          style={{
-            color: "var(--smar-text-secondary)",
-            fontSize: "0.9rem",
-            marginBottom: "20px",
-          }}
-        >
-          Importe e valide um arquivo na página de Validação para visualizar o
-          relatório detalhado de inconsistências.
-        </p>
-        <button
-          type="button"
-          onClick={onIrParaValidacao}
-          className="smar-btn smar-btn-primary"
-          style={{ height: "36px", padding: "8px 20px" }}
-        >
-          <span>Ir para Validação</span>
-        </button>
+      <div className="row">
+        <div className="col">
+          <div className="box-form-cadastro">
+            <Painel titulo="Resultado da Auditoria">
+              <div id="resultado-vazio" className="resultado-vazio">
+                <i className="fas fa-clipboard-list"></i>
+                <h5>Nenhuma validação realizada</h5>
+                <p>
+                  Importe e valide um arquivo na página de Validação para
+                  visualizar o relatório detalhado de inconsistências.
+                </p>
+                <button
+                  type="button"
+                  onClick={onIrParaValidacao}
+                  className="btn btn-primary"
+                >
+                  <i className="fas fa-clipboard-check"></i> Ir para Validação
+                </button>
+              </div>
+            </Painel>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      id="painel-resultado-auditoria"
-      className="smar-card"
-      style={{ padding: "20px" }}
-    >
-      <style>
-        {`
-          .ag-cell,
-          .ag-cell-value,
-          .ag-cell span {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            cursor: text;
-          }
-        `}
-      </style>
+    <div className="row">
+      <div className="col">
+        <div id="painel-resultado-auditoria" className="box-form-cadastro">
+          <Painel titulo="Resultado da Auditoria">
+            <div className="row">
+              <div className="col-lg-9">
+                <div className="row">
+                  <div className="col-lg-6">
+                    <label>Arquivo</label>
+                    <div className="form-control is-view restrict-text-size">
+                      {nomeArquivo}
+                    </div>
+                  </div>
+                  <div className="col-lg-6">
+                    <label>Layout</label>
+                    <div className="form-control is-view">
+                      {layoutUtilizado}
+                    </div>
+                  </div>
+                  <div className="col-lg-6">
+                    <label>Base de dados</label>
+                    <div className="form-control is-view">{baseDados}</div>
+                  </div>
+                  <div className="col-lg-6">
+                    <label>Tempo de processamento</label>
+                    <div
+                      id="info-tempo-processamento"
+                      className="form-control is-view"
+                    >
+                      <strong>{textoTempoProcessamento}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-      {/* CABEÇALHO DO RESULTADO E BOTÕES */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px",
-          borderBottom: "1px solid var(--smar-border-light)",
-          paddingBottom: "12px",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "1.15rem",
-              color: "var(--smar-teal-dark)",
-            }}
-          >
-            Resultado da Auditoria
-          </h2>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-              fontSize: "0.8rem",
-              color: "var(--smar-text-secondary)",
-              marginTop: "4px",
-            }}
-          >
-            <span>
-              Arquivo: <strong>{nomeArquivo}</strong>
-            </span>
-            <span>
-              Layout: <strong>{layoutUtilizado}</strong>
-            </span>
-            <span>
-              Base de Dados: <strong>{baseDados}</strong>
-            </span>
-            <span id="info-tempo-processamento">
-              Tempo de processamento:{" "}
-              <strong>{textoTempoProcessamento}</strong>
-              {textoPeriodoProcessamento && (
-                <> ({textoPeriodoProcessamento})</>
-              )}
-            </span>
-          </div>
-        </div>
+              <div className="col-lg-3 area-botoes-resultado">
+                {falhasProcessamento.length > 0 && (
+                  <button
+                    type="button"
+                    id="btn-mostrar-falhas"
+                    onClick={() => setModalFalhasAberto(true)}
+                    className="btn btn-danger"
+                  >
+                    <i className="fas fa-exclamation-triangle"></i> Mostrar
+                    falhas ({falhasProcessamento.length})
+                  </button>
+                )}
 
-        {/* ÁREA DE AÇÕES: FALHAS E EXPORTAR */}
-        <div
-          className="area-botoes-resultado"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            flexWrap: "wrap",
-          }}
-        >
-          {falhasProcessamento.length > 0 && (
-            <button
-              type="button"
-              id="btn-mostrar-falhas"
-              onClick={() => setModalFalhasAberto(true)}
-              className="smar-btn smar-btn-danger"
+                <div
+                  className="dropdown-hover"
+                  onMouseEnter={() => setMenuExportarAberto(true)}
+                  onMouseLeave={() => setMenuExportarAberto(false)}
+                >
+                  <button type="button" className="btn btn-primary">
+                    <i className="fas fa-file-export"></i> Exportar{" "}
+                    <i className="fas fa-caret-down"></i>
+                  </button>
+
+                  {menuExportarAberto && (
+                    <div className="dropdown-menu show">
+                      <a className="dropdown-item" onClick={exportarParaPdf}>
+                        <i className="fas fa-file-pdf"></i>Exportar para PDF
+                      </a>
+                      <a className="dropdown-item" onClick={exportarParaCsv}>
+                        <i className="fas fa-file-csv"></i>Exportar para CSV
+                      </a>
+                      <a className="dropdown-item" onClick={exportarParaExcel}>
+                        <i className="fas fa-file-excel"></i>Exportar para Excel
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div
+              id="nota-metodo-validacao"
+              className={`alert alert-inline mt-3 ${ehIntegral ? "alert-info" : "alert-warning"}`}
             >
-              <span>Mostrar falhas ({falhasProcessamento.length})</span>
-            </button>
-          )}
+              <i
+                className={
+                  ehIntegral
+                    ? "fas fa-info-circle"
+                    : "fas fa-exclamation-triangle"
+                }
+              ></i>
+              <div>
+                <strong>Observações:</strong>
+                <div>
+                  {ehIntegral
+                    ? "- Validação Integral: 100% dos documentos do arquivo foram auditados."
+                    : `- Validação por Amostragem: Foram validados ${percentual}% dos documentos do arquivo.`}
+                </div>
+                {usouOcr && (
+                  <div id="nota-aviso-ocr-ia">
+                    - Foi utilizada extração de dados via inteligência
+                    artificial (OCR). A IA pode cometer erros e, por isso, os
+                    dados podem não ter sido 100% extraídos corretamente.
+                  </div>
+                )}
+              </div>
+            </div>
 
-          <div
-            style={{ position: "relative" }}
-            onMouseEnter={() => setMenuExportarAberto(true)}
-            onMouseLeave={() => setMenuExportarAberto(false)}
-          >
-            <button type="button" className="smar-btn smar-btn-primary">
-              <span>Exportar</span>
-              <span style={{ fontSize: "0.65rem" }}>▼</span>
-            </button>
+            <div className="row">
+              <div className="col-lg-4">
+                <div className="info-card">
+                  <label className="info-card-titulo">
+                    Total de documentos
+                  </label>
+                  <label className="info-card-valor">{totalDocumentos}</label>
+                </div>
+              </div>
+              <div className="col-lg-4">
+                <div className="info-card info-card-success">
+                  <label className="info-card-titulo">Documentos válidos</label>
+                  <label className="info-card-valor">{documentosValidos}</label>
+                </div>
+              </div>
+              <div className="col-lg-4">
+                <div
+                  className={`info-card ${documentosInconsistentes > 0 ? "info-card-danger" : "info-card-neutro"}`}
+                >
+                  <label className="info-card-titulo">
+                    Inconsistências detectadas
+                  </label>
+                  <label className="info-card-valor">
+                    {documentosInconsistentes}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </Painel>
 
-            {menuExportarAberto && (
-              <div className="smar-dropdown-menu" style={{ width: "180px" }}>
-                <button
-                  type="button"
-                  onClick={exportarParaPdf}
-                  className="smar-dropdown-item"
-                >
-                  <span>Exportar para PDF</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={exportarParaCsv}
-                  className="smar-dropdown-item"
-                >
-                  <span>Exportar para CSV</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={exportarParaExcel}
-                  className="smar-dropdown-item"
-                >
-                  <span>Exportar para Excel</span>
-                </button>
+          <Painel titulo="Detalhamento das validações">
+            {itensExibicao.length === 0 ? (
+              <div className="alert alert-inline alert-success justify-content-center mb-0">
+                <i className="fas fa-check-circle"></i>
+                Nenhum dado de validação encontrado para exibição.
+              </div>
+            ) : (
+              <div className="grid-resultado">
+                <AgGridReact<ItemTabelaExibicao>
+                  theme={TEMA_GRID}
+                  rowData={itensExibicao}
+                  columnDefs={definicoesColunas}
+                  pagination={true}
+                  paginationPageSize={20}
+                  paginationPageSizeSelector={[10, 20, 50, 100]}
+                  enableCellTextSelection={true}
+                  ensureDomOrder={true}
+                  initialState={{
+                    filter: {
+                      filterModel: {
+                        status: {
+                          filterType: "text",
+                          type: "equals",
+                          filter: "DIVERGÊNCIA",
+                        },
+                      },
+                    },
+                  }}
+                  defaultColDef={{
+                    resizable: true,
+                    sortable: true,
+                    filter: true,
+                  }}
+                  animateRows={true}
+                  localeText={AG_GRID_LOCALE_BR}
+                ></AgGridReact>
               </div>
             )}
-          </div>
+          </Painel>
         </div>
       </div>
-
-      {/* NOTA INFORMATIVA SOBRE O MÉTODO / AMOSTRAGEM */}
-      <div
-        id="nota-metodo-validacao"
-        className={`smar-alert ${ehIntegral ? "smar-alert-info" : "smar-alert-warning"}`}
-        style={{
-          marginBottom: "16px",
-          flexDirection: "column",
-          gap: "6px",
-        }}
-      >
-        <span>
-          <strong>Observações:</strong>
-        </span>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span>
-            {ehIntegral
-              ? "- Validação Integral: 100% dos documentos do arquivo foram auditados."
-              : `- Validação por Amostragem: Foram validados ${percentual}% dos documentos do arquivo.`}
-          </span>
-        </div>
-
-        {usouOcr && (
-          <div
-            id="nota-aviso-ocr-ia"
-            style={{ display: "flex", alignItems: "center", gap: "8px" }}
-          >
-            <span>
-              - Foi utilizada extração de dados via inteligência artificial
-              (OCR). A IA pode cometer erros e, por isso, os dados podem não ter
-              sido 100% extraídos corretamente.
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* INDICADORES RESUMO (KPIS) */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: "12px",
-          marginBottom: "20px",
-        }}
-      >
-        <div className="smar-kpi-card smar-kpi-card-teal">
-          <span className="smar-kpi-title">TOTAL DE DOCUMENTOS</span>
-          <p className="smar-kpi-value">{totalDocumentos}</p>
-        </div>
-
-        <div className="smar-kpi-card smar-kpi-card-green">
-          <span className="smar-kpi-title">DOCUMENTOS VÁLIDOS</span>
-          <p className="smar-kpi-value">{documentosValidos}</p>
-        </div>
-
-        <div
-          className={`smar-kpi-card ${documentosInconsistentes > 0 ? "smar-kpi-card-red" : "smar-kpi-card-gray"}`}
-        >
-          <span className="smar-kpi-title">INCONSISTÊNCIAS DETECTADAS</span>
-          <p className="smar-kpi-value">{documentosInconsistentes}</p>
-        </div>
-      </div>
-
-      {/* GRID DINÂMICO AG GRID */}
-      {itensExibicao.length === 0 ? (
-        <div
-          className="smar-alert smar-alert-success"
-          style={{ justifyContent: "center", padding: "20px", fontWeight: 600 }}
-        >
-          Nenhum dado de validação encontrado para exibição.
-        </div>
-      ) : (
-        <div
-          style={{
-            width: "100%",
-            height: "520px",
-            border: "1px solid var(--smar-border-color)",
-            borderRadius: "var(--smar-radius)",
-            overflow: "hidden",
-          }}
-        >
-          <AgGridReact<ItemTabelaExibicao>
-            rowData={itensExibicao}
-            columnDefs={definicoesColunas}
-            pagination={true}
-            paginationPageSize={20}
-            paginationPageSizeSelector={[10, 20, 50, 100]}
-            enableCellTextSelection={true}
-            ensureDomOrder={true}
-            initialState={{
-              filter: {
-                filterModel: {
-                  status: {
-                    filterType: "text",
-                    type: "equals",
-                    filter: "DIVERGÊNCIA",
-                  },
-                },
-              },
-            }}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-            }}
-            animateRows={true}
-            localeText={AG_GRID_LOCALE_BR}
-          ></AgGridReact>
-        </div>
-      )}
 
       <ModalFalhasProcessamento
         aberto={modalFalhasAberto}

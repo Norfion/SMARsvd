@@ -1,0 +1,66 @@
+.btn,
+.input-group-addon {
+  height: 30px;
+  padding: 4px 6px;
+}
+
+.btn.disabled,
+.btn[disabled],
+fieldset[disabled] .btn {
+  opacity: 0.2;
+}
+
+.btn-cancel {
+  background-color: $btn-cancel-bg;
+  color: #fafafa;
+
+  &:hover,
+  &:focus {
+    background-color: lighten(desaturate($brand-primary, 80%), 20%);
+    color: #fafafa;
+  }
+}
+
+.btn-primary:hover {
+  background-color: lighten(desaturate($brand-primary, 20%), 10%);
+  border-color: lighten(desaturate($brand-primary, 20%), 10%);
+}
+
+.btn i + span,
+.btn i + .texto-botao {
+  margin-left: 4px;
+}
+
+// Botões de ação com apenas ícone, usados ao lado dos campos (pesquisar, novo, editar...)
+.btn-custom {
+  min-width: 28px;
+}
+
+.btn-forms-left .btn,
+.btn-forms .btn {
+  height: 43px;
+  padding: 0 15px;
+  margin-top: 5px;
+}
+
+.box-form-cadastro .btn-forms {
+  margin: 25px 0 0 5px;
+  text-align: right;
+}
+
+.box-form-cadastro .btn-forms .btn {
+  margin: 0 20px 0 0;
+}
+
+.box-form-cadastro .btn-forms .btn:last-child {
+  margin-right: 15px;
+}
+
+.box-form-cadastro .btn-table {
+  margin-top: 15px;
+  text-align: right;
+}
+
+.btn-group {
+  margin-right: 5px;
+}

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { FalhaProcessamentoItem } from "../types/validacao";
+import { Painel } from "./Painel";
 
 interface ModalFalhasProcessamentoProps {
   aberto: boolean;
@@ -75,256 +76,101 @@ export function ModalFalhasProcessamento({
   if (!aberto) return null;
 
   return (
-    <div
-      id="modal-falhas-processamento"
-      onClick={aoFechar}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 9999,
-        backdropFilter: "blur(1px)",
-      }}
-    >
+    <>
+      <div className="modal-backdrop show"></div>
       <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          backgroundColor: "#ffffff",
-          borderRadius: "4px",
-          border: "1px solid #cfd8dc",
-          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
-          width: "90%",
-          maxWidth: "760px",
-          maxHeight: "85vh",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
+        id="modal-falhas-processamento"
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        onClick={aoFechar}
       >
-        {/* Cabeçalho */}
         <div
-          style={{
-            backgroundColor: "#ffebee",
-            borderBottom: "1px solid #ffcdd2",
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
+          className="modal-dialog modal-lg"
+          onClick={(e) => e.stopPropagation()}
         >
-          <div
-            style={{
-              width: "24px",
-              height: "24px",
-              borderRadius: "50%",
-              backgroundColor: "#c62828",
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "0.85rem",
-              fontWeight: 800,
-            }}
-          >
-            <span>!</span>
-          </div>
-          <strong style={{ color: "#c62828", fontSize: "0.95rem" }}>
-            Falhas durante a validação
-          </strong>
-          <span
-            style={{
-              marginLeft: "auto",
-              fontSize: "0.75rem",
-              color: "#b71c1c",
-              fontWeight: 600,
-            }}
-          >
-            {falhas.length} ocorrência(s) em {grupos.length} tipo(s) de falha
-          </span>
-        </div>
-
-        {/* Corpo */}
-        <div
-          style={{
-            padding: "14px 16px",
-            color: "#37474f",
-            fontSize: "0.85rem",
-            lineHeight: 1.5,
-            overflowY: "auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-          }}
-        >
-          {grupos.map((grupo) => (
-            <div
-              key={grupo.chave}
-              style={{
-                border: "1px solid #ffcdd2",
-                borderLeft: "4px solid #c62828",
-                borderRadius: "4px",
-                padding: "10px 12px",
-                backgroundColor: "#fffafa",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "6px",
-                }}
-              >
-                <span
-                  style={{
-                    backgroundColor: "#c62828",
-                    color: "#ffffff",
-                    fontSize: "0.68rem",
-                    fontWeight: 700,
-                    padding: "2px 8px",
-                    borderRadius: "3px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {grupo.tipo}
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    color: "#546e7a",
-                  }}
-                >
-                  {grupo.origem}
-                </span>
-                {grupo.paginas.length > 1 && (
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      color: "#b71c1c",
-                    }}
-                  >
-                    {grupo.paginas.length} documentos afetados
-                  </span>
-                )}
+          <div className="modal-content">
+            <div className="modal-header align-items-center">
+              <div className="modal-title">
+                <h3>Falhas durante a validação</h3>
               </div>
-
-              <p
-                style={{
-                  margin: "0 0 6px 0",
-                  fontWeight: 600,
-                  color: "#b71c1c",
-                  wordBreak: "break-word",
-                }}
-              >
-                {grupo.mensagem}
-              </p>
-
-              {grupo.nomeQuery && (
-                <div style={{ fontSize: "0.78rem" }}>
-                  Query: <strong>{grupo.nomeQuery}</strong>
-                </div>
-              )}
-
-              {grupo.paginas.length > 0 && (
-                <div
-                  style={{
-                    fontSize: "0.78rem",
-                    maxHeight: "72px",
-                    overflowY: "auto",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  Páginas: <strong>{grupo.paginas.join(", ")}</strong>
-                </div>
-              )}
-
-              {grupo.datasHora.length > 0 && (
-                <div style={{ fontSize: "0.78rem" }}>
-                  Registrado em:{" "}
-                  <strong>
-                    {grupo.datasHora.map(formatarDataHora).join(", ")}
-                  </strong>
-                </div>
-              )}
-
-              {grupo.detalhes && (
-                <details style={{ marginTop: "6px" }}>
-                  <summary
-                    style={{
-                      cursor: "pointer",
-                      fontSize: "0.75rem",
-                      fontWeight: 700,
-                      color: "#546e7a",
-                    }}
-                  >
-                    {grupo.nomeQuery
-                      ? grupo.paginas.length > 1
-                        ? "Ver SQL executado (exemplo do primeiro documento)"
-                        : "Ver SQL executado"
-                      : "Ver detalhes"}
-                  </summary>
-                  <pre
-                    style={{
-                      margin: "6px 0 0 0",
-                      padding: "8px 10px",
-                      backgroundColor: "#f5f7f8",
-                      border: "1px solid #eceff1",
-                      borderRadius: "3px",
-                      fontSize: "0.72rem",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      maxHeight: "200px",
-                      overflowY: "auto",
-                    }}
-                  >
-                    {grupo.detalhes}
-                  </pre>
-                </details>
-              )}
+              <span className="falhas-contagem">
+                {falhas.length} ocorrência(s) em {grupos.length} tipo(s) de
+                falha
+              </span>
             </div>
-          ))}
-        </div>
 
-        {/* Rodapé */}
-        <div
-          style={{
-            padding: "10px 16px",
-            backgroundColor: "#f8fafc",
-            borderTop: "1px solid #eceff1",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <button
-            type="button"
-            onClick={aoFechar}
-            style={{
-              backgroundColor: "#c62828",
-              color: "#ffffff",
-              border: "none",
-              padding: "6px 18px",
-              borderRadius: "4px",
-              fontWeight: 700,
-              fontSize: "0.8rem",
-              cursor: "pointer",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-            }}
-          >
-            <span>Fechar</span>
-          </button>
+            <div className="modal-body falhas-corpo">
+              {grupos.map((grupo) => (
+                <Painel
+                  key={grupo.chave}
+                  className="falha-grupo"
+                  titulo={
+                    <>
+                      <span className="badge badge-danger mr-2">
+                        {grupo.tipo}
+                      </span>
+                      {grupo.origem}
+                    </>
+                  }
+                  resumo={
+                    grupo.paginas.length > 1
+                      ? `${grupo.paginas.length} documentos afetados`
+                      : undefined
+                  }
+                >
+                  <p className="falha-mensagem">{grupo.mensagem}</p>
+
+                  {grupo.nomeQuery && (
+                    <div>
+                      Query: <strong>{grupo.nomeQuery}</strong>
+                    </div>
+                  )}
+
+                  {grupo.paginas.length > 0 && (
+                    <div className="falha-paginas">
+                      Páginas: <strong>{grupo.paginas.join(", ")}</strong>
+                    </div>
+                  )}
+
+                  {grupo.datasHora.length > 0 && (
+                    <div>
+                      Registrado em:{" "}
+                      <strong>
+                        {grupo.datasHora.map(formatarDataHora).join(", ")}
+                      </strong>
+                    </div>
+                  )}
+
+                  {grupo.detalhes && (
+                    <details className="falha-detalhes">
+                      <summary>
+                        {grupo.nomeQuery
+                          ? grupo.paginas.length > 1
+                            ? "Ver SQL executado (exemplo do primeiro documento)"
+                            : "Ver SQL executado"
+                          : "Ver detalhes"}
+                      </summary>
+                      <pre>{grupo.detalhes}</pre>
+                    </details>
+                  )}
+                </Painel>
+              ))}
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-cancel"
+                onClick={aoFechar}
+              >
+                <i className="fa fa-times"></i> Fechar
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

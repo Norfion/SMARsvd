@@ -1,0 +1,29 @@
+@media print {
+  body {
+    background-color: #fff !important;
+    min-width: 0;
+    padding-bottom: 0;
+  }
+
+  .layout-header,
+  .custom-breadcrumb,
+  #sidebar,
+  .slim-header,
+  .area-botoes-resultado {
+    display: none !important;
+  }
+
+  .layout-content {
+    margin-top: 0;
+  }
+
+  #content {
+    margin-left: 0 !important;
+  }
+
+  #painel-resultado-auditoria {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}

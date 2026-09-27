@@ -1,0 +1,97 @@
+label {
+  font-weight: normal;
+}
+
+.form-group {
+  margin-bottom: 5px;
+}
+
+textarea {
+  resize: none;
+}
+
+.required-star::before {
+  content: '* ';
+  display: inline-block;
+  color: $brand-danger;
+  padding-left: 5px;
+}
+
+.box-form-cadastro,
+.box-filtros {
+  padding: 10px 15px;
+  background-color: #fff;
+  @include arredondar(4px);
+  @include transicao(all 0.2s linear);
+  word-wrap: break-word;
+}
+
+.box-form-cadastro label {
+  margin: 10px 0 5px;
+  display: block;
+  line-height: 1;
+}
+
+.box-form-cadastro .form-control {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.box-form-cadastro h5 {
+  padding: 15px 0 0;
+  font-weight: bold;
+}
+
+.box-form-cadastro .error small {
+  display: block;
+  color: desaturate(darken($brand-danger, 5%), 5%);
+  font-weight: bold;
+  font-size: 10px;
+}
+
+label.form-control,
+div.form-control.is-view {
+  margin: 0 0 5px !important;
+  border: none;
+  background-color: #eee;
+  overflow-y: auto;
+}
+
+.spanError {
+  display: block;
+  color: #8e342a;
+  font-weight: bold;
+}
+
+.featured-color {
+  color: $brand-primary;
+}
+
+// Campo com sufixo (%, mm) mantendo a altura padrão de 30px
+.input-group > .form-control {
+  height: 30px;
+}
+
+.input-group-text {
+  height: 30px;
+  padding: 4px 10px;
+  font-size: $font-size-base;
+  background-color: #eee;
+  color: #495057;
+}
+
+// Rádios e checkboxes do Bootstrap na cor da empresa
+.custom-control {
+  min-height: 1.3rem;
+}
+
+.custom-control-label {
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.box-form-cadastro .custom-control-label {
+  margin: 0;
+  display: inline-block;
+  line-height: 1.5;
+}

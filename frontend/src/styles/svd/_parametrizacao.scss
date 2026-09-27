@@ -1,0 +1,278 @@
+// Tela de parametrização de layouts
+
+$cor-campo-comum: $brand-primary;
+$cor-campo-ativo: $brand-warning;
+$cor-campo-documento: darken($brand-info, 20%);
+$cor-campo-pagina: $purple;
+
+.acoes-seletor-layout {
+  padding-top: 10px;
+}
+
+// Painéis aninhados dentro de outro painel
+.card-body fieldset > .panel.painel-interno {
+  margin-top: 0;
+  margin-bottom: 15px;
+  box-shadow: none;
+}
+
+// Barra de ferramentas do documento
+.barra-canvas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background-color: lighten($form-bg, 5%);
+  border: 1px solid $form-bg;
+  @include arredondar(4px);
+}
+
+.barra-canvas-dimensoes {
+  font-weight: bold;
+  color: $texto-padrao;
+
+  i {
+    margin-right: 4px;
+    color: $brand-primary;
+  }
+}
+
+.barra-canvas-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.barra-canvas-opacidade {
+  width: 80px;
+  height: auto;
+}
+
+.barra-canvas-zoom {
+  min-width: 40px;
+  font-weight: bold;
+  text-align: center;
+  cursor: help;
+}
+
+// Área de demarcação sobre o PDF modelo
+.viewport-documento {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  position: relative;
+  width: 100%;
+  height: 560px;
+  padding: 16px;
+  overflow: auto;
+  background-color: $form-bg;
+  border: 1px solid darken($form-bg, 10%);
+  @include arredondar(4px);
+}
+
+.canvas-demarcacao {
+  position: relative;
+  flex-shrink: 0;
+  background-color: #fff;
+  border: 1px solid darken($form-bg, 20%);
+  cursor: crosshair;
+  user-select: none;
+  @include sombra($shadow-2);
+}
+
+.canvas-imagem-modelo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.canvas-sem-modelo {
+  padding: 16px;
+  font-size: 12px;
+  color: darken($form-bg, 25%);
+
+  span {
+    display: block;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed darken($form-bg, 10%);
+  }
+}
+
+@mixin caixa-campo-cor($cor) {
+  color: darken($cor, 20%);
+  background-color: rgba($cor, 0.2);
+  border-color: $cor;
+}
+
+.caixa-campo {
+  position: absolute;
+  padding: 2px 4px;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+  border: 2px solid;
+  pointer-events: none;
+  @include caixa-campo-cor($cor-campo-comum);
+}
+
+.caixa-campo-documento {
+  @include caixa-campo-cor($cor-campo-documento);
+}
+
+.caixa-campo-pagina {
+  @include caixa-campo-cor($cor-campo-pagina);
+}
+
+.caixa-campo-ativo {
+  @include caixa-campo-cor($cor-campo-ativo);
+}
+
+.retangulo-selecao {
+  position: absolute;
+  background-color: rgba($brand-danger, 0.2);
+  border: 2px dashed $brand-danger;
+  pointer-events: none;
+}
+
+// Formulário de criação/edição de campo
+.card-body .opcoes-classificacao {
+  padding: 8px 10px;
+  background-color: lighten($form-bg, 5%);
+  border: 1px solid $form-bg;
+  @include arredondar(4px);
+
+  .custom-control + .custom-control {
+    margin-top: 6px;
+  }
+
+  label.custom-control-label {
+    margin: 0;
+    cursor: pointer;
+  }
+}
+
+.bloco-identificador {
+  margin-top: 10px;
+  padding: 0 10px 10px;
+  background-color: $fundo-claro;
+  border: 1px solid $borda-clara;
+  border-left-width: 4px;
+  @include arredondar(4px);
+}
+
+.bloco-identificador-documento {
+  border-left-color: $cor-campo-documento;
+
+  label {
+    color: $cor-campo-documento;
+  }
+}
+
+.bloco-identificador-pagina {
+  border-left-color: $cor-campo-pagina;
+
+  label {
+    color: $cor-campo-pagina;
+  }
+}
+
+.coordenadas-campo {
+  margin-top: 10px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #6c757d;
+  background-color: lighten($form-bg, 5%);
+  border: 1px solid $form-bg;
+  @include arredondar(4px);
+}
+
+// Listas de campos e validações cadastrados
+.lista-itens {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-itens-rolavel {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.lista-itens-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+}
+
+.lista-itens-texto {
+  min-width: 0;
+
+  strong {
+    display: block;
+    color: $texto-padrao;
+  }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    color: #6c757d;
+    line-height: 1.4;
+    @extend .hyphenize;
+  }
+}
+
+.lista-itens-acoes {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.lista-itens-vazia {
+  margin: 0;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.lista-itens-texto strong.texto-identificador-documento {
+  color: $cor-campo-documento;
+}
+
+.lista-itens-texto strong.texto-identificador-pagina {
+  color: $cor-campo-pagina;
+}
+
+// Resultado da análise do SQL
+.analise-sql {
+  margin-top: 15px;
+  padding: 0 15px 15px;
+  background-color: $fundo-claro;
+  border: 1px solid $borda-clara;
+  @include arredondar(4px);
+}
+
+.tag-padrao.tag-retorno {
+  color: $cor-campo-documento;
+  background-color: rgba($cor-campo-documento, 0.08);
+  border-color: rgba($cor-campo-documento, 0.3);
+}

@@ -1,0 +1,27 @@
+// Campo de seleção de arquivo no formato de input + botão "Importar"
+.box-form-cadastro label.campo-arquivo {
+  display: flex;
+  flex-wrap: nowrap;
+  margin: 0;
+  cursor: pointer;
+
+  &.desabilitado {
+    cursor: default;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+}
+
+.campo-arquivo-nome {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 20px;
+  color: #6c757d;
+  background-color: #fff;
+
+  &.selecionado {
+    color: $brand-primary;
+    font-weight: bold;
+  }
+}

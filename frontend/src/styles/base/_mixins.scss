@@ -1,0 +1,26 @@
+@mixin sombra($valor) {
+  -webkit-box-shadow: $valor;
+  box-shadow: $valor;
+}
+
+@mixin transicao($valor) {
+  -webkit-transition: $valor;
+  transition: $valor;
+}
+
+@mixin arredondar($raio: 5px) {
+  border-radius: $raio;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+
+.restrict-text-size {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hyphenize {
+  word-break: break-word;
+  hyphens: auto;
+}

@@ -1,0 +1,356 @@
+// Estrutura das telas: cabeçalho fixo, área de conteúdo, breadcrumb e menu lateral
+// (header.scss, containers.scss, breadcrumb.scss, sidebar.scss e .ant-layout-header do tema da empresa).
+
+.layout-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9900;
+  width: 100%;
+  height: 64px;
+  margin-bottom: 0;
+  padding: 0;
+  line-height: 64px;
+  color: rgba(0, 0, 0, 0.85);
+  background-color: #fff;
+  border-bottom: 1px solid $cinza-breadcrumb;
+  transition: all 0.2s;
+}
+
+.header-float {
+  box-shadow: $shadow-2;
+}
+
+.header-logo {
+  position: absolute;
+  top: 8px;
+  left: 32px;
+  height: 40px;
+  cursor: pointer;
+  line-height: 40px;
+
+  img {
+    height: 40px;
+  }
+}
+
+.header-sistema {
+  display: inline-block;
+  margin-left: 10px;
+  vertical-align: middle;
+  font-size: 13px;
+  color: $texto-padrao;
+
+  strong {
+    color: $brand-primary;
+  }
+}
+
+.header-acoes {
+  line-height: normal;
+}
+
+.user-container {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  position: relative;
+
+  .info {
+    font-size: 13px;
+    color: $texto-padrao;
+    font-weight: normal;
+
+    strong {
+      margin-right: 4px;
+    }
+  }
+}
+
+.user-content {
+  width: 35px;
+  height: 30px;
+  line-height: 30px;
+  margin-top: 6px;
+  font-size: 18px;
+  color: $texto-padrao;
+  cursor: pointer;
+  @include transicao(all 0.5s ease-in-out);
+  @include arredondar(4px 4px 0 0);
+
+  &:hover {
+    text-decoration: none;
+    color: #fafafa;
+    background-color: $brand-primary;
+  }
+
+  &:hover .user-info {
+    display: inline-block;
+  }
+}
+
+.user-info {
+  position: absolute;
+  top: 35px;
+  right: 0;
+  z-index: 10;
+  min-width: 197px;
+  background-color: $fundo-claro;
+  display: none;
+  border: 1px solid $borda-clara;
+  border-top: 0;
+  font-size: 0;
+  text-align: left;
+  cursor: default;
+  @include arredondar(4px 4px 0 0);
+
+  > h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fafafa;
+    line-height: 15px;
+    padding: 10px 15px;
+    margin: 0 -1px;
+    background-color: $brand-primary;
+    @include arredondar(4px 0 0 0);
+  }
+
+  > ul > li {
+    position: relative;
+    padding: 10px;
+    box-shadow: inset 0 -10px 10px -10px rgba(0, 0, 0, 0.025);
+
+    &::before {
+      content: '';
+      display: block;
+      position: absolute;
+      z-index: -1;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 100%;
+      background-color: #eee;
+      @include transicao(all 0.3s ease-in-out);
+    }
+
+    &:hover::before {
+      width: 100%;
+    }
+
+    &:hover a,
+    &:hover div,
+    &:hover i {
+      color: $brand-primary;
+    }
+
+    > a,
+    > div,
+    > i {
+      font-size: 13px;
+      color: $texto-padrao;
+      margin-right: 10px;
+      @include transicao(all 1s ease-in-out);
+    }
+  }
+
+  > p {
+    margin: 0;
+  }
+
+  .btn-user-logout {
+    padding: 6px 15px;
+    font-size: $font-size-base;
+  }
+}
+
+// Área de conteúdo abaixo do cabeçalho
+.layout-content {
+  margin-top: 64px;
+}
+
+.content-container {
+  padding: 16px 16px 24px;
+  background: #f0f2f5;
+}
+
+.container-main {
+  position: relative;
+  z-index: 100;
+}
+
+// Breadcrumb em "setas"
+.custom-breadcrumb {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+
+  > li {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 5px;
+    background-color: $cinza-breadcrumb;
+    border-bottom: 1px solid $borda-clara;
+
+    > a,
+    > span {
+      display: inline-block;
+      vertical-align: middle;
+      padding: 5px 15px;
+      font-size: 10px;
+      color: $brand-primary;
+    }
+
+    > a {
+      cursor: pointer;
+
+      &:hover {
+        text-decoration: none;
+      }
+    }
+
+    &.active {
+      background-color: $breadcrumb;
+      border-bottom: 1px solid #4e666c;
+    }
+
+    &::before,
+    &::after {
+      content: '';
+      display: inline-block;
+      vertical-align: middle;
+      border-left: 6px solid #f8f8f8;
+      border-top: 10px solid transparent;
+      border-bottom: 10px double transparent;
+    }
+
+    &:first-child::before {
+      border-left: 0;
+    }
+
+    &::after {
+      position: absolute;
+      border-left: 6px solid $cinza-breadcrumb;
+      top: 0;
+      right: -6px;
+    }
+
+    &.active::after {
+      border-left: 6px solid $breadcrumb;
+    }
+  }
+}
+
+// Menu lateral
+.wrapper {
+  width: 100%;
+  float: left;
+}
+
+#sidebar {
+  position: relative;
+  min-width: 260px;
+  max-width: 260px;
+  background: #fff;
+  transition: all 0.3s;
+  box-shadow: $shadow-1;
+  float: left;
+  overflow: hidden;
+
+  ul li a {
+    height: 48px;
+    padding: 10px;
+    font-size: 1.1em;
+    text-align: left;
+    text-decoration: none;
+    align-items: center;
+    display: flex;
+    color: $brand-primary;
+    cursor: pointer;
+
+    &:hover {
+      color: $brand-primary;
+      background: $breadcrumb;
+    }
+
+    i {
+      margin-right: 10px;
+    }
+
+    .row {
+      width: 100%;
+      align-items: center;
+    }
+  }
+
+  ul li.active > a {
+    color: $brand-primary;
+    background: $breadcrumb;
+  }
+
+  ul li.disable > a {
+    color: $sidebar-disable-text;
+    background: $sidebar-disable-bg;
+  }
+
+  &.active {
+    min-width: 40px;
+    max-width: 40px;
+    text-align: center;
+
+    ul li a {
+      text-align: center;
+      font-size: 0.85em;
+      padding: 10px 0;
+      justify-content: center;
+
+      .row {
+        margin: 0;
+        justify-content: center;
+      }
+
+      .col-lg-1 {
+        flex: 0 0 auto;
+        width: auto;
+        max-width: none;
+        padding: 0;
+      }
+
+      .col-lg-11 {
+        display: none;
+      }
+
+      i {
+        margin-right: 0;
+        display: block;
+        width: 40px;
+        font-size: 1.5em;
+        text-align: center;
+      }
+    }
+  }
+}
+
+.sidebar-item-text {
+  padding-left: 15px !important;
+  white-space: nowrap;
+}
+
+.btn-collapse,
+.btn-collapsed {
+  padding: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  left: 7px;
+  transition: all 0.3s;
+  color: $brand-primary;
+}
+
+.btn-collapsed {
+  position: absolute;
+  transform: rotate(180deg);
+}
+
+#content {
+  transition: all 0.3s;
+}

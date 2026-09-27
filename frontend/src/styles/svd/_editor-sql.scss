@@ -1,0 +1,169 @@
+// Editor de script SQL com realce de sintaxe e sugestão de campos
+.editor-sql-container {
+  position: relative;
+  width: 100%;
+}
+
+.editor-sql-expandido {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 88px 32px 32px;
+  background-color: rgba(0, 0, 0, 0.5);
+
+  .editor-sql {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: $modal-lg;
+    height: 100%;
+  }
+
+  .editor-sql-area {
+    flex: 1;
+    height: auto;
+  }
+}
+
+.editor-sql {
+  overflow: hidden;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  @include arredondar(4px);
+}
+
+.editor-sql-barra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  background-color: lighten($form-bg, 5%);
+  border-bottom: 1px solid lighten($form-bg, 5%);
+}
+
+.editor-sql-titulo {
+  font-size: 13px;
+  color: $brand-primary;
+}
+
+.editor-sql-area {
+  position: relative;
+  height: 150px;
+  background-color: #fff;
+}
+
+.editor-sql-realce,
+.editor-sql-entrada {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 10px;
+  font-family: Consolas, 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+.editor-sql-realce {
+  overflow: hidden;
+  pointer-events: none;
+  color: #495057;
+}
+
+.editor-sql-entrada {
+  font-style: italic;
+  color: transparent;
+  caret-color: #212529;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow-y: auto;
+
+  &::placeholder {
+    color: #999;
+  }
+}
+
+.sql-variavel {
+  color: $brand-primary;
+  font-weight: bold;
+}
+
+.sql-palavra-chave {
+  color: #2b579a;
+  font-weight: bold;
+}
+
+.sql-texto {
+  color: $brand-danger;
+}
+
+.sql-numero {
+  color: darken($brand-success, 15%);
+}
+
+.editor-sql-sugestoes {
+  position: absolute;
+  top: 55px;
+  left: 24px;
+  z-index: 10;
+  min-width: 240px;
+  max-height: 180px;
+  overflow-y: auto;
+  background-color: $fundo-claro;
+  border: 1px solid $borda-clara;
+  border-top: 0;
+  @include arredondar(4px 4px 0 0);
+  @include sombra($shadow-1);
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 13px;
+    line-height: 20px;
+    color: $texto-padrao;
+    cursor: pointer;
+
+    small {
+      color: #999;
+    }
+
+    &.ativo,
+    &:hover {
+      color: #fafafa;
+      background-color: $brand-primary;
+
+      small {
+        color: #fafafa;
+      }
+    }
+  }
+}
+
+.editor-sql-sugestoes-titulo {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fafafa;
+  background-color: $brand-primary;
+}

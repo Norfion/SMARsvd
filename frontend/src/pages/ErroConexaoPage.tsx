@@ -1,67 +1,26 @@
+import logoImg from "../assets/logo-smartb.png";
+
 export function ErroConexaoPage() {
   return (
-    <div
-      id="pagina-erro-conexao-banco"
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "var(--smar-bg-page)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "20px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div id="card-erro-conexao" className="smar-error-card">
-        {/* Ícone de alerta de servidor/banco */}
-        <div className="smar-error-icon">
-          <span>⨉</span>
-        </div>
+    <div id="pagina-erro-conexao-banco" className="login-container">
+      <div className="main-logo">
+        <img alt="SMARtb SVD" src={logoImg} />
+      </div>
 
-        <h1
-          style={{
-            fontSize: "1.35rem",
-            color: "var(--smar-danger-dark)",
-            margin: "0 0 12px 0",
-            fontWeight: 700,
-          }}
-        >
-          SISTEMA FORA DO AR
-        </h1>
+      <div id="card-erro-conexao" className="form erro-conexao">
+        <h2 className="text-danger">
+          <i className="fas fa-plug mr-2"></i>
+          Sistema fora do ar
+        </h2>
 
-        <p
-          style={{
-            fontSize: "0.92rem",
-            color: "var(--smar-text-label)",
-            lineHeight: 1.6,
-            margin: "0 0 24px 0",
-          }}
-        >
+        <p>
           O sistema perdeu a comunicação com o seu serviço de banco de dados ou
           o servidor está temporariamente inacessível.
         </p>
 
-        {/* Bloco de orientações ao usuário */}
-        <div className="smar-error-callout">
-          <strong
-            style={{
-              display: "block",
-              color: "var(--smar-text-body)",
-              fontSize: "0.85rem",
-              marginBottom: "6px",
-            }}
-          >
-            O que você pode fazer:
-          </strong>
-          <ul
-            style={{
-              margin: 0,
-              paddingLeft: "18px",
-              color: "var(--smar-text-secondary)",
-              fontSize: "0.82rem",
-              lineHeight: 1.5,
-            }}
-          >
+        <div className="erro-conexao-orientacoes">
+          <strong>O que você pode fazer:</strong>
+          <ul>
             <li>Tente recarregar a página para restabelecer a conexão.</li>
             <li>
               Caso o problema persista, contacte a equipe de{" "}
@@ -70,6 +29,14 @@ export function ErroConexaoPage() {
             </li>
           </ul>
         </div>
+
+        <button
+          type="button"
+          className="btn btn-primary btn-block login-button"
+          onClick={() => window.location.reload()}
+        >
+          <i className="fas fa-sync"></i> Recarregar página
+        </button>
       </div>
     </div>
   );

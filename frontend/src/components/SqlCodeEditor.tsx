@@ -154,28 +154,28 @@ export function SqlCodeEditor({
     return partes.map((parte, index) => {
       if (parte.startsWith("$")) {
         return (
-          <span key={index} style={{ color: "#7c3aed", fontWeight: "bold" }}>
+          <span key={index} className="sql-variavel">
             {parte}
           </span>
         );
       }
       if (PALAVRAS_CHAVE_SQL.includes(parte.toUpperCase())) {
         return (
-          <span key={index} style={{ color: "#2563eb", fontWeight: "bold" }}>
+          <span key={index} className="sql-palavra-chave">
             {parte}
           </span>
         );
       }
       if (parte.startsWith("'") && parte.endsWith("'")) {
         return (
-          <span key={index} style={{ color: "#ca8a04" }}>
+          <span key={index} className="sql-texto">
             {parte}
           </span>
         );
       }
       if (/^\d+$/.test(parte)) {
         return (
-          <span key={index} style={{ color: "#16a34a" }}>
+          <span key={index} className="sql-numero">
             {parte}
           </span>
         );
@@ -191,212 +191,63 @@ export function SqlCodeEditor({
     return () => window.removeEventListener("click", fechar);
   }, []);
 
-  const estiloModalContainer: React.CSSProperties = expandido
-    ? {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(15, 23, 42, 0.75)",
-        backdropFilter: "blur(4px)",
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "32px",
-        boxSizing: "border-box",
-      }
-    : {
-        position: "relative",
-        width: "100%",
-      };
-
-  const estiloEditorQuadro: React.CSSProperties = expandido
-    ? {
-        width: "100%",
-        maxWidth: "1000px",
-        height: "85vh",
-        backgroundColor: "#ffffff",
-        borderRadius: "10px",
-        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        border: "1px solid #cbd5e1",
-      }
-    : {
-        border: "1px solid #cbd5e1",
-        borderRadius: "8px",
-        backgroundColor: "#ffffff",
-        overflow: "hidden",
-      };
-
   return (
-    <div style={estiloModalContainer}>
-      <div style={estiloEditorQuadro} onClick={(e) => e.stopPropagation()}>
-        {/* Barra superior com título e botão de expandir/diminuir */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "8px 12px",
-            backgroundColor: "#f1f5f9",
-            borderBottom: "1px solid #cbd5e1",
-          }}
-        >
-          <span
-            style={{ fontSize: "0.8rem", fontWeight: 700, color: "#475569" }}
-          >
-            Script SQL
-          </span>
+    <div
+      className={expandido ? "editor-sql-expandido" : "editor-sql-container"}
+    >
+      <div className="editor-sql" onClick={(e) => e.stopPropagation()}>
+        <div className="editor-sql-barra">
+          <span className="editor-sql-titulo">Script SQL</span>
           <button
             type="button"
+            className="btn btn-cancel btn-xxs"
             onClick={() => setExpandido(!expandido)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 10px",
-              fontSize: "0.8rem",
-              fontWeight: 600,
-              color: "#334155",
-              backgroundColor: "#ffffff",
-              border: "1px solid #cbd5e1",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
           >
-            {expandido ? "🗗 Diminuir" : "⛶ Expandir"}
+            <i
+              className={
+                expandido ? "fas fa-compress-alt" : "fas fa-expand-alt"
+              }
+            ></i>{" "}
+            {expandido ? "Diminuir" : "Expandir"}
           </button>
         </div>
 
-        {/* Área de código com duas camadas sobrepostas */}
-        <div
-          style={{
-            position: "relative",
-            flex: expandido ? 1 : "none",
-            height: expandido ? "100%" : "150px",
-            backgroundColor: "#ffffff",
-          }}
-        >
-          {/* Camada 1: Fundo com as cores do realce de sintaxe */}
-          <pre
-            ref={preRef}
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              margin: 0,
-              padding: "12px",
-              fontFamily: 'Consolas, "Fira Code", monospace',
-              fontSize: "0.9rem",
-              lineHeight: "1.5",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              overflow: "hidden",
-              pointerEvents: "none",
-              color: "#334155",
-              boxSizing: "border-box",
-            }}
-          >
+        {/* Duas camadas sobrepostas: o realce de sintaxe fica atrás do textarea transparente */}
+        <div className="editor-sql-area">
+          <pre ref={preRef} aria-hidden="true" className="editor-sql-realce">
             {renderizarTextoColorido(value)}
           </pre>
 
-          {/* Camada 2: Textarea transparente que recebe a digitação */}
           <textarea
             ref={textareaRef}
+            className="editor-sql-entrada"
             value={value}
             onChange={aoMudarTexto}
             onKeyDown={aoPressionarTecla}
             onScroll={aoRolar}
             spellCheck={false}
             placeholder={`Utilize $campo ou \${Nome Campo} para referenciar campos mapeados no documento.\nExemplo:\n\nSELECT Nome AS NomeQuery FROM Contribuintes C WHERE C.CRC = $CRCCampo AND C.Nro = \${Nro Parcelamento}`}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              margin: 0,
-              padding: "12px",
-              fontFamily: 'Consolas, "Fira Code", monospace',
-              fontSize: "0.9rem",
-              fontStyle: "italic",
-              lineHeight: "1.5",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              color: "transparent",
-              caretColor: "#0f172a",
-              backgroundColor: "transparent",
-              border: "none",
-              outline: "none",
-              resize: "none",
-              overflowY: "auto",
-              boxSizing: "border-box",
-            }}
           ></textarea>
 
-          {/* Menu Suspenso de Autocomplete */}
           {exibirAutocomplete && camposFiltrados.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "55px",
-                left: "24px",
-                zIndex: 10,
-                backgroundColor: "#ffffff",
-                border: "1px solid #c4b5fd",
-                borderRadius: "6px",
-                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                minWidth: "240px",
-                maxHeight: "180px",
-                overflowY: "auto",
-              }}
-            >
-              <div
-                style={{
-                  padding: "6px 10px",
-                  fontSize: "0.75rem",
-                  fontWeight: 700,
-                  backgroundColor: "#f5f3ff",
-                  color: "#6d28d9",
-                  borderBottom: "1px solid #ede9fe",
-                }}
-              >
+            <div className="editor-sql-sugestoes">
+              <div className="editor-sql-sugestoes-titulo">
                 Campos do Layout (Tab ou Enter para inserir)
               </div>
-              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              <ul>
                 {camposFiltrados.map((campo, idx) => (
                   <li
                     key={campo}
+                    className={idx === indiceFocoSugestao ? "ativo" : ""}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       selecionarSugestao(campo);
-                    }}
-                    style={{
-                      padding: "8px 12px",
-                      fontSize: "0.85rem",
-                      cursor: "pointer",
-                      backgroundColor:
-                        idx === indiceFocoSugestao ? "#ede9fe" : "#ffffff",
-                      color: idx === indiceFocoSugestao ? "#5b21b6" : "#1e293b",
-                      fontWeight: idx === indiceFocoSugestao ? 600 : 400,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
                     }}
                   >
                     <span>
                       {campo.includes(" ") ? `\${${campo}}` : `$${campo}`}
                     </span>
-                    <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>
-                      Campo
-                    </span>
+                    <small>Campo</small>
                   </li>
                 ))}
               </ul>

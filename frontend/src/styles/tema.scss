@@ -1,0 +1,21 @@
+// Tema do SVD no padrão visual dos sistemas SMARAPD.
+// Mesma ordem do tema da empresa (Common/scss/components/all.scss): variáveis, Bootstrap, base e componentes.
+
+@import 'base/variaveis';
+@import 'bootstrap/scss/bootstrap';
+
+@import 'base/mixins';
+@import 'base/reset';
+@import 'base/base';
+@import 'base/bootstrap-sobrescritas';
+
+@import 'parciais/botoes';
+@import 'parciais/formulario';
+@import 'parciais/layout';
+@import 'parciais/componentes';
+
+@import 'svd/validacao';
+@import 'svd/parametrizacao';
+@import 'svd/resultado';
+@import 'svd/editor-sql';
+@import 'svd/impressao';

@@ -1,0 +1,79 @@
+// Variáveis do tema padrão dos sistemas SMARAPD (SMARAPD.Common-WebApp/scss/components/base/variables.scss).
+// Precisam ser declaradas antes do Bootstrap para que ele seja compilado com a identidade da empresa.
+
+$brand-primary: #0cae89 !default;
+$brand-success: #57c445 !default;
+$brand-info: #5bc0de !default;
+$brand-warning: #f0ad4e !default;
+$brand-danger: #a7372b !default;
+$login-frame: #d7e0e2 !default;
+$breadcrumb: #d7e0e2 !default;
+$form-bg: #d7e0e2 !default;
+$panel-primary-text: #000;
+$panel-primary-border: 0px;
+
+$font-size-base: 0.875rem;
+
+$theme-colors: (
+  'primary': $brand-primary,
+  'success': $brand-success,
+  'info': $brand-info,
+  'warning': $brand-warning,
+  'danger': $brand-danger,
+);
+
+$brand-primary-grey: desaturate(darken($brand-primary, 15%), 50%);
+$brand-primary-dark: desaturate(darken($brand-primary, 40%), 50%);
+$brand-primary-light: desaturate(lighten($brand-primary, 65%), 40%);
+$brand-primary-white: desaturate(lighten($brand-primary-light, 25%), 15%);
+
+$container-large-desktop: 1260px;
+
+$link-color: $brand-primary;
+$link-hover-color: darken($link-color, 15%);
+$dropdown-link-hover-bg: $brand-primary;
+$dropdown-link-hover-color: #fafafa;
+
+$well-bg: lighten($form-bg, 4%);
+$well-padding: 5px;
+
+$modal-content-padding: 0 15px 10px;
+$modal-lg: 1000px;
+
+$tooltip-padding: 10px 15px;
+$tooltip-bg: $brand-primary-grey;
+
+$pagination-color: #fafafa;
+$pagination-bg: $link-color;
+$pagination-border: $link-color;
+$pagination-hover-color: #fafafa;
+$pagination-hover-bg: $link-hover-color;
+$pagination-hover-border: $link-hover-color;
+$pagination-active-color: #fafafa;
+$pagination-active-bg: darken($link-color, 5%);
+$pagination-active-border: $brand-primary;
+$pagination-disabled-color: #f0f0f0;
+$pagination-disabled-bg: lighten($link-color, 5%);
+$pagination-disabled-border: lighten($link-color, 5%);
+
+$painel-green-bg: #d7e0e2;
+$painel-green-text: $brand-primary;
+$panel-default-border: saturate(darken($brand-primary-light, 5%), 5%);
+
+$table-cell-padding: 6px;
+$table-border-color: desaturate(lighten($form-bg, 25%), 15%);
+
+$shadow-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+$shadow-2: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+$shadow-3: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+
+$sidebar-disable-bg: #f5f6f6;
+$sidebar-disable-text: #dadfde;
+
+// Tons auxiliares usados pelos componentes compartilhados (cabeçalho, grid, menus)
+$texto-padrao: #3a3a3a;
+$borda-clara: #ccc;
+$fundo-claro: #fafafa;
+$cinza-breadcrumb: #e7e7e7;
+$btn-cancel-bg: lighten(desaturate($brand-primary, 80%), 10%);
+$fonte-padrao: 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;

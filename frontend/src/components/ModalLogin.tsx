@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useState, type FormEvent } from "react";
 import { sessaoService } from "../services/sessaoService";
+import logoImg from "../assets/logo-smartb.png";
 
 const DOMINIO_REDE = "SMARAPD.COM.BR";
 
@@ -17,24 +18,7 @@ function extrairMensagemErro(erro: unknown): string {
   return "Não foi possível validar as credenciais. Tente novamente.";
 }
 
-const estiloCampo = {
-  width: "100%",
-  padding: "6px 10px",
-  borderRadius: "4px",
-  border: "1px solid #cfd8dc",
-  height: "34px",
-  boxSizing: "border-box" as const,
-};
-
-const estiloRotulo = {
-  display: "block",
-  fontWeight: 700,
-  fontSize: "0.75rem",
-  color: "#455a64",
-  marginBottom: "4px",
-  textTransform: "uppercase" as const,
-};
-
+// Tela de acesso no padrão de login dos sistemas da empresa (login.scss do Common)
 export function ModalLogin({ aoAutenticar }: ModalLoginProps) {
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
@@ -67,135 +51,71 @@ export function ModalLogin({ aoAutenticar }: ModalLoginProps) {
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.45)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 9999,
-      }}
-    >
-      <form
-        onSubmit={entrar}
-        autoComplete="off"
-        style={{
-          backgroundColor: "#ffffff",
-          borderRadius: "4px",
-          border: "1px solid #cfd8dc",
-          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
-          width: "90%",
-          maxWidth: "380px",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div
-          style={{
-            backgroundColor: "#e0f2f1",
-            borderBottom: "1px solid #b2dfdb",
-            padding: "12px 16px",
-          }}
-        >
-          <strong style={{ color: "#00796b", fontSize: "0.95rem" }}>
-            Acesso ao SVD
-          </strong>
-        </div>
+    <div className="login-container">
+      <div className="main-logo">
+        <img alt="SMARtb SVD" src={logoImg} />
+      </div>
 
-        <div
-          style={{
-            padding: "16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-            color: "#37474f",
-            fontSize: "0.85rem",
-          }}
-        >
-          <p style={{ margin: 0 }}>
-            Informe o usuário e a senha da rede Windows (domínio{" "}
-            <strong>{DOMINIO_REDE}</strong>).
-          </p>
+      <form className="form" onSubmit={entrar} autoComplete="off">
+        <h2>Acesso ao SVD</h2>
 
-          <div>
-            <label htmlFor="input-usuario-login" style={estiloRotulo}>
-              Usuário:
-            </label>
-            <input
-              id="input-usuario-login"
-              type="text"
-              value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
-              disabled={enviando}
-              autoFocus
-              style={estiloCampo}
-            ></input>
-          </div>
+        <p className="mb-2" style={{ lineHeight: 1.5 }}>
+          Informe o usuário e a senha da rede Windows (domínio{" "}
+          <strong>{DOMINIO_REDE}</strong>).
+        </p>
 
-          <div>
-            <label htmlFor="input-senha-login" style={estiloRotulo}>
-              Senha:
-            </label>
-            <input
-              id="input-senha-login"
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              disabled={enviando}
-              style={estiloCampo}
-            ></input>
-          </div>
-
-          {erro && (
-            <div
-              role="alert"
-              style={{
-                color: "#c62828",
-                backgroundColor: "#ffebee",
-                border: "1px solid #ffcdd2",
-                borderRadius: "4px",
-                padding: "6px 10px",
-                fontSize: "0.8rem",
-              }}
-            >
-              {erro}
-            </div>
-          )}
-        </div>
-
-        <div
-          style={{
-            padding: "10px 16px",
-            backgroundColor: "#f8fafc",
-            borderTop: "1px solid #eceff1",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
-          <button
-            type="submit"
+        <div className="form-group">
+          <label htmlFor="input-usuario-login">
+            Usuário
+            <span className="required-star"></span>
+          </label>
+          <input
+            id="input-usuario-login"
+            className="form-control"
+            type="text"
+            placeholder="Usuário"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
             disabled={enviando}
-            style={{
-              backgroundColor: "#00796b",
-              color: "#ffffff",
-              border: "none",
-              padding: "6px 18px",
-              borderRadius: "4px",
-              fontWeight: 700,
-              fontSize: "0.8rem",
-              cursor: enviando ? "wait" : "pointer",
-              opacity: enviando ? 0.7 : 1,
-            }}
-          >
-            <span>{enviando ? "Validando..." : "Entrar"}</span>
-          </button>
+            autoFocus
+          ></input>
         </div>
+
+        <div className="form-group">
+          <label htmlFor="input-senha-login">
+            Senha
+            <span className="required-star"></span>
+          </label>
+          <input
+            id="input-senha-login"
+            className="form-control"
+            type="password"
+            placeholder="Senha"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            disabled={enviando}
+          ></input>
+        </div>
+
+        {erro && (
+          <div role="alert" className="alert alert-inline alert-danger mt-3">
+            <i className="fas fa-exclamation-circle"></i>
+            <span>{erro}</span>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="btn btn-primary btn-block login-button mt-3"
+          disabled={enviando}
+        >
+          <i
+            className={
+              enviando ? "fas fa-spinner fa-spin" : "fas fa-sign-in-alt"
+            }
+          ></i>{" "}
+          {enviando ? "Validando..." : "Entrar"}
+        </button>
       </form>
     </div>
   );

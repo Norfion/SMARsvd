@@ -20,6 +20,15 @@ function mostrarUrlCompartilhada(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), mostrarUrlCompartilhada()],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // O Bootstrap 4 (mesma versão dos sistemas da empresa) ainda usa @import e funções globais do Sass
+        quietDeps: true,
+        silenceDeprecations: ['import', 'global-builtin', 'color-functions', 'if-function'],
+      },
+    },
+  },
   server: {
     host: true,
     port: 5173,

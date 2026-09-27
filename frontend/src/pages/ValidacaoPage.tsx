@@ -5,6 +5,8 @@ import {
   type TipoModalInformativo,
 } from "../components/ModalInformativo";
 import { useState, useRef } from "react";
+import { CarregandoTela } from "../components/CarregandoTela";
+import { Painel } from "../components/Painel";
 import type {
   LayoutCliente,
   TipoProvedorBanco,
@@ -23,9 +25,7 @@ function extrairMensagemErroApi(erro: unknown): string | null {
   }
 
   const dados = erro.response.data as
-    | { erro?: string; mensagem?: string; detalhe?: string }
-    | string
-    | undefined;
+    { erro?: string; mensagem?: string; detalhe?: string } | string | undefined;
 
   if (typeof dados === "string") return dados || null;
   return dados?.erro ?? dados?.detalhe ?? dados?.mensagem ?? null;
@@ -335,599 +335,356 @@ export function ValidacaoPage({
   };
 
   return (
-    <div id="container-validacao-pdf" style={{ position: "relative" }}>
-      {/* BLOQUEIO DE TELA / STATUS DA ETAPA EM EXECUÇÃO */}
+    <div id="container-validacao-pdf" className="row">
       {processando && (
-        <div
+        <CarregandoTela
           id="overlay-bloqueio-processamento"
-          className="smar-overlay-loading"
-        >
-          <div id="card-status-processamento" className="smar-status-card">
-            <div className="smar-spinner"></div>
-            <div style={{ width: "100%", textAlign: "center" }}>
-              <strong
-                style={{
-                  display: "block",
-                  color: "var(--smar-teal-dark)",
-                  fontSize: "1rem",
-                  marginBottom: "10px",
-                  fontWeight: 700,
-                }}
-              >
-                Validando Documentos
-              </strong>
-
-              <div
-                id="etapa-corrente-processamento"
-                style={{
-                  backgroundColor: "var(--smar-bg-subtle)",
-                  padding: "10px 14px",
-                  color: "var(--smar-text-primary)",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                }}
-              >
-                {etapaAtual > 0 ? (
-                  <span>
-                    ({etapaAtual}/3){" "}
-                    {descricoesEtapas[etapaAtual] ?? "Processando"}
-                  </span>
-                ) : (
-                  <span>{descricoesEtapas[0]}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+          texto={
+            etapaAtual > 0
+              ? `(${etapaAtual}/3) ${descricoesEtapas[etapaAtual] ?? "Processando"}`
+              : descricoesEtapas[0]
+          }
+        />
       )}
 
-      {/* 1. ACORDEÃO: CONEXÃO COM O BANCO DE DADOS */}
-      <section
-        id="accordion-conexao-banco-validacao"
-        className="smar-accordion"
-      >
-        <div
-          onClick={() =>
-            !processando && setAcordeonConexaoAberto((aberto) => !aberto)
-          }
-          className={`smar-accordion-header ${acordeonConexaoAberto ? "aberto" : "fechado"}`}
-          style={{ cursor: processando ? "not-allowed" : "pointer" }}
+      <div className="col">
+        <form
+          className="box-form-cadastro"
+          onSubmit={(e) => e.preventDefault()}
         >
-          <div className="smar-accordion-title">
-            <span className="smar-accordion-icon">
-              {acordeonConexaoAberto ? "▼" : "▶"}
-            </span>
-            <strong>1. Conexão com o banco de dados</strong>
-          </div>
-          <span
-            style={{ fontSize: "0.75rem", color: "var(--smar-text-secondary)" }}
-          >
-            {dbServidor && dbNomeBanco
-              ? `${dbProvedor}: ${dbServidor} / ${dbNomeBanco}`
-              : "Informe as credenciais"}
-          </span>
-        </div>
-
-        <div
-          className={`smar-accordion-content-wrapper ${
-            acordeonConexaoAberto
-              ? "smar-accordion-content-open"
-              : "smar-accordion-content-closed"
-          }`}
-        >
-          {/* ALERTA DE SEGURANÇA */}
-          <div
-            id="alerta-seguranca-banco-validacao"
-            className="smar-alert smar-alert-warning"
-            style={{ marginBottom: "16px" }}
-          >
-            <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>⚠️</span>
-            <div style={{ lineHeight: 1.4 }}>
-              <strong>Observações:</strong>
-              <p style={{ margin: "4px 0 0 0" }}>
-                Por motivos de segurança, as credenciais informadas aqui não
-                serão salvas. Utilize preferencialmente credenciais de um
-                usuário com <strong>permissão de somente leitura</strong> no
-                banco de dados.
-              </p>
-            </div>
-          </div>
-
-          {/* PROVEDOR DO BANCO */}
-          <div style={{ marginBottom: "14px" }}>
-            <label
-              htmlFor="select-provedor-banco-validacao"
-              className="smar-label"
-            >
-              Banco de dados
-            </label>
-            <select
-              id="select-provedor-banco-validacao"
-              value={dbProvedor}
-              onChange={(e) =>
-                setDbProvedor(e.target.value as TipoProvedorBanco)
-              }
-              disabled={processando}
-              className="smar-select"
-              style={{ maxWidth: "280px", fontWeight: 600 }}
-            >
-              <option value="SQL Server">SQL Server</option>
-            </select>
-          </div>
-
-          {/* SERVIDOR E PORTA */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "2fr 1fr",
-              gap: "14px",
-              marginBottom: "14px",
-            }}
-          >
-            <div>
-              <label
-                htmlFor="input-servidor-banco-validacao"
-                className="smar-label"
+          <div className="row">
+            <div className="col-lg-12">
+              <Painel
+                id="accordion-conexao-banco-validacao"
+                titulo="1. Conexão com o banco de dados"
+                resumo={
+                  dbServidor && dbNomeBanco
+                    ? `${dbProvedor}: ${dbServidor} / ${dbNomeBanco}`
+                    : "Informe as credenciais"
+                }
+                aberto={acordeonConexaoAberto}
+                aoAlternar={() =>
+                  !processando && setAcordeonConexaoAberto((aberto) => !aberto)
+                }
               >
-                Servidor
-              </label>
-              <input
-                id="input-servidor-banco-validacao"
-                type="text"
-                value={dbServidor}
-                onChange={(e) => setDbServidor(e.target.value)}
-                disabled={processando}
-                placeholder="Ex: PMTesteSQL2 ou 172.168.0.00"
-                className="smar-input"
-              ></input>
-            </div>
-            <div>
-              <label
-                htmlFor="input-porta-banco-validacao"
-                className="smar-label"
-              >
-                Porta
-              </label>
-              <input
-                id="input-porta-banco-validacao"
-                type="number"
-                value={dbPorta}
-                onChange={(e) => setDbPorta(e.target.value)}
-                disabled={processando}
-                placeholder="1433"
-                className="smar-input"
-              ></input>
-            </div>
-          </div>
-
-          {/* BASE DE DADOS */}
-          <div style={{ marginBottom: "14px" }}>
-            <label htmlFor="input-base-dados-validacao" className="smar-label">
-              Base de dados
-            </label>
-            <input
-              id="input-base-dados-validacao"
-              type="text"
-              value={dbNomeBanco}
-              onChange={(e) => setDbNomeBanco(e.target.value)}
-              disabled={processando}
-              placeholder="Ex: SMARtb_Cliente1"
-              className="smar-input"
-            ></input>
-          </div>
-
-          {/* USUÁRIO E SENHA */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "14px",
-            }}
-          >
-            <div>
-              <label
-                htmlFor="input-usuario-banco-validacao"
-                className="smar-label"
-              >
-                Usuário
-              </label>
-              <input
-                id="input-usuario-banco-validacao"
-                type="text"
-                value={dbUsuario}
-                onChange={(e) => setDbUsuario(e.target.value)}
-                disabled={processando}
-                placeholder="Ex: smartbValidacao"
-                className="smar-input"
-              ></input>
-            </div>
-            <div>
-              <label
-                htmlFor="input-senha-banco-validacao"
-                className="smar-label"
-              >
-                Senha
-              </label>
-              <div style={{ position: "relative" }}>
-                <input
-                  id="input-senha-banco-validacao"
-                  type={exibirSenha ? "text" : "password"}
-                  value={dbSenha}
-                  onChange={(e) => setDbSenha(e.target.value)}
-                  disabled={processando}
-                  placeholder="••••••••"
-                  className="smar-input"
-                  style={{ paddingRight: "40px" }}
-                ></input>
-                <button
-                  type="button"
-                  onClick={() => setExibirSenha((atual) => !atual)}
-                  disabled={processando}
-                  aria-label={exibirSenha ? "Ocultar senha" : "Exibir senha"}
-                  title={exibirSenha ? "Ocultar senha" : "Exibir senha"}
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    right: "8px",
-                    transform: "translateY(-50%)",
-                    background: "transparent",
-                    border: "none",
-                    padding: "4px",
-                    cursor: processando ? "not-allowed" : "pointer",
-                    color: "#64748b",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
+                <div
+                  id="alerta-seguranca-banco-validacao"
+                  className="alert alert-inline alert-warning"
                 >
-                  {exibirSenha ? (
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  <i className="fas fa-exclamation-triangle"></i>
+                  <div>
+                    <strong>Observações:</strong> Por motivos de segurança, as
+                    credenciais informadas aqui não serão salvas. Utilize
+                    preferencialmente credenciais de um usuário com{" "}
+                    <strong>permissão de somente leitura</strong> no banco de
+                    dados.
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-lg-3">
+                    <label htmlFor="select-provedor-banco-validacao">
+                      Banco de dados
+                      <span className="required-star"></span>
+                    </label>
+                    <select
+                      id="select-provedor-banco-validacao"
+                      value={dbProvedor}
+                      onChange={(e) =>
+                        setDbProvedor(e.target.value as TipoProvedorBanco)
+                      }
+                      disabled={processando}
+                      className="form-control"
                     >
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                      <option value="SQL Server">SQL Server</option>
+                    </select>
+                  </div>
+
+                  <div className="col-lg-7">
+                    <label htmlFor="input-servidor-banco-validacao">
+                      Servidor
+                      <span className="required-star"></span>
+                    </label>
+                    <input
+                      id="input-servidor-banco-validacao"
+                      type="text"
+                      value={dbServidor}
+                      onChange={(e) => setDbServidor(e.target.value)}
+                      disabled={processando}
+                      placeholder="Ex: PMTesteSQL2 ou 172.168.0.00"
+                      className="form-control"
+                    ></input>
+                  </div>
+
+                  <div className="col-lg-2">
+                    <label htmlFor="input-porta-banco-validacao">Porta</label>
+                    <input
+                      id="input-porta-banco-validacao"
+                      type="number"
+                      value={dbPorta}
+                      onChange={(e) => setDbPorta(e.target.value)}
+                      disabled={processando}
+                      placeholder="1433"
+                      className="form-control"
+                    ></input>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-lg-4">
+                    <label htmlFor="input-base-dados-validacao">
+                      Base de dados
+                      <span className="required-star"></span>
+                    </label>
+                    <input
+                      id="input-base-dados-validacao"
+                      type="text"
+                      value={dbNomeBanco}
+                      onChange={(e) => setDbNomeBanco(e.target.value)}
+                      disabled={processando}
+                      placeholder="Ex: SMARtb_Cliente1"
+                      className="form-control"
+                    ></input>
+                  </div>
+
+                  <div className="col-lg-4">
+                    <label htmlFor="input-usuario-banco-validacao">
+                      Usuário
+                      <span className="required-star"></span>
+                    </label>
+                    <input
+                      id="input-usuario-banco-validacao"
+                      type="text"
+                      value={dbUsuario}
+                      onChange={(e) => setDbUsuario(e.target.value)}
+                      disabled={processando}
+                      placeholder="Ex: smartbValidacao"
+                      className="form-control"
+                    ></input>
+                  </div>
+
+                  <div className="col-lg-4">
+                    <label htmlFor="input-senha-banco-validacao">Senha</label>
+                    <div className="input-group">
+                      <input
+                        id="input-senha-banco-validacao"
+                        type={exibirSenha ? "text" : "password"}
+                        value={dbSenha}
+                        onChange={(e) => setDbSenha(e.target.value)}
+                        disabled={processando}
+                        placeholder="••••••••"
+                        className="form-control"
+                      ></input>
+                      <div className="input-group-append">
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-custom"
+                          onClick={() => setExibirSenha((atual) => !atual)}
+                          disabled={processando}
+                          aria-label={
+                            exibirSenha ? "Ocultar senha" : "Exibir senha"
+                          }
+                          title={exibirSenha ? "Ocultar senha" : "Exibir senha"}
+                        >
+                          <i
+                            className={
+                              exibirSenha ? "fas fa-eye-slash" : "fas fa-eye"
+                            }
+                          ></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Painel>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-lg-12">
+              <Painel
+                id="accordion-importar-documentos-validacao"
+                titulo="2. Importar documentos"
+                resumo={arquivo ? arquivo.name : "Nenhum arquivo selecionado"}
+                aberto={acordeonImportarAberto}
+                aoAlternar={() =>
+                  !processando && setAcordeonImportarAberto((aberto) => !aberto)
+                }
+              >
+                <div className="row">
+                  <div className="col-lg-6">
+                    <label htmlFor="select-layout-aplicado">
+                      Layout
+                      <span className="required-star"></span>
+                    </label>
+                    <select
+                      id="select-layout-aplicado"
+                      value={layoutSelecionadoId}
+                      onChange={(e) => setLayoutSelecionadoId(e.target.value)}
+                      disabled={processando}
+                      className="form-control"
                     >
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
-                </button>
-              </div>
+                      <option value="">Selecione</option>
+                      {layoutsDisponiveis.map((l) => (
+                        <option key={l.nomeModelo} value={l.nomeModelo}>
+                          {l.nomeModelo} ({l.cliente})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="col-lg-6">
+                    <label id="label-arquivo-pdf" htmlFor="input-arquivo-pdf">
+                      Arquivo para validação
+                      <span className="required-star"></span>
+                    </label>
+
+                    <input
+                      id="input-arquivo-pdf"
+                      type="file"
+                      accept="application/pdf"
+                      onChange={lidarComArquivo}
+                      disabled={processando}
+                      className="d-none"
+                    ></input>
+
+                    <label
+                      htmlFor="input-arquivo-pdf"
+                      id="btn-trigger-upload-pdf"
+                      className={`input-group campo-arquivo ${processando ? "desabilitado" : ""}`}
+                    >
+                      <span
+                        className={`form-control campo-arquivo-nome ${arquivo ? "selecionado" : ""}`}
+                      >
+                        <i
+                          className={
+                            arquivo ? "fas fa-file-pdf" : "fas fa-folder-open"
+                          }
+                        ></i>{" "}
+                        {arquivo
+                          ? arquivo.name
+                          : "Selecionar documento em PDF..."}
+                      </span>
+                      <span className="input-group-append">
+                        <span className="btn btn-primary">
+                          <i className="fas fa-upload"></i> Importar
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div
+                  id="painel-opcoes-amostragem"
+                  className="row align-items-end"
+                >
+                  <div className="col-lg-3">
+                    <label htmlFor="btn-switch-modo-validacao">
+                      Modo de validação
+                    </label>
+                    <div
+                      className="d-flex align-items-center"
+                      style={{ height: "30px" }}
+                    >
+                      <div className="onoffswitch">
+                        <input
+                          type="checkbox"
+                          id="btn-switch-modo-validacao"
+                          className="onoffswitch-checkbox"
+                          checked={validarIntegralmente}
+                          onChange={alternarModoValidacao}
+                          disabled={processando}
+                        ></input>
+                        <label
+                          className="onoffswitch-label"
+                          htmlFor="btn-switch-modo-validacao"
+                        >
+                          <span className="onoffswitch-inner"></span>
+                          <span className="onoffswitch-switch"></span>
+                        </label>
+                      </div>
+                      <span className="ml-3">
+                        {validarIntegralmente
+                          ? "Validar integralmente"
+                          : "Validar por amostragem"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="col-lg-2">
+                    <label htmlFor="input-percentual-amostragem">
+                      Amostragem
+                    </label>
+                    <div className="input-group">
+                      <input
+                        ref={inputAmostragemRef}
+                        id="input-percentual-amostragem"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={percentualAmostragem}
+                        onChange={lidarComMudancaPercentual}
+                        disabled={validarIntegralmente || processando}
+                        className="form-control text-right"
+                      ></input>
+                      <div className="input-group-append">
+                        <span className="input-group-text">%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-lg-7">
+                    {validarIntegralmente ? (
+                      <div
+                        id="aviso-validacao-integral"
+                        className="alert alert-inline alert-info mb-0"
+                      >
+                        <i className="fas fa-info-circle"></i>
+                        <span>
+                          <strong>Validação Integral (100%):</strong> Todas as
+                          páginas serão auditadas. Porém, a validação pode
+                          demorar.
+                        </span>
+                      </div>
+                    ) : (
+                      <div
+                        id="aviso-validacao-amostragem"
+                        className="alert alert-inline alert-warning mb-0"
+                      >
+                        <i className="fas fa-exclamation-triangle"></i>
+                        <span>
+                          <strong>Amostragem ({percentualAmostragem}%):</strong>{" "}
+                          Auditoria por amostragem aleatória. Mais rápido, porém
+                          inconsistências fora da amostra podem não ser
+                          detectadas.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Painel>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* 2. ACORDEÃO: IMPORTAR DOCUMENTOS */}
-      <section
-        id="accordion-importar-documentos-validacao"
-        className="smar-accordion"
-      >
-        <div
-          onClick={() =>
-            !processando && setAcordeonImportarAberto((aberto) => !aberto)
-          }
-          className={`smar-accordion-header ${acordeonImportarAberto ? "aberto" : "fechado"}`}
-          style={{ cursor: processando ? "not-allowed" : "pointer" }}
-        >
-          <div className="smar-accordion-title">
-            <span className="smar-accordion-icon">
-              {acordeonImportarAberto ? "▼" : "▶"}
-            </span>
-            <strong>2. Importar documentos</strong>
-          </div>
-          <span
-            style={{ fontSize: "0.75rem", color: "var(--smar-text-secondary)" }}
-          >
-            {arquivo ? arquivo.name : "Nenhum arquivo selecionado"}
-          </span>
-        </div>
-
-        <div
-          className={`smar-accordion-content-wrapper ${
-            acordeonImportarAberto
-              ? "smar-accordion-content-open"
-              : "smar-accordion-content-closed"
-          }`}
-        >
-          {/* Seleção de Layout e Upload de PDF */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "14px",
-              alignItems: "flex-end",
-              marginBottom: "16px",
-            }}
-          >
-            <div>
-              <label htmlFor="select-layout-aplicado" className="smar-label">
-                Layout
-              </label>
-              <select
-                id="select-layout-aplicado"
-                value={layoutSelecionadoId}
-                onChange={(e) => setLayoutSelecionadoId(e.target.value)}
+          <div id="rodape-executar-validacao" className="row">
+            <div className="btn-forms col">
+              <button
+                type="button"
+                id="btn-executar-validacao"
+                onClick={executarValidacao}
                 disabled={processando}
-                className="smar-select"
+                className="btn btn-primary"
               >
-                <option value="">(Selecione um layout)</option>
-                {layoutsDisponiveis.map((l) => (
-                  <option key={l.nomeModelo} value={l.nomeModelo}>
-                    {l.nomeModelo} ({l.cliente})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <span id="label-arquivo-pdf" className="smar-label">
-                Arquivo para validação
-              </span>
-
-              <input
-                id="input-arquivo-pdf"
-                type="file"
-                accept="application/pdf"
-                onChange={lidarComArquivo}
-                disabled={processando}
-                style={{ display: "none" }}
-              ></input>
-
-              <label
-                htmlFor="input-arquivo-pdf"
-                id="btn-trigger-upload-pdf"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  backgroundColor: arquivo
-                    ? "var(--smar-success-bg)"
-                    : "#ffffff",
-                  border: arquivo
-                    ? "1px solid #81c784"
-                    : "1px solid var(--smar-border-color)",
-                  borderRadius: "var(--smar-radius)",
-                  padding: "0 10px",
-                  cursor: processando ? "not-allowed" : "pointer",
-                  height: "34px",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <span style={{ fontSize: "0.85rem" }}>
-                    {arquivo ? "📄" : "📁"}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "0.75rem",
-                      color: arquivo
-                        ? "var(--smar-success-text)"
-                        : "var(--smar-text-muted)",
-                      fontWeight: arquivo ? 700 : 400,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      maxWidth: "200px",
-                    }}
-                  >
-                    {arquivo ? arquivo.name : "Selecionar documento em PDF..."}
-                  </span>
-                </div>
-
-                <span
-                  style={{
-                    backgroundColor: "var(--smar-teal-primary)",
-                    color: "#ffffff",
-                    padding: "2px 8px",
-                    borderRadius: "3px",
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                  }}
-                >
-                  Importar
-                </span>
-              </label>
+                <i
+                  className={
+                    processando ? "fas fa-spinner fa-spin" : "fas fa-check"
+                  }
+                ></i>{" "}
+                {processando ? "Auditando..." : "Validar"}
+              </button>
             </div>
           </div>
-
-          {/* Configuração de Amostragem / Integral */}
-          <div
-            id="painel-opcoes-amostragem"
-            style={{
-              backgroundColor: "var(--smar-bg-subtle)",
-              border: "1px solid var(--smar-border-color)",
-              borderRadius: "var(--smar-radius)",
-              padding: "10px 14px",
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "14px",
-              minHeight: "56px",
-              boxSizing: "border-box",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "20px",
-                flexWrap: "wrap",
-                flexShrink: 0,
-              }}
-            >
-              {/* Switch Liga/Desliga */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  minWidth: "210px",
-                }}
-              >
-                <button
-                  type="button"
-                  id="btn-switch-modo-validacao"
-                  onClick={alternarModoValidacao}
-                  disabled={processando}
-                  className={`smar-switch ${validarIntegralmente ? "smar-switch-on" : "smar-switch-off"}`}
-                >
-                  <span className="smar-switch-thumb"></span>
-                </button>
-                <span
-                  style={{
-                    fontSize: "0.8rem",
-                    fontWeight: 700,
-                    color: validarIntegralmente
-                      ? "var(--smar-teal-dark)"
-                      : "var(--smar-text-label)",
-                    userSelect: "none",
-                  }}
-                >
-                  {validarIntegralmente
-                    ? "Validar Integralmente"
-                    : "Validar por Amostragem"}
-                </span>
-              </div>
-
-              {/* Campo Percentual */}
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
-                <label
-                  htmlFor="input-percentual-amostragem"
-                  className="smar-label"
-                  style={{ marginBottom: 0 }}
-                >
-                  Amostragem:
-                </label>
-                <div style={{ position: "relative", width: "60px" }}>
-                  <input
-                    ref={inputAmostragemRef}
-                    id="input-percentual-amostragem"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={percentualAmostragem}
-                    onChange={lidarComMudancaPercentual}
-                    disabled={validarIntegralmente || processando}
-                    className="smar-input"
-                    style={{
-                      padding: "4px 22px 4px 8px",
-                      height: "30px",
-                      fontWeight: 700,
-                      textAlign: "right",
-                      backgroundColor:
-                        validarIntegralmente || processando
-                          ? "#eceff1"
-                          : "#ffffff",
-                    }}
-                  ></input>
-                  <span
-                    style={{
-                      position: "absolute",
-                      right: "7px",
-                      top: "6px",
-                      fontSize: "0.75rem",
-                      fontWeight: 700,
-                      color: validarIntegralmente
-                        ? "var(--smar-border-dark)"
-                        : "var(--smar-text-label)",
-                      pointerEvents: "none",
-                    }}
-                  >
-                    %
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Mensagens Informativas de Amostragem */}
-            <div
-              style={{
-                flex: "1 1 360px",
-                minWidth: "280px",
-                display: "flex",
-                alignItems: "stretch",
-              }}
-            >
-              {validarIntegralmente ? (
-                <div
-                  id="aviso-validacao-integral"
-                  className="smar-alert smar-alert-info"
-                  style={{
-                    width: "100%",
-                    minHeight: "44px",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>🟢</span>
-                  <span>
-                    <strong>Validação Integral (100%):</strong> Todas as páginas
-                    serão auditadas. Porém, a validação pode demorar.
-                  </span>
-                </div>
-              ) : (
-                <div
-                  id="aviso-validacao-amostragem"
-                  className="smar-alert smar-alert-warning"
-                  style={{
-                    width: "100%",
-                    minHeight: "44px",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>🟡</span>
-                  <span>
-                    <strong>Amostragem ({percentualAmostragem}%):</strong>{" "}
-                    Auditoria por amostragem aleatória. Mais rápido, porém
-                    inconsistências fora da amostra podem não ser detectadas.
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* RODAPÉ: BOTÃO DE DISPARO DA VALIDAÇÃO */}
-      <div id="rodape-executar-validacao" className="smar-footer-actions">
-        <button
-          type="button"
-          id="btn-executar-validacao"
-          onClick={executarValidacao}
-          disabled={processando}
-          className="smar-btn smar-btn-save"
-        >
-          <span>{processando ? "Auditando..." : "Validar"}</span>
-        </button>
+        </form>
       </div>
 
       <ModalInformativo
