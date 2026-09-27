@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 using Microsoft.EntityFrameworkCore;
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 using SMARsvd.Application.DTOs;
 using SMARsvd.Application.Interfaces;
 using SMARsvd.Domain.Entities;
@@ -11,11 +8,8 @@ namespace SMARsvd.Infrastructure.Services;
 
 public class LogService : ILogService
 {
-<<<<<<< HEAD
     private static readonly string[] TiposDeFalha = { "Erro", "Exceção", "Aviso" };
 
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     private readonly SMARsvdDbContext _context;
 
     public LogService(SMARsvdDbContext context)
@@ -38,7 +32,6 @@ public class LogService : ILogService
         _context.Logs.Add(log);
         await _context.SaveChangesAsync();
     }
-<<<<<<< HEAD
 
     public async Task<List<LogRegistroDto>> ListarFalhasPorPeriodoAsync(DateTime inicioUtc, DateTime fimUtc)
     {
@@ -59,6 +52,3 @@ public class LogService : ILogService
         }).ToList();
     }
 }
-=======
-}
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38

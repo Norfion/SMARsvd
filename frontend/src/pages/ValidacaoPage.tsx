@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import axios from "axios";
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 import { processamentoService } from "../services/processamentoService";
 import {
   ModalInformativo,
@@ -18,7 +15,6 @@ import type {
   ResultadoValidacaoLote,
 } from "../types/validacao";
 
-<<<<<<< HEAD
 function extrairMensagemErroApi(erro: unknown): string | null {
   if (!axios.isAxiosError(erro)) return null;
 
@@ -35,8 +31,6 @@ function extrairMensagemErroApi(erro: unknown): string | null {
   return dados?.erro ?? dados?.detalhe ?? dados?.mensagem ?? null;
 }
 
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 interface ValidacaoPageProps {
   layoutsDisponiveis: LayoutCliente[];
   onConcluirValidacao: (resultado: ResultadoValidacaoLote) => void;
@@ -57,10 +51,7 @@ export function ValidacaoPage({
   const [dbNomeBanco, setDbNomeBanco] = useState<string>("");
   const [dbUsuario, setDbUsuario] = useState<string>("");
   const [dbSenha, setDbSenha] = useState<string>("");
-<<<<<<< HEAD
   const [exibirSenha, setExibirSenha] = useState<boolean>(false);
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
   const [layoutSelecionadoId, setLayoutSelecionadoId] = useState<string>("");
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -69,10 +60,7 @@ export function ValidacaoPage({
   const [etapaAtual, setEtapaAtual] = useState<number>(0);
 
   const descricoesEtapas: Record<number, string> = {
-<<<<<<< HEAD
     0: "Validando conexão com o banco de dados...",
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     1: "Extraindo dados do arquivo...",
     2: "Buscando informações no banco de dados...",
     3: "Aplicando regras para validação...",
@@ -222,7 +210,6 @@ export function ValidacaoPage({
 
     setProcessando(true);
 
-<<<<<<< HEAD
     const configuracaoConexao: ConfiguracaoBanco = {
       provedor: dbProvedor,
       servidor: dbServidor.trim(),
@@ -241,9 +228,6 @@ export function ValidacaoPage({
       const inicioProcessamento = respostaConexao?.inicioProcessamento;
 
       etapaEmExecucao = 1;
-=======
-    try {
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       setEtapaAtual(1);
       const respostaExtracao = await processamentoService.extrair(
         arquivo,
@@ -251,21 +235,8 @@ export function ValidacaoPage({
         percentualAmostragem ?? 100,
       );
 
-<<<<<<< HEAD
       etapaEmExecucao = 2;
       setEtapaAtual(2);
-=======
-      setEtapaAtual(2);
-      const configuracaoConexao: ConfiguracaoBanco = {
-        provedor: dbProvedor,
-        servidor: dbServidor.trim(),
-        porta: Number(dbPorta) || 1433,
-        baseDados: dbNomeBanco.trim(),
-        usuario: dbUsuario.trim(),
-        senha: dbSenha,
-      };
-
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       await processamentoService.buscarBanco(
         layoutEncontrado.id,
         configuracaoConexao,
@@ -273,20 +244,14 @@ export function ValidacaoPage({
         Boolean(respostaExtracao?.extracao?.usouOcr),
       );
 
-<<<<<<< HEAD
       etapaEmExecucao = 3;
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       setEtapaAtual(3);
       const utilizouOcr = Boolean(respostaExtracao?.extracao?.usouOcr);
       const dadosApi = await processamentoService.validarRegras(
         layoutEncontrado.id,
         arquivo.name,
         utilizouOcr,
-<<<<<<< HEAD
         inicioProcessamento,
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       );
 
       const listaRecebida =
@@ -336,7 +301,6 @@ export function ValidacaoPage({
         documentosComInconsistencia: documentosInconsistentes,
         inconsistencias: divergenciasNormalizadas,
         validacoes: dadosApi.Validacoes ?? dadosApi.validacoes ?? [],
-<<<<<<< HEAD
         percentualAmostragem:
           dadosApi.PercentualAmostragem ??
           dadosApi.percentualAmostragem ??
@@ -346,20 +310,11 @@ export function ValidacaoPage({
         dataHoraInicio: dadosApi.DataHoraInicio ?? dadosApi.dataHoraInicio,
         dataHoraFim: dadosApi.DataHoraFim ?? dadosApi.dataHoraFim,
         falhas: dadosApi.Falhas ?? dadosApi.falhas ?? [],
-=======
-        amostragem:
-          dadosApi.Amostragem ??
-          dadosApi.amostragem ??
-          percentualAmostragem ??
-          100,
-        usouOcr: dadosApi.UsouOcr ?? dadosApi.usouOcr ?? utilizouOcr,
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       };
 
       onConcluirValidacao(resultadoConsolidado);
     } catch (erro: unknown) {
       console.error("Erro ao validar o lote de documentos:", erro);
-<<<<<<< HEAD
 
       const detalheErro = extrairMensagemErroApi(erro);
       const falhaNaConexao = etapaEmExecucao === 0;
@@ -372,12 +327,6 @@ export function ValidacaoPage({
         detalheErro
           ? `${descricoesEtapas[etapaEmExecucao].replace("...", "")}: ${detalheErro}`
           : "Ocorreu um erro ao processar as etapas no backend. Verifique se o servidor está ativo e as credenciais estão corretas.",
-=======
-      exibirMensagem(
-        "erro",
-        "Falha na Validação",
-        "Ocorreu um erro ao processar as etapas no backend. Verifique se o servidor está ativo e as credenciais estão corretas.",
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
       );
     } finally {
       setProcessando(false);
@@ -424,11 +373,7 @@ export function ValidacaoPage({
                     {descricoesEtapas[etapaAtual] ?? "Processando"}
                   </span>
                 ) : (
-<<<<<<< HEAD
                   <span>{descricoesEtapas[0]}</span>
-=======
-                  <span>Iniciando processo...</span>
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 )}
               </div>
             </div>
@@ -603,7 +548,6 @@ export function ValidacaoPage({
               >
                 Senha
               </label>
-<<<<<<< HEAD
               <div style={{ position: "relative" }}>
                 <input
                   id="input-senha-banco-validacao"
@@ -668,17 +612,6 @@ export function ValidacaoPage({
                   )}
                 </button>
               </div>
-=======
-              <input
-                id="input-senha-banco-validacao"
-                type="password"
-                value={dbSenha}
-                onChange={(e) => setDbSenha(e.target.value)}
-                disabled={processando}
-                placeholder="••••••••"
-                className="smar-input"
-              ></input>
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
             </div>
           </div>
         </div>

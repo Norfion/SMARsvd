@@ -87,7 +87,6 @@ public class SqlServerExecutorService : IExecutorBancoDados
                 {
                     NomeQuery = query.NomeQuery,
                     SqlExecutado = query.SqlRenderizado,
-<<<<<<< HEAD
                     // Só é limpo quando o resultado da consulta é lido com sucesso
                     Erro = "Falha ao executar a consulta."
                 };
@@ -99,12 +98,6 @@ public class SqlServerExecutorService : IExecutorBancoDados
                     continue;
                 }
 
-=======
-                    Sucesso = false
-                };
-                docRetorno.Retornos.Add(itemRetorno);
-
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 // Guardamos a referência do item para preenchê-lo depois
                 consultasPlanificadas.Add((itemRetorno, query.SqlRenderizado));
             }
@@ -156,18 +149,10 @@ public class SqlServerExecutorService : IExecutorBancoDados
                             }
                             item.Registros.Add(linha);
                         }
-<<<<<<< HEAD
                         item.Erro = string.Empty;
                     }
                     catch (Exception exLeitura)
                     {
-=======
-                        item.Sucesso = true;
-                    }
-                    catch (Exception exLeitura)
-                    {
-                        item.Sucesso = false;
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         item.Erro = exLeitura.Message;
                     }
 
@@ -198,18 +183,10 @@ public class SqlServerExecutorService : IExecutorBancoDados
                             }
                             query.ItemRetorno.Registros.Add(linha);
                         }
-<<<<<<< HEAD
                         query.ItemRetorno.Erro = string.Empty;
                     }
                     catch (Exception exIndividual)
                     {
-=======
-                        query.ItemRetorno.Sucesso = true;
-                    }
-                    catch (Exception exIndividual)
-                    {
-                        query.ItemRetorno.Sucesso = false;
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         query.ItemRetorno.Erro = exIndividual.Message;
                     }
                 }

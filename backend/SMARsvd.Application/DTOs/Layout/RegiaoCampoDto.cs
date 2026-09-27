@@ -19,13 +19,7 @@ public class RegiaoCampoDto
     public string? TextoEsperadoPagina { get; set; }
     public string? IdentificadorPagina { get; set; }
     public string? IdentificadorAnterior { get; set; }
-<<<<<<< HEAD
     public string? IdentificadorPosterior { get; set; }
     public TipoDadoCampo TipoDado { get; set; } = TipoDadoCampo.Texto;
     public string? ConsultaSql { get; set; }
-=======
-    public string? ConsultaSql { get; set; }
-
-    public string? TipoDado { get; set; } = "Texto";
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 }

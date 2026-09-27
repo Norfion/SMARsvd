@@ -18,12 +18,9 @@ public class QueryMontadaDto
     public string SqlOriginal { get; set; } = string.Empty;
     public string SqlRenderizado { get; set; } = string.Empty;
     public Dictionary<string, string> Parametros { get; set; } = new();
-<<<<<<< HEAD
 
     // Preenchido quando algum campo usado na consulta tem valor inválido; nesse caso a consulta não é executada
     public string? MotivoNaoExecucao { get; set; }
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 }
 
 public class DocumentoQueriesDto
@@ -38,13 +35,8 @@ public class ItemRetornoQueryDto
 {
     public string NomeQuery { get; set; } = string.Empty;
     public string SqlExecutado { get; set; } = string.Empty;
-<<<<<<< HEAD
     // Vazio indica que a consulta foi executada com sucesso
     public string Erro { get; set; } = string.Empty;
-=======
-    public bool Sucesso { get; set; }
-    public string? Erro { get; set; }
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     public List<Dictionary<string, string>> Registros { get; set; } = new();
 }
 

@@ -34,10 +34,7 @@ public class ExceptionHandlingMiddleware
 
         var detalhes = JsonSerializer.Serialize(new
         {
-<<<<<<< HEAD
             Usuario = context.ObterUsuarioSessaoOuNulo(),
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
             Endpoint = context.Request.Path.Value,
             Metodo = context.Request.Method,
             QueryString = context.Request.QueryString.Value

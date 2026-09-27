@@ -23,7 +23,6 @@ public class ProcessadorCarnesService
         _ocrService = ocrService;
     }
 
-<<<<<<< HEAD
     public async Task<ResultadoProcessamentoDto> ProcessarLoteAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem, string pastaTemp)
     {
         try
@@ -38,9 +37,6 @@ public class ProcessadorCarnesService
     }
 
     private async Task<ResultadoProcessamentoDto> ProcessarLoteInternoAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem, string pastaTemp)
-=======
-    public async Task<ResultadoProcessamentoDto> ProcessarLoteAsync(string caminhoPdf, LayoutClienteDto layout, decimal amostragem)
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     {
         // 1. Localiza a região do Identificador de Documento
         var regiaoIdDocumento = layout.Campos.FirstOrDefault(c => c.TipoClassificacao == TipoClassificacaoCampo.IdentificadorDocumento);
@@ -101,14 +97,6 @@ public class ProcessadorCarnesService
         }
 
         // 3. Salvar estrutura temporária
-<<<<<<< HEAD
-=======
-        string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
-        if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
-        {
-            pastaTemp = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", "temp");
-        }
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         Directory.CreateDirectory(pastaTemp);
 
         var opcoesJson = new JsonSerializerOptions
@@ -198,21 +186,14 @@ public class ProcessadorCarnesService
 
                     if (!paginasAlvo.Any())
                     {
-<<<<<<< HEAD
                         string motivo = $"Identificador de página '{campo.IdentificadorPagina}' não localizado no documento.";
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         doc.Campos.Add(new CampoExtraidoDto
                         {
                             Nome = campo.NomeCampo,
                             PaginaExtraido = 0,
-<<<<<<< HEAD
                             ExtracaoMetodo = motivo,
                             Situacao = SituacaoValorCampo.Ausente,
                             MensagemValidacao = motivo
-=======
-                            ExtracaoMetodo = $"Identificador de página '{campo.IdentificadorPagina}' não localizado no documento."
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         });
                         continue;
                     }
@@ -227,21 +208,14 @@ public class ProcessadorCarnesService
                     }
                     else
                     {
-<<<<<<< HEAD
                         const string motivo = "Erro: Página configurada excede o tamanho do documento.";
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         doc.Campos.Add(new CampoExtraidoDto
                         {
                             Nome = campo.NomeCampo,
                             PaginaExtraido = paginaReal,
-<<<<<<< HEAD
                             ExtracaoMetodo = motivo,
                             Situacao = SituacaoValorCampo.Ausente,
                             MensagemValidacao = motivo
-=======
-                            ExtracaoMetodo = "Erro: Página configurada excede o tamanho do documento."
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         });
                         continue;
                     }
@@ -252,31 +226,12 @@ public class ProcessadorCarnesService
                 {
                     try
                     {
-<<<<<<< HEAD
                         string metodo = "Digital";
                         var textoRegiao = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, paginaReal, campo);
 
                         if (string.IsNullOrWhiteSpace(textoRegiao))
                         {
                             textoRegiao = await _ocrService.ExtrairTextoPorOcrAsync(
-=======
-                        var valorExtraido = await _extratorPdf.ExtrairTextoDigitalRegiaoAsync(caminhoPdf, paginaReal, campo);
-
-                        if (!string.IsNullOrWhiteSpace(valorExtraido))
-                        {
-                            valorExtraido = AplicarIdentificadorAnterior(valorExtraido, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
-                            doc.Campos.Add(new CampoExtraidoDto
-                            {
-                                Nome = campo.NomeCampo,
-                                ValorExtraido = valorExtraido,
-                                PaginaExtraido = paginaReal,
-                                ExtracaoMetodo = "Digital"
-                            });
-                        }
-                        else
-                        {
-                            var valorOcr = await _ocrService.ExtrairTextoPorOcrAsync(
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                                 caminhoPdf,
                                 paginaReal,
                                 campo.XMm,
@@ -284,31 +239,13 @@ public class ProcessadorCarnesService
                                 campo.LarguraMm,
                                 campo.AlturaMm);
 
-<<<<<<< HEAD
                             if (string.IsNullOrWhiteSpace(textoRegiao))
-=======
-                            if (!string.IsNullOrWhiteSpace(valorOcr))
-                            {
-                                valorOcr = AplicarIdentificadorAnterior(valorOcr, campo.IdentificadorAnterior, campo.NomeCampo, campo.TipoDado);
-                                utilizouOcr = true;
-
-                                doc.Campos.Add(new CampoExtraidoDto
-                                {
-                                    Nome = campo.NomeCampo,
-                                    ValorExtraido = valorOcr,
-                                    PaginaExtraido = paginaReal,
-                                    ExtracaoMetodo = "OCR"
-                                });
-                            }
-                            else
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                             {
                                 doc.Campos.Add(new CampoExtraidoDto
                                 {
                                     Nome = campo.NomeCampo,
                                     ValorExtraido = string.Empty,
                                     PaginaExtraido = paginaReal,
-<<<<<<< HEAD
                                     ExtracaoMetodo = "Não encontrado",
                                     Situacao = SituacaoValorCampo.Ausente,
                                     MensagemValidacao = "Nenhum texto encontrado na região."
@@ -333,12 +270,6 @@ public class ProcessadorCarnesService
                             MensagemValidacao = interpretacao.Motivo,
                             TextoRegiao = valorInterpretado ? null : textoRegiao.Trim()
                         });
-=======
-                                    ExtracaoMetodo = "Não encontrado"
-                                });
-                            }
-                        }
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                     }
                     catch (Exception ex)
                     {
@@ -346,13 +277,9 @@ public class ProcessadorCarnesService
                         {
                             Nome = campo.NomeCampo,
                             PaginaExtraido = paginaReal,
-<<<<<<< HEAD
                             ExtracaoMetodo = $"Erro inesperado: {ex.Message}",
                             Situacao = SituacaoValorCampo.Invalido,
                             MensagemValidacao = $"Erro inesperado na extração: {ex.Message}"
-=======
-                            ExtracaoMetodo = $"Erro inesperado: {ex.Message}"
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         });
                     }
                 }
@@ -423,55 +350,4 @@ public class ProcessadorCarnesService
 
         return sb.ToString().Normalize(NormalizationForm.FormC).Trim();
     }
-<<<<<<< HEAD
-=======
-
-    private static string AplicarIdentificadorAnterior(string texto, string? identificadorAnterior, string nomeCampo, string? tipoDado)
-    {
-        if (string.IsNullOrWhiteSpace(texto))
-            return string.Empty;
-
-        if (!string.IsNullOrWhiteSpace(identificadorAnterior))
-        {
-            string identificador = identificadorAnterior.Trim();
-            int indice = texto.IndexOf(identificador, StringComparison.OrdinalIgnoreCase);
-
-            if (indice >= 0)
-            {
-                texto = texto.Substring(indice + identificador.Length).Trim();
-            }
-            else
-            {
-                string padraoEscapado = Regex.Escape(identificador)
-                    .Replace(@"\:", @"\s*\:\s*")
-                    .Replace(@"\-", @"\s*\-\s*");
-
-                var match = Regex.Match(texto, padraoEscapado, RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    texto = texto.Substring(match.Index + match.Length).Trim();
-                }
-            }
-        }
-
-        texto = texto.TrimStart(':', '-', ' ', '.', ',', '|').Trim();
-
-        bool ehCampoNumerico = (!string.IsNullOrWhiteSpace(tipoDado) && tipoDado.Equals("Numerico", StringComparison.OrdinalIgnoreCase)) ||
-                               Regex.IsMatch(nomeCampo, @"(?i)(CRC|Lote|Nro|Número|Parcela|Valor|Data|CEP|CPF|CNPJ)");
-
-        if (ehCampoNumerico && !string.IsNullOrWhiteSpace(texto))
-        {
-            var matchNumero = Regex.Match(texto, @"\d");
-
-            if (matchNumero.Success && matchNumero.Index > 0 && matchNumero.Index <= 6)
-            {
-                texto = texto.Substring(matchNumero.Index).Trim();
-            }
-
-            texto = Regex.Replace(texto, @"^[^\d]+|[^\d\.\,\-\/]+$", "").Trim();
-        }
-
-        return texto;
-    }
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 }

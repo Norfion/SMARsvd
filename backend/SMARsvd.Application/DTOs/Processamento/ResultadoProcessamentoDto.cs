@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 using System.Text.Json.Serialization;
 
 namespace SMARsvd.Application.DTOs.Processamento;
@@ -12,10 +11,6 @@ public enum SituacaoValorCampo
     Invalido = 2
 }
 
-=======
-namespace SMARsvd.Application.DTOs.Processamento;
-
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 // DTO exclusivo para o arquivo temporário 'documentos_estrutura.json'
 // Contém apenas as delimitações de páginas do lote
 public class DocumentoEstruturaDto
@@ -31,7 +26,6 @@ public class CampoExtraidoDto
     public string ValorExtraido { get; set; } = string.Empty;
     public int PaginaExtraido { get; set; }
     public string ExtracaoMetodo { get; set; } = string.Empty;
-<<<<<<< HEAD
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public SituacaoValorCampo Situacao { get; set; } = SituacaoValorCampo.Ok;
@@ -40,8 +34,6 @@ public class CampoExtraidoDto
 
     // Texto bruto lido na região, preenchido apenas quando o valor não pôde ser interpretado
     public string? TextoRegiao { get; set; }
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 }
 
 // DTO para cada documento dentro de 'dados_extraidos.json'

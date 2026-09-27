@@ -1,15 +1,9 @@
 import axios from "axios";
 import { logService } from "./logService";
-<<<<<<< HEAD
 import { CABECALHO_TOKEN_SESSAO, tokenSessao } from "./tokenSessao";
 
 export const api = axios.create({
   baseURL: "/api",
-=======
-
-export const api = axios.create({
-  baseURL: "http://localhost:5224/api",
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 });
 
 // Emite eventos de conexão para que o App.tsx reaja imediatamente
@@ -21,7 +15,6 @@ export function dispararStatusConexao(semConexao: boolean) {
   );
 }
 
-<<<<<<< HEAD
 // Avisa o App.tsx que a sessão não é mais aceita pelo servidor e o login deve ser refeito
 export function dispararSessaoExpirada() {
   window.dispatchEvent(new CustomEvent("eventoSessaoExpirada"));
@@ -35,8 +28,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 // Interceptor de Resposta: monitora o sucesso e as quedas do banco/servidor
 api.interceptors.response.use(
   (response) => {
@@ -49,7 +40,6 @@ api.interceptors.response.use(
     const ehFalhaDeRede = !error.response || error.code === "ERR_NETWORK";
     const ehFalhaDeServidorOuBanco = status === 500 || status === 503;
 
-<<<<<<< HEAD
     // Credenciais recusadas no login são tratadas pela própria tela de login
     if (status === 401) {
       if (error.config?.url !== "/autenticacao/login") {
@@ -58,8 +48,6 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     // Se o backend/banco estiver inacessível ou estourar erro 500/503, aciona a tela de erro
     if (ehFalhaDeRede || ehFalhaDeServidorOuBanco) {
       dispararStatusConexao(true);

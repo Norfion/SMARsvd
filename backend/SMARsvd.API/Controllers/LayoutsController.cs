@@ -1,14 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SMARsvd.Application.DTOs.Layout;
-<<<<<<< HEAD
 using SMARsvd.Application.Interfaces;
 using SMARsvd.Application.Services;
 using SMARsvd.Domain.Entities;
 using SMARsvd.Domain.Enums;
-=======
-using SMARsvd.Domain.Entities;
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 using SMARsvd.Infrastructure.Data;
 
 namespace SMARsvd.API.Controllers;
@@ -18,7 +14,6 @@ namespace SMARsvd.API.Controllers;
 public class LayoutsController : ControllerBase
 {
     private readonly SMARsvdDbContext _context;
-<<<<<<< HEAD
     private readonly IValidadorConsultaSql _validadorSql;
 
     public LayoutsController(SMARsvdDbContext context, IValidadorConsultaSql validadorSql)
@@ -31,12 +26,6 @@ public class LayoutsController : ControllerBase
     public ActionResult<ResultadoValidacaoSqlDto> ValidarSql([FromBody] ValidarSqlRequest request)
     {
         return Ok(_validadorSql.Validar(request.Sql));
-=======
-
-    public LayoutsController(SMARsvdDbContext context)
-    {
-        _context = context;
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     }
 
     [HttpGet]
@@ -74,11 +63,8 @@ public class LayoutsController : ControllerBase
                 TextoEsperadoPagina = c.TextoEsperadoPagina,
                 IdentificadorPagina = c.IdentificadorPagina,
                 IdentificadorAnterior = c.IdentificadorAnterior,
-<<<<<<< HEAD
                 IdentificadorPosterior = c.IdentificadorPosterior,
                 TipoDado = c.TipoDado,
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 ConsultaSql = c.ConsultaSql
             }).ToList(),
             QueriesValidacao = l.QueriesValidacao.Select(q => new QueryValidacaoDto
@@ -111,7 +97,6 @@ public class LayoutsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-<<<<<<< HEAD
         foreach (var query in dto.QueriesValidacao ?? new List<QueryValidacaoDto>())
         {
             var validacao = _validadorSql.Validar(query.Sql);
@@ -125,8 +110,6 @@ public class LayoutsController : ControllerBase
             }
         }
 
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         LayoutCliente? entidadeLayout = null;
 
         if (dto.Id.HasValue && dto.Id.Value != Guid.Empty)
@@ -202,11 +185,8 @@ public class LayoutsController : ControllerBase
                 TextoEsperadoPagina = c.TextoEsperadoPagina,
                 IdentificadorPagina = c.IdentificadorPagina,
                 IdentificadorAnterior = c.IdentificadorAnterior,
-<<<<<<< HEAD
                 IdentificadorPosterior = c.IdentificadorPosterior,
                 TipoDado = c.TipoDado,
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 ConsultaSql = c.ConsultaSql,
                 LayoutClienteId = entidadeLayout.Id
             }).ToList();

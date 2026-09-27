@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-<<<<<<< HEAD
 using System.Globalization;
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
@@ -13,17 +10,13 @@ using System.Threading.Tasks;
 using SMARsvd.Application.DTOs.Layout;
 using SMARsvd.Application.DTOs.Processamento;
 using SMARsvd.Application.Interfaces;
-<<<<<<< HEAD
 using SMARsvd.Domain.Enums;
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
 namespace SMARsvd.Application.Services;
 
 public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 {
     private readonly IBancoDadosExecutorFactory _bancoFactory;
-<<<<<<< HEAD
     private readonly ILogService _logService;
     private readonly IValidadorConsultaSql _validadorSql;
 
@@ -31,8 +24,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
     // Usado para identificar, em queries_retornos.json, as consultas bloqueadas antes de chegar ao banco
     private const string PrefixoConsultaNaoExecutada = "Consulta não executada:";
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
     private static readonly JsonSerializerOptions OpcoesJson = new()
     {
@@ -41,7 +32,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         PropertyNameCaseInsensitive = true
     };
 
-<<<<<<< HEAD
     public AuditoriaValidacaoService(
         IBancoDadosExecutorFactory bancoFactory,
         ILogService logService,
@@ -50,11 +40,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         _bancoFactory = bancoFactory;
         _logService = logService;
         _validadorSql = validadorSql;
-=======
-    public AuditoriaValidacaoService(IBancoDadosExecutorFactory bancoFactory)
-    {
-        _bancoFactory = bancoFactory;
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     }
 
     public async Task<ResultadoAuditoriaDto> ProcessarAuditoriaSimuladaAsync(
@@ -65,14 +50,9 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         string pastaTemp,
         ConfiguracaoBancoDto? conexaoBanco = null)
     {
-<<<<<<< HEAD
         var inicioProcessamento = DateTime.UtcNow;
         await MontarQueriesEBuscarBancoAsync(extracao, layout, pastaTemp, conexaoBanco);
         return await CompararEGerarAuditoriaAsync(extracao, layout, nomeArquivo, utilizouOcr, pastaTemp, inicioProcessamento);
-=======
-        await MontarQueriesEBuscarBancoAsync(extracao, layout, pastaTemp, conexaoBanco);
-        return await CompararEGerarAuditoriaAsync(extracao, layout, nomeArquivo, utilizouOcr, pastaTemp);
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     }
 
     public async Task MontarQueriesEBuscarBancoAsync(
@@ -83,7 +63,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
     {
         var queriesMontadas = new List<DocumentoQueriesDto>();
 
-<<<<<<< HEAD
         var motivosBloqueio = new Dictionary<QueryValidacaoDto, string>();
         foreach (var query in layout?.QueriesValidacao ?? new List<QueryValidacaoDto>())
         {
@@ -94,8 +73,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
             }
         }
 
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         if (extracao?.Documentos != null)
         {
             foreach (var doc in extracao.Documentos)
@@ -112,10 +89,7 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                     foreach (var query in layout.QueriesValidacao)
                     {
                         var parametros = new Dictionary<string, string>();
-<<<<<<< HEAD
                         var camposInvalidos = new List<string>();
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         string sqlRenderizado = query.Sql ?? string.Empty;
 
                         var matches = Regex.Matches(sqlRenderizado, @"\$\{([^}]+)\}|\$([a-zA-Z0-9_]+)");
@@ -126,7 +100,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                             string nomeCampoBruto = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
                             string nomeCampo = nomeCampoBruto.Trim();
 
-<<<<<<< HEAD
                             var campoExt = ObterCampoExtraido(doc, nomeCampo);
                             var campoLayout = layout.Campos?.FirstOrDefault(c =>
                                 !string.IsNullOrWhiteSpace(c?.NomeCampo) &&
@@ -142,14 +115,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
                             string? valorBruto = campoExt?.Situacao == SituacaoValorCampo.Ok ? campoExt.ValorExtraido : null;
                             string valorSql = FormatarValorParaSql(valorBruto, campoLayout?.TipoDado ?? TipoDadoCampo.Texto);
-=======
-                            var campoExt = doc.Campos?.FirstOrDefault(c =>
-                                !string.IsNullOrWhiteSpace(c?.Nome) &&
-                                c.Nome.Trim().Equals(nomeCampo, StringComparison.OrdinalIgnoreCase));
-
-                            string? valorBruto = campoExt?.ValorExtraido;
-                            string valorSql = FormatarValorParaSql(valorBruto);
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
                             sqlRenderizado = sqlRenderizado.Replace(parametroSql, valorSql);
                             parametros[parametroSql] = valorBruto ?? "NULL";
@@ -160,16 +125,12 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                             NomeQuery = query.Nome ?? "Query Sem Nome",
                             SqlOriginal = query.Sql ?? string.Empty,
                             SqlRenderizado = sqlRenderizado,
-<<<<<<< HEAD
                             Parametros = parametros,
                             MotivoNaoExecucao = motivosBloqueio.TryGetValue(query, out var motivoBloqueio)
                                 ? motivoBloqueio
                                 : camposInvalidos.Any()
                                     ? $"{PrefixoConsultaNaoExecutada} campo(s) com valor inválido: {string.Join("; ", camposInvalidos.Distinct())}."
                                     : null
-=======
-                            Parametros = parametros
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                         });
                     }
                 }
@@ -209,11 +170,7 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
                 foreach (var item in docRetorno.Retornos)
                 {
-<<<<<<< HEAD
                     if (string.IsNullOrEmpty(item.Erro) && item.Registros.Any())
-=======
-                    if (item.Sucesso && item.Registros.Any())
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                     {
                         var primeiraLinha = item.Registros.First();
                         foreach (var kvp in primeiraLinha)
@@ -260,19 +217,12 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         LayoutClienteDto layout,
         string nomeArquivo,
         bool utilizouOcr,
-<<<<<<< HEAD
         string pastaTemp,
         DateTime? inicioProcessamento = null)
     {
         string caminhoBancoMock = Path.Combine(pastaTemp, "dados_banco.json");
         var dadosBanco = new List<RetornoBancoSimuladoDto>();
         var falhas = new List<FalhaProcessamentoDto>();
-=======
-        string pastaTemp)
-    {
-        string caminhoBancoMock = Path.Combine(pastaTemp, "dados_banco.json");
-        var dadosBanco = new List<RetornoBancoSimuladoDto>();
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
         if (File.Exists(caminhoBancoMock))
         {
@@ -282,7 +232,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                 dadosBanco = JsonSerializer.Deserialize<List<RetornoBancoSimuladoDto>>(bancoJson, OpcoesJson)
                              ?? new List<RetornoBancoSimuladoDto>();
             }
-<<<<<<< HEAD
             catch (Exception ex)
             {
                 dadosBanco = new List<RetornoBancoSimuladoDto>();
@@ -296,24 +245,12 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
         falhas.AddRange(await ObterFalhasDasQueriesAsync(pastaTemp));
 
-=======
-            catch
-            {
-                dadosBanco = new List<RetornoBancoSimuladoDto>();
-            }
-        }
-
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         var resultadoAuditoria = new ResultadoAuditoriaDto
         {
             NomeArquivo = string.IsNullOrWhiteSpace(nomeArquivo) ? "arquivo_importado.pdf" : nomeArquivo,
             LayoutUtilizado = layout?.NomeModelo ?? "Layout Padrão",
             TotalDocumentosAnalisados = extracao?.DocumentosProcessados ?? 0,
-<<<<<<< HEAD
             PercentualAmostragem = extracao?.PercentualAmostragem ?? 100,
-=======
-            Amostragem = extracao?.PercentualAmostragem ?? 100,
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
             UsouOcr = utilizouOcr,
             Inconsistencias = new List<InconsistenciaItemDto>(),
             Validacoes = new List<ValidacaoDetalhadaDto>()
@@ -321,27 +258,17 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
         int documentosComErro = 0;
 
-<<<<<<< HEAD
         var dadosBancoPorDocumento = dadosBanco
             .GroupBy(d => (d.PaginaInicio, d.PaginaFim))
             .ToDictionary(g => g.Key, g => g.First());
 
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         if (extracao?.Documentos != null)
         {
             foreach (var doc in extracao.Documentos)
             {
                 bool temErroNoDoc = false;
 
-<<<<<<< HEAD
                 if (!dadosBancoPorDocumento.TryGetValue((doc.PaginaInicio, doc.PaginaFim), out var docBanco))
-=======
-                var docBanco = dadosBanco.FirstOrDefault(d =>
-                    d.PaginaInicio == doc.PaginaInicio && d.PaginaFim == doc.PaginaFim);
-
-                if (docBanco == null)
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 {
                     resultadoAuditoria.Inconsistencias.Add(new InconsistenciaItemDto
                     {
@@ -407,10 +334,7 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                             }
 
                             bool iguais = string.Equals(extraido, esperado, StringComparison.OrdinalIgnoreCase);
-<<<<<<< HEAD
                             string mensagemDivergencia = MontarMensagemDivergencia(campoExt);
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
                             resultadoAuditoria.Validacoes.Add(new ValidacaoDetalhadaDto
                             {
@@ -422,11 +346,7 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                                 ValorExtraido = string.IsNullOrWhiteSpace(extraido) ? "Vazio/Null" : extraido,
                                 ValorBanco = string.IsNullOrWhiteSpace(esperado) ? "Vazio/Null" : esperado,
                                 Status = iguais ? "OK" : "DIVERGÊNCIA",
-<<<<<<< HEAD
                                 MensagemAuditoria = iguais ? "Valor validado com sucesso." : mensagemDivergencia
-=======
-                                MensagemAuditoria = iguais ? "Valor validado com sucesso." : "Divergência de valores."
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                             });
 
                             if (!iguais)
@@ -438,11 +358,7 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                                     Campo = regra.CampoCarne,
                                     ValorExtraidoPdf = string.IsNullOrWhiteSpace(extraido) ? "Vazio/Null" : extraido,
                                     ValorEsperadoBanco = string.IsNullOrWhiteSpace(esperado) ? "Vazio/Null" : esperado,
-<<<<<<< HEAD
                                     MensagemAuditoria = mensagemDivergencia
-=======
-                                    MensagemAuditoria = "Divergência de valores."
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                                 });
                             }
                         }
@@ -456,7 +372,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         resultadoAuditoria.DocumentosComInconsistencia = documentosComErro;
         resultadoAuditoria.DocumentosValidos = Math.Max(0, resultadoAuditoria.TotalDocumentosAnalisados - documentosComErro);
 
-<<<<<<< HEAD
         var dataHoraFim = DateTime.UtcNow;
         DateTime? dataHoraInicio = inicioProcessamento?.ToUniversalTime();
 
@@ -475,8 +390,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
             .OrderBy(v => v.PaginaExtraido)
             .ToList();
 
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         Directory.CreateDirectory(pastaTemp);
         string caminhoAuditoria = Path.Combine(pastaTemp, "resultado_auditoria.json");
         await File.WriteAllTextAsync(caminhoAuditoria, JsonSerializer.Serialize(resultadoAuditoria, OpcoesJson));
@@ -484,7 +397,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         return resultadoAuditoria;
     }
 
-<<<<<<< HEAD
     private static async Task<List<FalhaProcessamentoDto>> ObterFalhasDasQueriesAsync(string pastaTemp)
     {
         var falhas = new List<FalhaProcessamentoDto>();
@@ -605,12 +517,5 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
             default:
                 return valorTexto;
         }
-=======
-    private static string FormatarValorParaSql(string? valor)
-    {
-        if (string.IsNullOrWhiteSpace(valor)) return "NULL";
-        if (decimal.TryParse(valor, out _)) return valor;
-        return $"'{valor.Replace("'", "''")}'";
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     }
 }

@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-<<<<<<< HEAD
 using SMARsvd.API.Middlewares;
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 using SMARsvd.API.Models;
 using SMARsvd.Application.DTOs.Layout;
 using SMARsvd.Application.DTOs.Processamento;
@@ -24,10 +21,7 @@ public class EtapaProcessamentoRequest
     public string NomeArquivo { get; set; } = string.Empty;
     public bool UsouOcr { get; set; }
     public ConfiguracaoBancoDto? ConexaoBanco { get; set; }
-<<<<<<< HEAD
     public DateTime? InicioProcessamento { get; set; }
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 }
 
 [ApiController]
@@ -36,11 +30,8 @@ public class ProcessamentoController : ControllerBase
 {
     private readonly ProcessadorCarnesService _processadorService;
     private readonly IAuditoriaValidacaoService _auditoriaService;
-<<<<<<< HEAD
     private readonly IBancoDadosExecutorFactory _bancoFactory;
     private readonly IPastaTemporariaService _pastaTemporaria;
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     private readonly SMARsvdDbContext _context;
 
     private static readonly JsonSerializerOptions OpcoesJson = new()
@@ -51,20 +42,14 @@ public class ProcessamentoController : ControllerBase
     public ProcessamentoController(
         ProcessadorCarnesService processadorService,
         IAuditoriaValidacaoService auditoriaService,
-<<<<<<< HEAD
         IBancoDadosExecutorFactory bancoFactory,
         IPastaTemporariaService pastaTemporaria,
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         SMARsvdDbContext context)
     {
         _processadorService = processadorService;
         _auditoriaService = auditoriaService;
-<<<<<<< HEAD
         _bancoFactory = bancoFactory;
         _pastaTemporaria = pastaTemporaria;
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         _context = context;
     }
 
@@ -92,11 +77,8 @@ public class ProcessamentoController : ControllerBase
                 TextoEsperadoPagina = c.TextoEsperadoPagina,
                 IdentificadorPagina = c.IdentificadorPagina,
                 IdentificadorAnterior = c.IdentificadorAnterior,
-<<<<<<< HEAD
                 IdentificadorPosterior = c.IdentificadorPosterior,
                 TipoDado = c.TipoDado,
-=======
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
                 Pagina = c.Pagina,
                 XMm = c.XMm,
                 YMm = c.YMm,
@@ -120,7 +102,6 @@ public class ProcessamentoController : ControllerBase
         };
     }
 
-<<<<<<< HEAD
     private string ObterPastaTemp() => _pastaTemporaria.ObterPastaUsuario(HttpContext.ObterUsuarioSessao());
 
     // Etapa 0 - Validação das credenciais antes de iniciar a extração
@@ -153,22 +134,6 @@ public class ProcessamentoController : ControllerBase
     [Consumes("multipart/form-data")]
     [DisableRequestSizeLimit]
     [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
-=======
-    private string ObterPastaTemp()
-    {
-        string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
-        if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
-        {
-            pastaTemp = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", "temp");
-        }
-        Directory.CreateDirectory(pastaTemp);
-        return pastaTemp;
-    }
-
-    // Etapa 1 - Extração
-    [HttpPost("extrair")]
-    [Consumes("multipart/form-data")]
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
     public async Task<IActionResult> ExtrairDadosPdf([FromForm] ProcessarPdfRequest request)
     {
         if (request.Amostragem < 0 || request.Amostragem > 100)
@@ -192,11 +157,7 @@ public class ProcessamentoController : ControllerBase
                 await request.ArquivoPdf.CopyToAsync(stream);
             }
 
-<<<<<<< HEAD
             var resultadoExtracao = await _processadorService.ProcessarLoteAsync(caminhoPdf, layoutDto, request.Amostragem, pastaTemp);
-=======
-            var resultadoExtracao = await _processadorService.ProcessarLoteAsync(caminhoPdf, layoutDto, request.Amostragem);
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
             return Ok(new { Extracao = resultadoExtracao });
         }
@@ -206,7 +167,6 @@ public class ProcessamentoController : ControllerBase
         }
         finally
         {
-<<<<<<< HEAD
             try
             {
                 if (System.IO.File.Exists(caminhoPdf))
@@ -215,12 +175,6 @@ public class ProcessamentoController : ControllerBase
                 }
             }
             catch (IOException) { }
-=======
-            if (System.IO.File.Exists(caminhoPdf))
-            {
-                System.IO.File.Delete(caminhoPdf);
-            }
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
         }
     }
 
@@ -286,12 +240,8 @@ public class ProcessamentoController : ControllerBase
                 layoutDto,
                 request.NomeArquivo,
                 request.UsouOcr,
-<<<<<<< HEAD
                 pastaTemp,
                 request.InicioProcessamento);
-=======
-                pastaTemp);
->>>>>>> 92997767685e1ab7cc51fdf3210c9a0ede5d0c38
 
             return Ok(resultadoFinal);
         }
