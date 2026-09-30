@@ -15,10 +15,7 @@ import type {
   TipoProvedorBanco,
   ConfiguracaoBanco,
 } from "../types/layout";
-import type {
-  InconsistenciaItem,
-  ResultadoValidacaoLote,
-} from "../types/validacao";
+import type { ResultadoValidacaoLote } from "../types/validacao";
 
 function extrairMensagemErroApi(erro: unknown): string | null {
   if (!axios.isAxiosError(erro)) return null;
@@ -43,7 +40,6 @@ const esperar = (ms: number) =>
 interface DadosValidacao {
   arquivo: File;
   layoutId: string;
-  nomeModelo: string;
   conexao: ConfiguracaoBanco;
   percentualAmostragem: number;
 }
@@ -246,7 +242,6 @@ export function ValidacaoPage({
     return {
       arquivo,
       layoutId: layoutEncontrado.id,
-      nomeModelo: layoutEncontrado.nomeModelo,
       conexao: {
         provedor: dbProvedor,
         servidor: dbServidor.trim(),
@@ -367,7 +362,6 @@ export function ValidacaoPage({
   const processarValidacao = async ({
     arquivo,
     layoutId,
-    nomeModelo,
     conexao,
     percentualAmostragem,
   }: DadosValidacao) => {
@@ -407,64 +401,7 @@ export function ValidacaoPage({
         inicioProcessamento,
       );
 
-      const listaRecebida =
-        dadosApi.Inconsistencias ?? dadosApi.inconsistencias ?? [];
-      const divergenciasNormalizadas: InconsistenciaItem[] = listaRecebida.map(
-        (item) => ({
-          paginaExtraido: item.PaginaExtraido ?? item.paginaExtraido,
-          campo: item.Campo ?? item.campo ?? "—",
-          valorExtraidoPdf:
-            item.ValorExtraidoPdf ?? item.valorExtraidoPdf ?? "—",
-          valorEsperadoBanco:
-            item.ValorEsperadoBanco ?? item.valorEsperadoBanco ?? "—",
-          mensagemAuditoria:
-            item.MensagemAuditoria ??
-            item.mensagemAuditoria ??
-            item.Mensagem ??
-            item.mensagem ??
-            "Divergência detectada",
-        }),
-      );
-
-      const totalDocs =
-        dadosApi.TotalDocumentosAnalisados ??
-        dadosApi.totalDocumentosAnalisados ??
-        0;
-
-      const documentosInconsistentes =
-        dadosApi.DocumentosComInconsistencia ??
-        dadosApi.documentosComInconsistencia ??
-        divergenciasNormalizadas.length;
-
-      const documentosValidos =
-        dadosApi.DocumentosValidos ??
-        dadosApi.documentosValidos ??
-        Math.max(0, totalDocs - documentosInconsistentes);
-
-      const resultadoConsolidado: ResultadoValidacaoLote = {
-        nomeArquivo:
-          dadosApi.NomeArquivo ?? dadosApi.nomeArquivo ?? arquivo.name,
-        layoutUtilizado:
-          dadosApi.LayoutUtilizado ??
-          dadosApi.layoutUtilizado ??
-          nomeModelo,
-        baseDados: conexao.baseDados,
-        totalDocumentosAnalisados: totalDocs,
-        documentosValidos: documentosValidos,
-        documentosComInconsistencia: documentosInconsistentes,
-        inconsistencias: divergenciasNormalizadas,
-        validacoes: dadosApi.Validacoes ?? dadosApi.validacoes ?? [],
-        percentualAmostragem:
-          dadosApi.PercentualAmostragem ??
-          dadosApi.percentualAmostragem ??
-          percentualAmostragem,
-        usouOcr: dadosApi.UsouOcr ?? dadosApi.usouOcr ?? utilizouOcr,
-        dataHoraInicio: dadosApi.DataHoraInicio ?? dadosApi.dataHoraInicio,
-        dataHoraFim: dadosApi.DataHoraFim ?? dadosApi.dataHoraFim,
-        falhas: dadosApi.Falhas ?? dadosApi.falhas ?? [],
-      };
-
-      onConcluirValidacao(resultadoConsolidado);
+      onConcluirValidacao({ ...dadosApi, baseDados: conexao.baseDados });
     } catch (erro: unknown) {
       console.error("Erro ao validar o lote de documentos:", erro);
 
@@ -887,5 +824,3 @@ export function ValidacaoPage({
     </div>
   );
 }
-
-export default ValidacaoPage;

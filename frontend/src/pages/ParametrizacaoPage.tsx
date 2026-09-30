@@ -1,3 +1,4 @@
+import axios from "axios";
 import {
   ModalInformativo,
   type TipoModalInformativo,
@@ -47,7 +48,7 @@ const verificarSomenteSelect = (sql: string): string | null => {
 interface ParametrizacaoPageProps {
   layoutsSalvos: LayoutCliente[];
   onSalvarLayouts: (layouts: LayoutCliente[]) => void;
-  onExcluirLayout?: (idOuNome: string) => void;
+  onExcluirLayout?: (idOuNome: string, senhaExclusao: string) => Promise<void>;
   onHouveAlteracaoChange?: (houveAlteracao: boolean) => void;
 }
 
@@ -342,12 +343,8 @@ export function ParametrizacaoPage({
     }
   };
 
-  const SENHA_EXCLUSAO = "teste123";
-
-  const executarExclusaoFisicaLayout = () => {
-    if (onExcluirLayout && layoutId) {
-      onExcluirLayout(layoutId);
-    } else if (!layoutId) {
+  const executarExclusaoFisicaLayout = async (senhaExclusao: string) => {
+    if (!layoutId) {
       exibirMensagem(
         "erro",
         "Erro na exclusão",
@@ -355,6 +352,27 @@ export function ParametrizacaoPage({
       );
       return;
     }
+
+    if (onExcluirLayout) {
+      try {
+        await onExcluirLayout(layoutId, senhaExclusao);
+      } catch (erro: unknown) {
+        const senhaRecusada =
+          axios.isAxiosError(erro) && erro.response?.status === 403;
+        const mensagemServidor = axios.isAxiosError(erro)
+          ? (erro.response?.data as { mensagem?: string } | undefined)?.mensagem
+          : undefined;
+
+        exibirMensagem(
+          senhaRecusada ? "aviso" : "erro",
+          senhaRecusada ? "Senha Incorreta" : "Erro na exclusão",
+          mensagemServidor ??
+            "Não foi possível excluir o layout. Tente novamente.",
+        );
+        return;
+      }
+    }
+
     exibirMensagem(
       "sucesso",
       "Layout Removido",
@@ -389,7 +407,7 @@ export function ParametrizacaoPage({
       exigeSenha: true,
       valorSenha: "",
       aoConfirmar: (senhaRecebida?: string) => {
-        if (senhaRecebida !== SENHA_EXCLUSAO) {
+        if (!senhaRecebida) {
           exibirMensagem(
             "aviso",
             "Senha Incorreta",
@@ -397,7 +415,7 @@ export function ParametrizacaoPage({
           );
           return;
         }
-        executarExclusaoFisicaLayout();
+        void executarExclusaoFisicaLayout(senhaRecebida);
       },
     });
   };
@@ -2082,5 +2100,3 @@ export function ParametrizacaoPage({
     </div>
   );
 }
-
-export default ParametrizacaoPage;

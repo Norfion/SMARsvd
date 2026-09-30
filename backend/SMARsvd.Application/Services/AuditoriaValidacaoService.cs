@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using SMARsvd.Application.DTOs.Layout;
 using SMARsvd.Application.DTOs.Processamento;
 using SMARsvd.Application.Interfaces;
@@ -25,6 +20,10 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
     // Usado para identificar, em queries_retornos.json, as consultas bloqueadas antes de chegar ao banco
     private const string PrefixoConsultaNaoExecutada = "Consulta não executada:";
 
+    private const string PrefixoParametroSql = "@__smarsvd_p";
+
+    private static readonly Regex NumeroSimples = new(@"^[+-]?\d+(\.\d+)?$", RegexOptions.CultureInvariant);
+
     private static readonly JsonSerializerOptions OpcoesJson = new()
     {
         WriteIndented = true,
@@ -42,19 +41,6 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         _validadorSql = validadorSql;
     }
 
-    public async Task<ResultadoAuditoriaDto> ProcessarAuditoriaSimuladaAsync(
-        ResultadoProcessamentoDto extracao,
-        LayoutClienteDto layout,
-        string nomeArquivo,
-        bool utilizouOcr,
-        string pastaTemp,
-        ConfiguracaoBancoDto? conexaoBanco = null)
-    {
-        var inicioProcessamento = DateTime.UtcNow;
-        await MontarQueriesEBuscarBancoAsync(extracao, layout, pastaTemp, conexaoBanco);
-        return await CompararEGerarAuditoriaAsync(extracao, layout, nomeArquivo, utilizouOcr, pastaTemp, inicioProcessamento);
-    }
-
     public async Task MontarQueriesEBuscarBancoAsync(
         ResultadoProcessamentoDto extracao,
         LayoutClienteDto layout,
@@ -64,14 +50,30 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         var queriesMontadas = new List<DocumentoQueriesDto>();
 
         var motivosBloqueio = new Dictionary<QueryValidacaoDto, string>();
+        var modelos = new Dictionary<QueryValidacaoDto, ModeloConsultaParametrizada>();
         foreach (var query in layout?.QueriesValidacao ?? new List<QueryValidacaoDto>())
         {
             var validacao = _validadorSql.Validar(query.Sql ?? string.Empty);
             if (!validacao.Valida)
             {
                 motivosBloqueio[query] = $"Consulta bloqueada: {string.Join(" ", validacao.Erros.Select(e => e.Mensagem))}";
+                continue;
+            }
+
+            var modelo = ModeloConsultaParametrizada.Analisar(query.Sql ?? string.Empty);
+            modelos[query] = modelo;
+
+            // A consulta que de fato vai ao banco também precisa ser um único SELECT permitido
+            int indiceExemplo = 0;
+            var validacaoParametrizada = _validadorSql.Validar(modelo.MontarSqlParametrizado(_ => $"{PrefixoParametroSql}{indiceExemplo++}"));
+            if (!validacaoParametrizada.Valida)
+            {
+                motivosBloqueio[query] = $"Consulta bloqueada: {string.Join(" ", validacaoParametrizada.Erros.Select(e => e.Mensagem))}";
             }
         }
+
+        // Os nomes dos parâmetros são únicos no lote inteiro, pois várias consultas são enviadas juntas ao banco
+        int contadorParametros = 0;
 
         if (extracao?.Documentos != null)
         {
@@ -88,17 +90,28 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                 {
                     foreach (var query in layout.QueriesValidacao)
                     {
+                        if (motivosBloqueio.TryGetValue(query, out var motivoBloqueio) || !modelos.TryGetValue(query, out var modelo))
+                        {
+                            docQueries.Queries.Add(new QueryMontadaDto
+                            {
+                                NomeQuery = query.Nome ?? "Query Sem Nome",
+                                SqlOriginal = query.Sql ?? string.Empty,
+                                SqlRenderizado = query.Sql ?? string.Empty,
+                                MotivoNaoExecucao = motivoBloqueio ?? "Consulta bloqueada."
+                            });
+                            continue;
+                        }
+
                         var parametros = new Dictionary<string, string>();
                         var camposInvalidos = new List<string>();
-                        string sqlRenderizado = query.Sql ?? string.Empty;
+                        var parametrosSql = new List<ParametroSqlDto>();
+                        var nomesPorCampo = new Dictionary<(string Campo, bool DentroDeLiteral), string>();
+                        var valoresPorCampo = new Dictionary<string, (string? Valor, TipoDadoCampo Tipo)>(StringComparer.OrdinalIgnoreCase);
 
-                        var matches = Regex.Matches(sqlRenderizado, @"\$\{([^}]+)\}|\$([a-zA-Z0-9_]+)");
-
-                        foreach (Match match in matches)
+                        foreach (var trecho in modelo.Parametros)
                         {
-                            string parametroSql = match.Value;
-                            string nomeCampoBruto = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
-                            string nomeCampo = nomeCampoBruto.Trim();
+                            string nomeCampo = trecho.NomeCampo!;
+                            if (valoresPorCampo.ContainsKey(nomeCampo)) continue;
 
                             var campoExt = ObterCampoExtraido(doc, nomeCampo);
                             var campoLayout = layout.Campos?.FirstOrDefault(c =>
@@ -114,23 +127,41 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
                             }
 
                             string? valorBruto = campoExt?.Situacao == SituacaoValorCampo.Ok ? campoExt.ValorExtraido : null;
-                            string valorSql = FormatarValorParaSql(valorBruto, campoLayout?.TipoDado ?? TipoDadoCampo.Texto);
+                            if (string.IsNullOrWhiteSpace(valorBruto)) valorBruto = null;
 
-                            sqlRenderizado = sqlRenderizado.Replace(parametroSql, valorSql);
-                            parametros[parametroSql] = valorBruto ?? "NULL";
+                            valoresPorCampo[nomeCampo] = (valorBruto, campoLayout?.TipoDado ?? TipoDadoCampo.Texto);
+                            parametros[trecho.TextoOriginal!] = valorBruto ?? "NULL";
                         }
+
+                        string NomeParametro(ModeloConsultaParametrizada.Trecho trecho)
+                        {
+                            var chave = (trecho.NomeCampo!.ToLowerInvariant(), trecho.DentroDeLiteral);
+                            if (nomesPorCampo.TryGetValue(chave, out var nomeExistente))
+                                return nomeExistente;
+
+                            var (valor, tipoDado) = valoresPorCampo[trecho.NomeCampo!];
+                            var parametro = CriarParametroSql($"{PrefixoParametroSql}{contadorParametros++}", valor, tipoDado, trecho.DentroDeLiteral);
+                            parametrosSql.Add(parametro);
+                            nomesPorCampo[chave] = parametro.Nome;
+                            return parametro.Nome;
+                        }
+
+                        string sqlParametrizado = modelo.MontarSqlParametrizado(NomeParametro);
+                        string sqlRenderizado = modelo.MontarSqlExibicao(
+                            t => FormatarValorParaExibicao(valoresPorCampo[t.NomeCampo!].Valor, valoresPorCampo[t.NomeCampo!].Tipo),
+                            t => valoresPorCampo[t.NomeCampo!].Valor ?? string.Empty);
 
                         docQueries.Queries.Add(new QueryMontadaDto
                         {
                             NomeQuery = query.Nome ?? "Query Sem Nome",
                             SqlOriginal = query.Sql ?? string.Empty,
                             SqlRenderizado = sqlRenderizado,
+                            SqlParametrizado = sqlParametrizado,
+                            ParametrosSql = parametrosSql,
                             Parametros = parametros,
-                            MotivoNaoExecucao = motivosBloqueio.TryGetValue(query, out var motivoBloqueio)
-                                ? motivoBloqueio
-                                : camposInvalidos.Any()
-                                    ? $"{PrefixoConsultaNaoExecutada} campo(s) com valor inválido: {string.Join("; ", camposInvalidos.Distinct())}."
-                                    : null
+                            MotivoNaoExecucao = camposInvalidos.Any()
+                                ? $"{PrefixoConsultaNaoExecutada} campo(s) com valor inválido: {string.Join("; ", camposInvalidos.Distinct())}."
+                                : null
                         });
                     }
                 }
@@ -218,6 +249,7 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         string nomeArquivo,
         bool utilizouOcr,
         string pastaTemp,
+        string usuario,
         DateTime? inicioProcessamento = null)
     {
         string caminhoBancoMock = Path.Combine(pastaTemp, "dados_banco.json");
@@ -377,7 +409,7 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
 
         if (dataHoraInicio.HasValue)
         {
-            falhas.AddRange(await ObterFalhasDosLogsAsync(dataHoraInicio.Value, dataHoraFim));
+            falhas.AddRange(await ObterFalhasDosLogsAsync(dataHoraInicio.Value, dataHoraFim, usuario));
         }
 
         resultadoAuditoria.DataHoraInicio = dataHoraInicio;
@@ -440,11 +472,11 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
         return falhas;
     }
 
-    private async Task<List<FalhaProcessamentoDto>> ObterFalhasDosLogsAsync(DateTime inicioUtc, DateTime fimUtc)
+    private async Task<List<FalhaProcessamentoDto>> ObterFalhasDosLogsAsync(DateTime inicioUtc, DateTime fimUtc, string usuario)
     {
         try
         {
-            var logs = await _logService.ListarFalhasPorPeriodoAsync(inicioUtc, fimUtc);
+            var logs = await _logService.ListarFalhasPorPeriodoAsync(inicioUtc, fimUtc, usuario);
 
             return logs.Select(l => new FalhaProcessamentoDto
             {
@@ -493,29 +525,58 @@ public class AuditoriaValidacaoService : IAuditoriaValidacaoService
             .FirstOrDefault();
     }
 
-    private static string FormatarValorParaSql(string? valor, TipoDadoCampo tipoDado)
+    // Números seguem como parâmetros numéricos (como antes, quando eram escritos sem aspas no SQL);
+    // todo o resto vai como texto. Dentro de um literal o valor é sempre texto, pois é concatenado.
+    private static ParametroSqlDto CriarParametroSql(string nome, string? valor, TipoDadoCampo tipoDado, bool dentroDeLiteral)
     {
-        if (string.IsNullOrWhiteSpace(valor)) return "NULL";
-
-        string valorTexto = $"'{valor.Replace("'", "''")}'";
+        var parametro = new ParametroSqlDto { Nome = nome, Valor = valor, Tipo = TipoParametroSql.Texto };
+        if (valor == null || dentroDeLiteral) return parametro;
 
         switch (tipoDado)
         {
             case TipoDadoCampo.Inteiro:
-                return long.TryParse(valor, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var inteiro)
-                    ? inteiro.ToString(CultureInfo.InvariantCulture)
-                    : valorTexto;
+                if (long.TryParse(valor, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var inteiro))
+                {
+                    parametro.Tipo = TipoParametroSql.Inteiro;
+                    parametro.Valor = inteiro.ToString(CultureInfo.InvariantCulture);
+                }
+                break;
 
             case TipoDadoCampo.Decimal:
-                return decimal.TryParse(valor, NumberStyles.Number, CulturaBrasileira, out var numero)
-                    ? numero.ToString(CultureInfo.InvariantCulture)
-                    : valorTexto;
+                if (decimal.TryParse(valor, NumberStyles.Number, CulturaBrasileira, out var numero))
+                {
+                    parametro.Tipo = TipoParametroSql.Decimal;
+                    parametro.Valor = numero.ToString(CultureInfo.InvariantCulture);
+                }
+                break;
 
             case TipoDadoCampo.Texto:
-                return decimal.TryParse(valor, out _) ? valor : valorTexto;
-
-            default:
-                return valorTexto;
+                if (NumeroSimples.IsMatch(valor))
+                {
+                    if (long.TryParse(valor, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var inteiroTexto))
+                    {
+                        parametro.Tipo = TipoParametroSql.Inteiro;
+                        parametro.Valor = inteiroTexto.ToString(CultureInfo.InvariantCulture);
+                    }
+                    else if (decimal.TryParse(valor, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var decimalTexto))
+                    {
+                        parametro.Tipo = TipoParametroSql.Decimal;
+                        parametro.Valor = decimalTexto.ToString(CultureInfo.InvariantCulture);
+                    }
+                }
+                break;
         }
+
+        return parametro;
+    }
+
+    private static string FormatarValorParaExibicao(string? valor, TipoDadoCampo tipoDado)
+    {
+        var parametro = CriarParametroSql(string.Empty, valor, tipoDado, dentroDeLiteral: false);
+        if (parametro.Valor == null) return "NULL";
+
+        return parametro.Tipo == TipoParametroSql.Texto
+            ? $"'{parametro.Valor.Replace("'", "''")}'"
+            : parametro.Valor;
     }
 }

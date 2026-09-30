@@ -8,11 +8,7 @@ using SMARsvd.Application.DTOs.Processamento;
 using SMARsvd.Application.Interfaces;
 using SMARsvd.Application.Services;
 using SMARsvd.Infrastructure.Data;
-using System;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace SMARsvd.API.Controllers;
 
@@ -168,13 +164,35 @@ public class ProcessamentoController : ControllerBase
         }
     }
 
+    // Lotes com milhares de páginas ultrapassam os limites padrão de upload (30 MB no Kestrel, 128 MB no multipart),
+    // mas um teto continua necessário para que uma única requisição não esgote o disco do servidor
+    private const long TamanhoMaximoPdfBytes = 4L * 1024 * 1024 * 1024;
+
+    private static readonly byte[] AssinaturaPdf = System.Text.Encoding.ASCII.GetBytes("%PDF-");
+
+    // A especificação permite que o cabeçalho %PDF- apareça em qualquer ponto do primeiro 1 KB do arquivo
+    private static async Task<bool> PossuiAssinaturaPdfAsync(IFormFile arquivo)
+    {
+        var inicio = new byte[1024];
+        await using var stream = arquivo.OpenReadStream();
+
+        int lidos = 0;
+        while (lidos < inicio.Length)
+        {
+            int n = await stream.ReadAsync(inicio.AsMemory(lidos, inicio.Length - lidos));
+            if (n == 0) break;
+            lidos += n;
+        }
+
+        return inicio.AsSpan(0, lidos).IndexOf(AssinaturaPdf) >= 0;
+    }
+
     // Etapa 1 - Extração
-    // Lotes com milhares de páginas ultrapassam os limites padrão de upload (30 MB no Kestrel, 128 MB no multipart)
     [HttpPost("extrair")]
     [ExigeVezNaFila]
     [Consumes("multipart/form-data")]
-    [DisableRequestSizeLimit]
-    [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
+    [RequestSizeLimit(TamanhoMaximoPdfBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = TamanhoMaximoPdfBytes)]
     public async Task<IActionResult> ExtrairDadosPdf([FromForm] ProcessarPdfRequest request)
     {
         if (request.Amostragem < 0 || request.Amostragem > 100)
@@ -183,17 +201,20 @@ public class ProcessamentoController : ControllerBase
         if (request.ArquivoPdf == null || request.ArquivoPdf.Length == 0)
             return BadRequest("Arquivo PDF inválido.");
 
+        if (!await PossuiAssinaturaPdfAsync(request.ArquivoPdf))
+            return BadRequest("O arquivo enviado não é um documento PDF válido.");
+
         var layoutDto = await ObterLayoutCompletoAsync(request.LayoutId);
         if (layoutDto == null)
             return NotFound("Layout não encontrado.");
 
         string pastaTemp = ObterPastaTemp();
-        string extensaoOriginal = Path.GetExtension(request.ArquivoPdf.FileName);
-        string caminhoPdf = Path.Combine(pastaTemp, $"arquivo_importado{extensaoOriginal}");
+        // O nome enviado pelo navegador não é usado no caminho, evitando extensões ou fluxos alternativos arbitrários
+        string caminhoPdf = Path.Combine(pastaTemp, "arquivo_importado.pdf");
 
         try
         {
-            using (var stream = new FileStream(caminhoPdf, FileMode.Create))
+            using (var stream = new FileStream(caminhoPdf, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await request.ArquivoPdf.CopyToAsync(stream);
             }
@@ -284,6 +305,7 @@ public class ProcessamentoController : ControllerBase
                 request.NomeArquivo,
                 request.UsouOcr,
                 pastaTemp,
+                HttpContext.ObterUsuarioSessao(),
                 request.InicioProcessamento);
 
             return Ok(resultadoFinal);

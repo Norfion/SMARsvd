@@ -14,8 +14,11 @@ export const layoutService = {
     return resposta.data;
   },
 
-  excluir: async (id: string): Promise<void> => {
-    await api.delete(`/layouts/${id}`);
+  // A senha de confirmação é conferida pelo servidor
+  excluir: async (id: string, senhaExclusao: string): Promise<void> => {
+    await api.delete(`/layouts/${encodeURIComponent(id)}`, {
+      data: { senhaExclusao },
+    });
   },
 
   // Verifica a sintaxe da query e se ela é um único SELECT

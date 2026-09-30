@@ -44,22 +44,6 @@ a:not([href]):not([tabindex]):focus {
   color: $brand-primary;
 }
 
-.text-theme {
-  color: $brand-primary;
-}
-
-.text-nowrap {
-  white-space: nowrap;
-}
-
-.pointer-events-none {
-  pointer-events: none;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
 hr.faded {
   clear: both;
   float: none;

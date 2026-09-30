@@ -9,24 +9,22 @@ export interface ItemMenuLateral<T extends string> {
 }
 
 interface LayoutSistemaProps<T extends string> {
-  usuario: string;
   itensMenu: ItemMenuLateral<T>[];
   itemAtivo: T;
   aoSelecionarItem: (chave: T) => void;
-  aoSair: () => void;
   aoClicarLogo?: () => void;
+  aoAbrirTutorial?: () => void;
   cabecalhoPagina?: ReactNode;
   children: ReactNode;
 }
 
 // Estrutura de tela dos sistemas da empresa: cabeçalho fixo, breadcrumb, menu lateral e área de conteúdo
 export function LayoutSistema<T extends string>({
-  usuario,
   itensMenu,
   itemAtivo,
   aoSelecionarItem,
-  aoSair,
   aoClicarLogo,
+  aoAbrirTutorial,
   cabecalhoPagina,
   children,
 }: LayoutSistemaProps<T>) {
@@ -54,39 +52,20 @@ export function LayoutSistema<T extends string>({
           </a>
         </div>
 
-        <div className="float-right d-inline-block ml-auto mr-4 mt-3 header-acoes">
-          <div className="user-container">
-            <div className="user-content">
-              <i className="fa fa-user"></i>
-              <div className="user-info">
-                <h3>{usuario}</h3>
-                <ul>
-                  <li>
-                    <h5 className="info">
-                      <strong>Sistema:</strong>
-                      {NOME_SISTEMA}
-                    </h5>
-                  </li>
-                  <li>
-                    <h5 className="info">
-                      <strong>Módulo:</strong>
-                      {NOME_MODULO}
-                    </h5>
-                  </li>
-                </ul>
-                <p className="text-right">
-                  <button
-                    type="button"
-                    className="btn btn-link btn-user-logout"
-                    onClick={aoSair}
-                  >
-                    <i className="fa fa-sign-out-alt"></i> Sair
-                  </button>
-                </p>
-              </div>
-            </div>
+        {aoAbrirTutorial && (
+          <div className="float-right d-inline-block mr-4 mt-3 header-acoes">
+            <button
+              type="button"
+              id="btn-abrir-tutorial"
+              className="btn btn-tutorial"
+              onClick={aoAbrirTutorial}
+              title="Rever o tutorial do sistema"
+            >
+              <i className="fas fa-question-circle"></i>
+              <span>Tutorial</span>
+            </button>
           </div>
-        </div>
+        )}
       </header>
 
       <main className="layout-content">

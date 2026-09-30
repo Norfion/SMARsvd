@@ -1,25 +1,34 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SMARsvd.API.Services;
 using SMARsvd.Application.DTOs.Layout;
 using SMARsvd.Application.Interfaces;
-using SMARsvd.Application.Services;
 using SMARsvd.Domain.Entities;
-using SMARsvd.Domain.Enums;
 using SMARsvd.Infrastructure.Data;
 
 namespace SMARsvd.API.Controllers;
+
+public class ExcluirLayoutRequest
+{
+    public string? SenhaExclusao { get; set; }
+}
 
 [ApiController]
 [Route("api/[controller]")]
 public class LayoutsController : ControllerBase
 {
+    private const int MaximoPaginasModelo = 10;
+    private static readonly string[] PrefixosImagemPermitidos = { "data:image/png;base64,", "data:image/jpeg;base64," };
+
     private readonly SMARsvdDbContext _context;
     private readonly IValidadorConsultaSql _validadorSql;
+    private readonly SenhaExclusaoLayoutService _senhaExclusao;
 
-    public LayoutsController(SMARsvdDbContext context, IValidadorConsultaSql validadorSql)
+    public LayoutsController(SMARsvdDbContext context, IValidadorConsultaSql validadorSql, SenhaExclusaoLayoutService senhaExclusao)
     {
         _context = context;
         _validadorSql = validadorSql;
+        _senhaExclusao = senhaExclusao;
     }
 
     [HttpPost("validar-sql")]
@@ -109,6 +118,17 @@ public class LayoutsController : ControllerBase
                 });
             }
         }
+
+        // As páginas do modelo são exibidas como <img> para todos os usuários: só imagens embutidas são aceitas,
+        // nunca endereços externos
+        var paginasModelo = dto.PaginasModeloBase64 ?? new List<string>();
+        if (paginasModelo.Count > MaximoPaginasModelo)
+            return BadRequest(new { mensagem = $"O modelo de referência aceita no máximo {MaximoPaginasModelo} páginas." });
+
+        if (paginasModelo.Any(img => !ImagemEmbutidaValida(img)))
+            return BadRequest(new { mensagem = "As páginas do modelo de referência devem ser imagens PNG ou JPEG." });
+
+        await using var transacao = await _context.Database.BeginTransactionAsync();
 
         LayoutCliente? entidadeLayout = null;
 
@@ -234,13 +254,48 @@ public class LayoutsController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+        await transacao.CommitAsync();
 
         return Ok(entidadeLayout.Id);
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> ExcluirLayout(Guid id)
+    private static bool ImagemEmbutidaValida(string? imagem)
     {
+        if (string.IsNullOrEmpty(imagem))
+            return false;
+
+        string? prefixo = PrefixosImagemPermitidos.FirstOrDefault(p => imagem.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+        if (prefixo == null)
+            return false;
+
+        var conteudo = imagem.AsSpan(prefixo.Length);
+        foreach (char c in conteudo)
+        {
+            if (c is not ((>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9') or '+' or '/' or '='))
+                return false;
+        }
+        return true;
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> ExcluirLayout(Guid id, [FromBody] ExcluirLayoutRequest request)
+    {
+        if (!_senhaExclusao.Configurada)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                mensagem = "A exclusão de layouts não está configurada no servidor. Procure o suporte técnico."
+            });
+        }
+
+        if (!await _senhaExclusao.VerificarAsync(request.SenhaExclusao))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                mensagem = "A senha digitada está incorreta. A exclusão foi cancelada."
+            });
+        }
+
         var layout = await _context.Layouts.FindAsync(id);
         if (layout == null)
         {

@@ -49,19 +49,23 @@ public class ExceptionHandlingMiddleware
                 Mensagem = exception.Message,
                 Origem = "Back-end (Middleware Global)",
                 StackTrace = exception.StackTrace,
-                Detalhes = detalhes
+                Detalhes = detalhes,
+                Usuario = context.ObterUsuarioSessaoOuNulo()
             });
         }
         catch { /* Falha silenciosa caso o próprio banco esteja offline */ }
 
-        // Retorna uma mensagem amigável e padronizada para o Front-end
+        if (context.Response.HasStarted)
+            return;
+
+        // Detalhes da exceção ficam apenas no log interno; o cliente recebe só a mensagem padronizada
+        context.Response.Clear();
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
         var result = JsonSerializer.Serialize(new
         {
-            erro = "Ocorreu um erro interno no servidor.",
-            detalhe = exception.Message
+            erro = "Ocorreu um erro interno no servidor."
         });
 
         await context.Response.WriteAsync(result);

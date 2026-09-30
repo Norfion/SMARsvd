@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SMARsvd.API.Middlewares;
 using SMARsvd.API.Models;
+using SMARsvd.API.Services;
 using SMARsvd.Application.Interfaces;
 
 namespace SMARsvd.API.Controllers;
@@ -14,23 +15,54 @@ public class AutenticacaoController : ControllerBase
 
     private readonly IAutenticacaoRedeService _autenticacao;
     private readonly ISessaoUsuarioService _sessoes;
+    private readonly LimitadorTentativasLogin _limitador;
 
-    public AutenticacaoController(IAutenticacaoRedeService autenticacao, ISessaoUsuarioService sessoes)
+    public AutenticacaoController(IAutenticacaoRedeService autenticacao, ISessaoUsuarioService sessoes, LimitadorTentativasLogin limitador)
     {
         _autenticacao = autenticacao;
         _sessoes = sessoes;
+        _limitador = limitador;
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var resultado = await Task.Run(() => _autenticacao.Autenticar(request.Usuario, request.Senha));
+        if (_limitador.ObterBloqueioRestante(request.Usuario) is { } bloqueio)
+            return RespostaBloqueio(bloqueio);
+
+        if (!await _limitador.AguardarVagaAsync())
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new
+            {
+                mensagem = "O servidor está recebendo muitas tentativas de login. Aguarde alguns instantes e tente novamente."
+            });
+        }
+
+        ResultadoAutenticacaoRede resultado;
+        try
+        {
+            resultado = await Task.Run(() => _autenticacao.Autenticar(request.Usuario, request.Senha));
+
+            if (!resultado.Sucesso || resultado.Usuario == null)
+            {
+                _limitador.RegistrarFalha(request.Usuario);
+                await Task.Delay(AtrasoFalhaLogin);
+            }
+        }
+        finally
+        {
+            _limitador.LiberarVaga();
+        }
 
         if (!resultado.Sucesso || resultado.Usuario == null)
         {
-            await Task.Delay(AtrasoFalhaLogin);
+            if (_limitador.ObterBloqueioRestante(request.Usuario) is { } bloqueioAposFalha)
+                return RespostaBloqueio(bloqueioAposFalha);
+
             return Unauthorized(new { mensagem = resultado.Mensagem });
         }
+
+        _limitador.RegistrarSucesso(request.Usuario);
 
         string? token = _sessoes.CriarSessao(resultado.Usuario);
         if (token == null)
@@ -43,6 +75,16 @@ public class AutenticacaoController : ControllerBase
         }
 
         return Ok(new { token, usuario = resultado.Usuario, dominio = _autenticacao.Dominio });
+    }
+
+    private IActionResult RespostaBloqueio(TimeSpan restante)
+    {
+        int minutos = Math.Max(1, (int)Math.Ceiling(restante.TotalMinutes));
+        Response.Headers.RetryAfter = ((int)Math.Ceiling(restante.TotalSeconds)).ToString();
+        return StatusCode(StatusCodes.Status429TooManyRequests, new
+        {
+            mensagem = $"Muitas tentativas de login sem sucesso para este usuário. Aguarde {minutos} minuto(s) e tente novamente."
+        });
     }
 
     [HttpGet("sessao")]

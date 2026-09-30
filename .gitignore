@@ -3,10 +3,12 @@
 # =========================================
 frontend/node_modules/
 frontend/dist/
+frontend/dist-ssr/
 frontend/.vscode/
-frontend/.env.local
-frontend/.env.*.local
+frontend/**/*.local
 frontend/.vite/
+.idea/
+*.sw?
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -28,6 +30,11 @@ TestResults/
 
 # Configurações locais da API que não devem ser versionadas se contiverem senhas
 backend/SMARsvd.API/appsettings.Production.json
+.env
+.env.*
+*.pfx
+*.p12
+*.key
 
 # =========================================
 # Banco de Dados Local (SQLite)
@@ -42,6 +49,11 @@ database/*.db
 database/*.db-shm
 database/*.db-wal
 database/temp/
+
+# =========================================
+# Pacote desktop gerado por scripts/empacotar.ps1
+# =========================================
+dist/
 
 # =========================================
 # Sistema Operacional / Arquivos Temporários

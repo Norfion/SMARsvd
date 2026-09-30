@@ -17,8 +17,7 @@ textarea {
   padding-left: 5px;
 }
 
-.box-form-cadastro,
-.box-filtros {
+.box-form-cadastro {
   padding: 10px 15px;
   background-color: #fff;
   @include arredondar(4px);
@@ -55,16 +54,6 @@ div.form-control.is-view {
   border: none;
   background-color: #eee;
   overflow-y: auto;
-}
-
-.spanError {
-  display: block;
-  color: #8e342a;
-  font-weight: bold;
-}
-
-.featured-color {
-  color: $brand-primary;
 }
 
 // Campo com sufixo (%, mm) mantendo a altura padrão de 30px

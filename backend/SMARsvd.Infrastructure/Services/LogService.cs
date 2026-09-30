@@ -30,6 +30,7 @@ public class LogService : ILogService
             Origem = dto.Origem,
             StackTrace = dto.StackTrace,
             Detalhes = dto.Detalhes,
+            Usuario = dto.Usuario,
             DataHora = DateTime.UtcNow // Padrão recomendado para logs
         };
 
@@ -54,11 +55,12 @@ public class LogService : ILogService
         }
     }
 
-    public async Task<List<LogRegistroDto>> ListarFalhasPorPeriodoAsync(DateTime inicioUtc, DateTime fimUtc)
+    // Cada usuário só vê as falhas registradas na própria sessão
+    public async Task<List<LogRegistroDto>> ListarFalhasPorPeriodoAsync(DateTime inicioUtc, DateTime fimUtc, string usuario)
     {
         var logs = await _context.Logs
             .AsNoTracking()
-            .Where(l => l.DataHora >= inicioUtc && l.DataHora <= fimUtc && TiposDeFalha.Contains(l.Tipo))
+            .Where(l => l.DataHora >= inicioUtc && l.DataHora <= fimUtc && TiposDeFalha.Contains(l.Tipo) && l.Usuario == usuario)
             .OrderBy(l => l.DataHora)
             .ToListAsync();
 

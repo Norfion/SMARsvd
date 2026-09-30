@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using SMARsvd.Application.Interfaces;
 
 namespace SMARsvd.Infrastructure.Services;
@@ -6,12 +7,22 @@ public class PastaTemporariaService : IPastaTemporariaService
 {
     public string PastaRaiz { get; }
 
-    public PastaTemporariaService()
+    public PastaTemporariaService(IConfiguration configuration)
     {
-        string pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
-        if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
+        string? pastaConfigurada = configuration.GetValue<string>("DadosTemporarios:Pasta");
+        string pastaTemp;
+
+        if (!string.IsNullOrWhiteSpace(pastaConfigurada))
         {
-            pastaTemp = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", "temp"));
+            pastaTemp = Path.GetFullPath(pastaConfigurada);
+        }
+        else
+        {
+            pastaTemp = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "database", "temp"));
+            if (!Directory.Exists(Path.GetDirectoryName(pastaTemp)))
+            {
+                pastaTemp = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "database", "temp"));
+            }
         }
 
         Directory.CreateDirectory(pastaTemp);

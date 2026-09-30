@@ -1,5 +1,4 @@
-.btn,
-.input-group-addon {
+.btn {
   height: 30px;
   padding: 4px 6px;
 }
@@ -26,8 +25,7 @@ fieldset[disabled] .btn {
   border-color: lighten(desaturate($brand-primary, 20%), 10%);
 }
 
-.btn i + span,
-.btn i + .texto-botao {
+.btn i + span {
   margin-left: 4px;
 }
 
@@ -36,7 +34,6 @@ fieldset[disabled] .btn {
   min-width: 28px;
 }
 
-.btn-forms-left .btn,
 .btn-forms .btn {
   height: 43px;
   padding: 0 15px;
@@ -54,13 +51,4 @@ fieldset[disabled] .btn {
 
 .box-form-cadastro .btn-forms .btn:last-child {
   margin-right: 15px;
-}
-
-.box-form-cadastro .btn-table {
-  margin-top: 15px;
-  text-align: right;
-}
-
-.btn-group {
-  margin-right: 5px;
 }

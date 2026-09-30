@@ -15,7 +15,9 @@ import {
   sessaoService,
 } from "./services/sessaoService";
 import { tokenSessao } from "./services/tokenSessao";
+import { tutorialVisto } from "./services/tutorialVisto";
 import { CarregandoTela } from "./components/CarregandoTela";
+import { TutorialSistema } from "./components/TutorialSistema";
 import {
   LayoutSistema,
   type ItemMenuLateral,
@@ -37,9 +39,6 @@ export function App() {
   const [verificandoSessao, setVerificandoSessao] = useState<boolean>(
     () => tokenSessao.obter() !== null,
   );
-
-  const [modalConfirmarSaidaAberto, setModalConfirmarSaidaAberto] =
-    useState<boolean>(false);
 
   const [abaAtiva, setAbaAtiva] = useState<AbaNavegacao>("validacao");
 
@@ -70,6 +69,8 @@ export function App() {
   // Modal para informar a conclusão com sucesso da validação
   const [modalSucessoValidacaoAberto, setModalSucessoValidacaoAberto] =
     useState<boolean>(false);
+
+  const [tutorialAberto, setTutorialAberto] = useState<boolean>(false);
 
   // Escuta os eventos emitidos pelo interceptador do Axios
   useEffect(() => {
@@ -105,7 +106,10 @@ export function App() {
 
     sessaoService
       .obterUsuarioAtual()
-      .then(setUsuarioLogado)
+      .then((usuario) => {
+        setUsuarioLogado(usuario);
+        setTutorialAberto(!tutorialVisto.verificar(usuario));
+      })
       .catch(() => tokenSessao.limpar())
       .finally(() => setVerificandoSessao(false));
   }, []);
@@ -175,15 +179,12 @@ export function App() {
     setCarregando(true);
     setAbaAtiva("validacao");
     setUsuarioLogado(usuario);
+    setTutorialAberto(!tutorialVisto.verificar(usuario));
   };
 
-  const sairDoSistema = () => {
-    sessaoService.encerrar();
-    tokenSessao.limpar();
-    setUsuarioLogado(null);
-    setResultadoAuditoria(null);
-    setLayoutsSalvos([]);
-    setTemAlteracoesPendentesParametrizacao(false);
+  const finalizarTutorial = () => {
+    if (usuarioLogado) tutorialVisto.marcar(usuarioLogado);
+    setTutorialAberto(false);
   };
 
   // Centraliza o salvamento de layouts no backend
@@ -211,13 +212,17 @@ export function App() {
     }
   };
 
-  const lidarComExcluirLayout = async (idParaExcluir: string) => {
+  // A falha da exclusão (senha incorreta, por exemplo) é repassada para a tela exibir o motivo
+  const lidarComExcluirLayout = async (
+    idParaExcluir: string,
+    senhaExclusao: string,
+  ) => {
+    await layoutService.excluir(idParaExcluir, senhaExclusao);
     try {
-      await layoutService.excluir(idParaExcluir);
       const listaAtualizada = await layoutService.listarTodos();
       setLayoutsSalvos(listaAtualizada);
     } catch (erro) {
-      console.error("Erro ao excluir o layout:", erro);
+      console.error("Erro ao atualizar a lista de layouts:", erro);
     }
   };
 
@@ -271,12 +276,11 @@ export function App() {
       {carregando && <CarregandoTela id="overlay-bloqueio-carregamento" />}
 
       <LayoutSistema
-        usuario={usuarioLogado}
         itensMenu={ITENS_MENU}
         itemAtivo={abaAtiva}
         aoSelecionarItem={tentarMudarAba}
-        aoSair={() => setModalConfirmarSaidaAberto(true)}
         aoClicarLogo={() => tentarMudarAba("validacao")}
+        aoAbrirTutorial={() => setTutorialAberto(true)}
         cabecalhoPagina={
           <SlimHeader
             titulo={itemMenuAtivo?.texto ?? ""}
@@ -306,15 +310,17 @@ export function App() {
             nomeCliente={
               layoutsSalvos.find(
                 (layout) =>
-                  layout.nomeModelo ===
-                  (resultadoAuditoria?.LayoutUtilizado ??
-                    resultadoAuditoria?.layoutUtilizado),
+                  layout.nomeModelo === resultadoAuditoria?.layoutUtilizado,
               )?.cliente
             }
             onIrParaValidacao={() => setAbaAtiva("validacao")}
           ></ResultadoPage>
         )}
       </LayoutSistema>
+
+      {tutorialAberto && !carregando && (
+        <TutorialSistema aoFinalizar={finalizarTutorial}></TutorialSistema>
+      )}
 
       {/* MODAL DE CONFIRMAÇÃO PARA ALTERAÇÕES NÃO SALVAS */}
       <ModalInformativo
@@ -327,20 +333,6 @@ export function App() {
           setModalAvisoNavegacaoAberto(false);
           setAbaDestinoPendente(null);
         }}
-      ></ModalInformativo>
-
-      {/* MODAL DE CONFIRMAÇÃO PARA SAIR DO SISTEMA */}
-      <ModalInformativo
-        aberto={modalConfirmarSaidaAberto}
-        tipo="confirmacao"
-        titulo="Sair do Sistema"
-        mensagem={`Os dados processados nesta sessão serão apagados do servidor em 5 minutos.${
-          temAlteracoesPendentesParametrizacao
-            ? "\n\nExistem alterações no layout que não foram salvas e serão perdidas."
-            : ""
-        }\n\nDeseja realmente sair?`}
-        aoConfirmar={sairDoSistema}
-        aoFechar={() => setModalConfirmarSaidaAberto(false)}
       ></ModalInformativo>
 
       {/* MODAL DE SUCESSO AO CONCLUIR VALIDAÇÃO */}

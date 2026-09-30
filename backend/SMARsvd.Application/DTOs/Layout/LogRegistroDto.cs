@@ -1,5 +1,3 @@
-using System;
-
 namespace SMARsvd.Application.DTOs;
 
 public class LogRegistroDto

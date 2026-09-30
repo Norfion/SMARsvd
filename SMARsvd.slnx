@@ -1,6 +1,0 @@
-<Solution>
-  <Project Path="backend/SMARsvd.Domain/SMARsvd.Domain.csproj" />
-  <Project Path="backend/SMARsvd.API/SMARsvd.API.csproj" />
-  <Project Path="backend/SMARsvd.Application/SMARsvd.Application.csproj" />
-  <Project Path="backend/SMARsvd.Infrastructure/SMARsvd.Infrastructure.csproj" />
-</Solution>

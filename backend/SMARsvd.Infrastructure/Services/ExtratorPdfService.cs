@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using SMARsvd.Application.DTOs.Layout;
 using SMARsvd.Application.Interfaces;
 using UglyToad.PdfPig;

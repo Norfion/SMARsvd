@@ -9,4 +9,5 @@ public class LogSistema
     public DateTime DataHora { get; set; } = DateTime.UtcNow;
     public string? StackTrace { get; set; }
     public string? Detalhes { get; set; } // Pode conter Endpoint, Navegador, etc.
+    public string? Usuario { get; set; }
 }

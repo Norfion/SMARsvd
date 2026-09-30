@@ -94,6 +94,7 @@ public class SMARsvdDbContext : DbContext
             entity.Property(e => e.Tipo).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Mensagem).IsRequired();
             entity.Property(e => e.Origem).HasMaxLength(250);
+            entity.Property(e => e.Usuario).HasMaxLength(64);
 
             entity.HasIndex(e => e.DataHora);
             entity.HasIndex(e => e.Tipo);

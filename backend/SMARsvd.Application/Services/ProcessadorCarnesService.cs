@@ -67,7 +67,8 @@ public class ProcessadorCarnesService
             bool ehInicio = !string.IsNullOrWhiteSpace(textoEsperadoDocNormalizado) &&
                            textoLidoNormalizado.Contains(textoEsperadoDocNormalizado, StringComparison.OrdinalIgnoreCase);
 
-            Console.WriteLine($"[Página {pagina}] Identificador de Documento ({metodoUtilizado}): '{textoExt}' | Esperado: '{regiaoIdDocumento.TextoEsperadoDocumento}' | Detectado: {ehInicio}");
+            // O texto lido não vai para o log do servidor, pois pode conter dados dos contribuintes
+            Console.WriteLine($"[Página {pagina}] Identificador de Documento ({metodoUtilizado}) | Detectado: {ehInicio}");
 
             if (ehInicio)
             {

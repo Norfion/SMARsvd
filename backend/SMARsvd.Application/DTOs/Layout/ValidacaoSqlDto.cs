@@ -1,7 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace SMARsvd.Application.DTOs.Layout;
 
 public class ValidarSqlRequest
 {
+    [MaxLength(100_000)]
     public string Sql { get; set; } = string.Empty;
 }
 

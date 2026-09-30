@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using SMARsvd.Application.DTOs.Processamento;
 
 namespace SMARsvd.Application.Interfaces;

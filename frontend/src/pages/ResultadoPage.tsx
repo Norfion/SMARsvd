@@ -1,10 +1,5 @@
 import { useState, useMemo } from "react";
-import type {
-  ResultadoValidacaoLote,
-  InconsistenciaItem,
-  ValidacaoDetalhadaItem,
-  FalhaProcessamentoItem,
-} from "../types/validacao";
+import type { ResultadoValidacaoLote } from "../types/validacao";
 import { ModalFalhasProcessamento } from "../components/ModalFalhasProcessamento";
 import type { ColDef, GridState } from "ag-grid-community";
 import logoImg from "../assets/logo-smartb.png";
@@ -68,45 +63,18 @@ export function ResultadoPage({
 }: ResultadoPageProps) {
   const [modalFalhasAberto, setModalFalhasAberto] = useState(false);
 
-  const nomeArquivo =
-    resultadoAuditoria?.NomeArquivo ??
-    resultadoAuditoria?.nomeArquivo ??
-    "arquivo.pdf";
-  const layoutUtilizado =
-    resultadoAuditoria?.LayoutUtilizado ??
-    resultadoAuditoria?.layoutUtilizado ??
-    "Padrão";
-  const baseDados =
-    resultadoAuditoria?.BaseDados ??
-    resultadoAuditoria?.baseDados ??
-    "Não informada";
+  const nomeArquivo = resultadoAuditoria?.nomeArquivo ?? "arquivo.pdf";
+  const layoutUtilizado = resultadoAuditoria?.layoutUtilizado ?? "Padrão";
+  const baseDados = resultadoAuditoria?.baseDados ?? "Não informada";
 
-  const totalDocumentos =
-    resultadoAuditoria?.TotalDocumentosAnalisados ??
-    resultadoAuditoria?.totalDocumentosAnalisados ??
-    resultadoAuditoria?.TotalGuiasAnalisadas ??
-    resultadoAuditoria?.totalGuiasAnalisadas ??
-    0;
-  const documentosValidos =
-    resultadoAuditoria?.DocumentosValidos ??
-    resultadoAuditoria?.documentosValidos ??
-    resultadoAuditoria?.GuiasValidas ??
-    resultadoAuditoria?.guiasValidas ??
-    0;
+  const totalDocumentos = resultadoAuditoria?.totalDocumentosAnalisados ?? 0;
+  const documentosValidos = resultadoAuditoria?.documentosValidos ?? 0;
   const documentosInconsistentes =
-    resultadoAuditoria?.DocumentosComInconsistencia ??
-    resultadoAuditoria?.documentosComInconsistencia ??
-    resultadoAuditoria?.GuiasComInconsistencia ??
-    resultadoAuditoria?.guiasComInconsistencia ??
-    0;
+    resultadoAuditoria?.documentosComInconsistencia ?? 0;
 
-  const percentual =
-    resultadoAuditoria?.PercentualAmostragem ??
-    resultadoAuditoria?.percentualAmostragem ??
-    100;
+  const percentual = resultadoAuditoria?.percentualAmostragem ?? 100;
   const ehIntegral = percentual === 100;
-  const usouOcr =
-    resultadoAuditoria?.UsouOcr ?? resultadoAuditoria?.usouOcr ?? false;
+  const usouOcr = resultadoAuditoria?.usouOcr ?? false;
 
   const textoAmostragemBase = ehIntegral
     ? "Validação Integral (100% do arquivo validado)"
@@ -116,12 +84,8 @@ export function ResultadoPage({
     ? `${textoAmostragemBase} [Extração via OCR/IA]`
     : textoAmostragemBase;
 
-  const dataHoraInicio = converterData(
-    resultadoAuditoria?.DataHoraInicio ?? resultadoAuditoria?.dataHoraInicio,
-  );
-  const dataHoraFim = converterData(
-    resultadoAuditoria?.DataHoraFim ?? resultadoAuditoria?.dataHoraFim,
-  );
+  const dataHoraInicio = converterData(resultadoAuditoria?.dataHoraInicio);
+  const dataHoraFim = converterData(resultadoAuditoria?.dataHoraFim);
   const tempoProcessamentoMs =
     dataHoraInicio && dataHoraFim
       ? Math.max(0, dataHoraFim.getTime() - dataHoraInicio.getTime())
@@ -131,81 +95,32 @@ export function ResultadoPage({
       ? formatarDuracao(tempoProcessamentoMs)
       : "Não informado";
 
-  const falhasProcessamento: FalhaProcessamentoItem[] =
-    resultadoAuditoria?.Falhas ?? resultadoAuditoria?.falhas ?? [];
+  const falhasProcessamento = resultadoAuditoria?.falhas ?? [];
 
   const itensExibicao = useMemo<ItemTabelaExibicao[]>(() => {
-    const listaValidacoesCompletas: ValidacaoDetalhadaItem[] =
-      resultadoAuditoria?.Validacoes ?? resultadoAuditoria?.validacoes ?? [];
+    const localizar = (pagina: number, idx: number) =>
+      pagina > 0 ? `${pagina}` : `Item #${idx + 1}`;
 
-    const listaInconsistencias: InconsistenciaItem[] =
-      resultadoAuditoria?.Inconsistencias ??
-      resultadoAuditoria?.inconsistencias ??
-      [];
-
-    if (listaValidacoesCompletas.length > 0) {
-      return listaValidacoesCompletas.map((val, idx) => {
-        const numPagina = val.PaginaExtraido ?? val.paginaExtraido;
-        const ident = val.IdentificadorGuia ?? val.identificadorGuia;
-        const localizacao =
-          numPagina !== undefined && numPagina !== null && numPagina > 0
-            ? `${numPagina}`
-            : ident
-              ? ident
-              : `Item #${idx + 1}`;
-
-        const statusRaw = (val.Status ?? val.status ?? "OK").toUpperCase();
-        const ehOk =
-          statusRaw === "OK" ||
-          statusRaw === "VALIDO" ||
-          statusRaw === "VÁLIDO";
-
-        return {
-          pagina: localizacao,
-          campo:
-            val.CampoLayout ??
-            val.campoLayout ??
-            val.CampoBanco ??
-            val.campoBanco ??
-            "—",
-          valorEsperado: val.ValorBanco ?? val.valorBanco ?? "—",
-          valorExtraido: val.ValorExtraido ?? val.valorExtraido ?? "—",
-          status: ehOk ? "OK" : "DIVERGÊNCIA",
-          mensagem:
-            val.MensagemAuditoria ??
-            val.mensagemAuditoria ??
-            val.Mensagem ??
-            val.mensagem ??
-            (ehOk ? "Regra atendida com sucesso" : "Divergência detectada"),
-        };
-      });
+    const validacoes = resultadoAuditoria?.validacoes ?? [];
+    if (validacoes.length > 0) {
+      return validacoes.map((val, idx) => ({
+        pagina: localizar(val.paginaExtraido, idx),
+        campo: val.campoLayout,
+        valorEsperado: val.valorBanco,
+        valorExtraido: val.valorExtraido,
+        status: val.status === "OK" ? "OK" : "DIVERGÊNCIA",
+        mensagem: val.mensagemAuditoria,
+      }));
     }
 
-    return listaInconsistencias.map((item, idx) => {
-      const numPagina = item.PaginaExtraido ?? item.paginaExtraido;
-      const ident = item.IdentificadorGuia ?? item.identificadorGuia;
-      const localizacao =
-        numPagina !== undefined && numPagina !== null && numPagina > 0
-          ? `${numPagina}`
-          : ident
-            ? ident
-            : `Item #${idx + 1}`;
-
-      return {
-        pagina: localizacao,
-        campo: item.Campo ?? item.campo ?? "—",
-        valorEsperado:
-          item.ValorEsperadoBanco ?? item.valorEsperadoBanco ?? "—",
-        valorExtraido: item.ValorExtraidoPdf ?? item.valorExtraidoPdf ?? "—",
-        status: "DIVERGÊNCIA",
-        mensagem:
-          item.MensagemAuditoria ??
-          item.mensagemAuditoria ??
-          item.Mensagem ??
-          item.mensagem ??
-          "Divergência detectada",
-      };
-    });
+    return (resultadoAuditoria?.inconsistencias ?? []).map((item, idx) => ({
+      pagina: localizar(item.paginaExtraido, idx),
+      campo: item.campo,
+      valorEsperado: item.valorEsperadoBanco,
+      valorExtraido: item.valorExtraidoPdf,
+      status: "DIVERGÊNCIA",
+      mensagem: item.mensagemAuditoria,
+    }));
   }, [resultadoAuditoria]);
 
   const definicoesColunas = useMemo<ColDef<ItemTabelaExibicao>[]>(() => {
@@ -264,13 +179,23 @@ export function ResultadoPage({
   const exportarParaCsv = () => {
     if (!resultadoAuditoria) return;
 
+    // Os valores vêm do PDF e do banco: um texto iniciado por =, +, -, @ seria executado como fórmula
+    // ao abrir o CSV no Excel, por isso recebe um apóstrofo na frente (números negativos são mantidos)
+    const sanitizar = (txt: string | number) => {
+      let texto = String(txt ?? "");
+      if (/^[=+\-@\t\r]/.test(texto) && !/^[+-]?[\d.,\s]+$/.test(texto)) {
+        texto = `'${texto}`;
+      }
+      return `"${texto.replace(/"/g, '""')}"`;
+    };
+
     const linhas: string[] = [];
     linhas.push(`RELATÓRIO DE AUDITORIA - SMARsvd`);
-    linhas.push(`Arquivo Analisado;${nomeArquivo}`);
-    linhas.push(`Layout Utilizado;${layoutUtilizado}`);
-    linhas.push(`Base de Dados;${baseDados}`);
-    linhas.push(`Tempo de Processamento;${textoTempoProcessamento}`);
-    linhas.push(`Método de Validação;${textoAmostragem}`);
+    linhas.push(`Arquivo Analisado;${sanitizar(nomeArquivo)}`);
+    linhas.push(`Layout Utilizado;${sanitizar(layoutUtilizado)}`);
+    linhas.push(`Base de Dados;${sanitizar(baseDados)}`);
+    linhas.push(`Tempo de Processamento;${sanitizar(textoTempoProcessamento)}`);
+    linhas.push(`Método de Validação;${sanitizar(textoAmostragem)}`);
     if (usouOcr) {
       linhas.push(
         `Nota Informativa;Foi utilizada extração de dados via inteligência artificial (OCR). Ela pode cometer erros e pode não ter sido 100% extraída corretamente.`,
@@ -287,8 +212,6 @@ export function ResultadoPage({
       linhas.push(`Nenhum registro a exibir;;;;;`);
     } else {
       itensExibicao.forEach((item) => {
-        const sanitizar = (txt: string) =>
-          `"${(txt || "").replace(/"/g, '""')}"`;
         linhas.push(
           [
             sanitizar(item.pagina),
@@ -672,5 +595,3 @@ export function ResultadoPage({
     </div>
   );
 }
-
-export default ResultadoPage;

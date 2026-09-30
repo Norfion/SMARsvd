@@ -23,14 +23,10 @@ function agruparFalhas(falhas: FalhaProcessamentoItem[]): GrupoFalha[] {
   const grupos = new Map<string, GrupoFalha>();
 
   falhas.forEach((falha) => {
-    const origem = falha.Origem ?? falha.origem ?? "Processo de validação";
-    const tipo = falha.Tipo ?? falha.tipo ?? "Erro";
-    const mensagem = falha.Mensagem ?? falha.mensagem ?? "Falha desconhecida.";
-    const nomeQuery = falha.NomeQuery ?? falha.nomeQuery ?? null;
-    const paginaInicio = falha.PaginaInicio ?? falha.paginaInicio;
-    const paginaFim = falha.PaginaFim ?? falha.paginaFim;
-    const detalhes = falha.Detalhes ?? falha.detalhes ?? null;
-    const dataHora = falha.DataHora ?? falha.dataHora ?? null;
+    const { origem, tipo, mensagem, paginaInicio, paginaFim } = falha;
+    const nomeQuery = falha.nomeQuery ?? null;
+    const detalhes = falha.detalhes ?? null;
+    const dataHora = falha.dataHora ?? null;
 
     const chave = `${origem}|${tipo}|${nomeQuery ?? ""}|${mensagem}`;
     let grupo = grupos.get(chave);
@@ -173,5 +169,3 @@ export function ModalFalhasProcessamento({
     </>
   );
 }
-
-export default ModalFalhasProcessamento;

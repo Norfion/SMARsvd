@@ -4,22 +4,10 @@
 .container {
   min-width: 1000px;
   max-width: 100%;
-}
-
-.container,
-.container-fluid {
   margin-right: auto;
   margin-left: auto;
   padding-left: 15px;
   padding-right: 15px;
-}
-
-.well {
-  background-color: #fff;
-  border-radius: 4px;
-  padding: 1px;
-  margin-bottom: 0;
-  box-shadow: $shadow-1;
 }
 
 .tooltip {

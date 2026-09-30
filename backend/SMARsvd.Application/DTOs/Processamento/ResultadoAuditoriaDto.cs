@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace SMARsvd.Application.DTOs.Processamento;
 
 public class FalhaProcessamentoDto

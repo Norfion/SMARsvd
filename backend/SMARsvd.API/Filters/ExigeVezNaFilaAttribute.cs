@@ -5,11 +5,12 @@ using SMARsvd.Application.Interfaces;
 
 namespace SMARsvd.API.Filters;
 
-// Etapas do processamento só executam para quem está com a vez na fila; a execução mantém a vez reservada
+// Etapas do processamento só executam para quem está com a vez na fila; a execução mantém a vez reservada.
+// É um filtro de recurso para recusar a requisição antes da leitura do corpo (o upload do PDF, por exemplo).
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class ExigeVezNaFilaAttribute : Attribute, IAsyncActionFilter
+public sealed class ExigeVezNaFilaAttribute : Attribute, IAsyncResourceFilter
 {
-    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    public async Task OnResourceExecutionAsync(ResourceExecutingContext context, ResourceExecutionDelegate next)
     {
         var fila = context.HttpContext.RequestServices.GetRequiredService<IFilaProcessamentoService>();
         string usuario = context.HttpContext.ObterUsuarioSessao();

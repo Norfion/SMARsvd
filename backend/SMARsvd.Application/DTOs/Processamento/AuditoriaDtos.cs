@@ -1,22 +1,51 @@
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace SMARsvd.Application.DTOs.Processamento;
 
 public class ConfiguracaoBancoDto
 {
+    [MaxLength(50)]
     public string Provedor { get; set; } = "SQL Server";
+
+    [MaxLength(255)]
     public string Servidor { get; set; } = string.Empty;
+
+    [Range(0, 65535)]
     public int Porta { get; set; } = 1433;
+
+    [MaxLength(128)]
     public string BaseDados { get; set; } = string.Empty;
+
+    [MaxLength(128)]
     public string Usuario { get; set; } = string.Empty;
+
+    [MaxLength(512)]
     public string? Senha { get; set; }
+}
+
+public enum TipoParametroSql
+{
+    Texto,
+    Inteiro,
+    Decimal
+}
+
+public class ParametroSqlDto
+{
+    public string Nome { get; set; } = string.Empty;
+    // Inteiro e Decimal ficam no formato invariante; nulo é enviado como NULL
+    public string? Valor { get; set; }
+    public TipoParametroSql Tipo { get; set; }
 }
 
 public class QueryMontadaDto
 {
     public string NomeQuery { get; set; } = string.Empty;
     public string SqlOriginal { get; set; } = string.Empty;
+    // Apenas para exibição ao usuário; o que vai ao banco é SqlParametrizado com ParametrosSql
     public string SqlRenderizado { get; set; } = string.Empty;
+    public string SqlParametrizado { get; set; } = string.Empty;
+    public List<ParametroSqlDto> ParametrosSql { get; set; } = new();
     public Dictionary<string, string> Parametros { get; set; } = new();
 
     // Preenchido quando algum campo usado na consulta tem valor inválido; nesse caso a consulta não é executada
