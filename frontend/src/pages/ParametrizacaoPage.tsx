@@ -9,6 +9,10 @@ import { Painel } from "../components/Painel";
 import { processarArquivoPdfModelo } from "../utils/pdfModelReader";
 import { gerarId } from "../utils/gerarId";
 import {
+  exportarArquivoLayout,
+  lerArquivoLayout,
+} from "../utils/arquivoLayout";
+import {
   OPCOES_TIPO_DADO,
   TipoClassificacaoCampo,
   TipoDadoCampo,
@@ -49,13 +53,54 @@ interface ParametrizacaoPageProps {
   layoutsSalvos: LayoutCliente[];
   onSalvarLayouts: (layouts: LayoutCliente[]) => void;
   onExcluirLayout?: (idOuNome: string, senhaExclusao: string) => Promise<void>;
+  onImportarLayout: (layout: LayoutCliente) => Promise<LayoutCliente[]>;
   onHouveAlteracaoChange?: (houveAlteracao: boolean) => void;
 }
+
+const obterMensagemErroImportacao = (erro: unknown): string => {
+  if (!axios.isAxiosError(erro)) {
+    return erro instanceof Error
+      ? erro.message
+      : "Falha desconhecida na leitura do arquivo.";
+  }
+
+  if (erro.response?.status === 413) {
+    return "O layout é grande demais para ser salvo. Reduza a quantidade de páginas do modelo de referência e exporte-o novamente.";
+  }
+
+  const dados = erro.response?.data as
+    | {
+        mensagem?: string;
+        erros?: { linha: number; coluna: number; mensagem: string }[];
+        errors?: Record<string, string[]>;
+      }
+    | undefined;
+
+  if (dados?.mensagem) {
+    const detalhes = (dados.erros ?? []).map(
+      (e) => `• Linha ${e.linha}, coluna ${e.coluna}: ${e.mensagem}`,
+    );
+    return [dados.mensagem, ...detalhes].join("\n");
+  }
+
+  if (dados?.errors) {
+    const detalhes = Object.values(dados.errors)
+      .flat()
+      .map((mensagem) => `• ${mensagem}`);
+    return [
+      "O arquivo contém valores fora dos limites permitidos:",
+      ...detalhes,
+    ].join("\n");
+  }
+
+  return "Não foi possível salvar o layout importado. Tente novamente.";
+};
 
 export function ParametrizacaoPage({
   layoutsSalvos,
   onSalvarLayouts,
   onExcluirLayout,
+  onImportarLayout,
   onHouveAlteracaoChange,
 }: ParametrizacaoPageProps) {
   const CLIENTES_DISPONIVEIS = [
@@ -96,6 +141,8 @@ export function ParametrizacaoPage({
   const [modalNovoLayoutAberto, setModalNovoLayoutAberto] = useState(false);
   const [carregandoPdfModelo, setCarregandoPdfModelo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [importandoLayout, setImportandoLayout] = useState(false);
+  const arquivoLayoutInputRef = useRef<HTMLInputElement | null>(null);
 
   const [criandoNovoLayout, setCriandoNovoLayout] = useState(false);
   const [dadosOriginaisJson, setDadosOriginaisJson] = useState<string>("");
@@ -433,6 +480,11 @@ export function ParametrizacaoPage({
     const layout = layoutsSalvos.find((l) => l.nomeModelo === nomeLayout);
     if (!layout) return;
 
+    aplicarLayout(layout);
+  };
+
+  const aplicarLayout = (layout: LayoutCliente) => {
+    setCriandoNovoLayout(false);
     setLayoutId(layout.id);
     setLayoutSelecionadoId(layout.nomeModelo);
     setCliente(layout.cliente);
@@ -488,6 +540,100 @@ export function ParametrizacaoPage({
     setPaginaCampo(1);
     cancelarEdicaoCampo();
     cancelarEdicaoQuery();
+  };
+
+  const exportarLayoutAtual = () => {
+    const layout = layoutsSalvos.find((l) => l.nomeModelo === layoutSelecionadoId);
+    if (!layout) {
+      exibirMensagem(
+        "aviso",
+        "Layout Inválido",
+        "Selecione um layout salvo antes de exportar.",
+      );
+      return;
+    }
+
+    exportarArquivoLayout(layout);
+  };
+
+  const dispararImportacaoLayout = () => {
+    setModalNovoLayoutAberto(false);
+    if (arquivoLayoutInputRef.current) {
+      arquivoLayoutInputRef.current.value = "";
+      arquivoLayoutInputRef.current.click();
+    }
+  };
+
+  const executarImportacaoLayout = async (
+    layoutImportado: LayoutCliente,
+    idLayoutExistente?: string,
+  ) => {
+    try {
+      setImportandoLayout(true);
+      const listaAtualizada = await onImportarLayout({
+        ...layoutImportado,
+        id: idLayoutExistente,
+      });
+
+      const nomeBusca = layoutImportado.nomeModelo.toLowerCase();
+      const layoutSalvo = listaAtualizada.find(
+        (l) => l.nomeModelo.trim().toLowerCase() === nomeBusca,
+      );
+      if (layoutSalvo) aplicarLayout(layoutSalvo);
+
+      exibirMensagem(
+        "sucesso",
+        idLayoutExistente ? "Layout Atualizado" : "Layout Importado",
+        idLayoutExistente
+          ? `O layout "${layoutImportado.nomeModelo}" foi atualizado com as configurações do arquivo.`
+          : `O layout "${layoutImportado.nomeModelo}" foi importado e criado com sucesso!`,
+      );
+    } catch (erro: unknown) {
+      exibirMensagem(
+        "erro",
+        "Falha na Importação",
+        obterMensagemErroImportacao(erro),
+      );
+    } finally {
+      setImportandoLayout(false);
+    }
+  };
+
+  const lidarComArquivoLayout = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+
+    let layoutImportado: LayoutCliente;
+    try {
+      layoutImportado = await lerArquivoLayout(arquivo);
+    } catch (erro: unknown) {
+      exibirMensagem(
+        "erro",
+        "Arquivo Inválido",
+        obterMensagemErroImportacao(erro),
+      );
+      return;
+    }
+
+    // O seletor de layouts identifica cada layout pelo nome, por isso a comparação ignora o cliente
+    const nomeBusca = layoutImportado.nomeModelo.toLowerCase();
+    const layoutExistente = layoutsSalvos.find(
+      (l) => l.nomeModelo.trim().toLowerCase() === nomeBusca,
+    );
+
+    if (!layoutExistente) {
+      void executarImportacaoLayout(layoutImportado);
+      return;
+    }
+
+    exibirConfirmacao(
+      "Layout já existe",
+      `O layout "${layoutExistente.nomeModelo}" (${layoutExistente.cliente}) já existe neste computador.\n\nDeseja atualizar o layout existente, sobrescrevendo todas as configurações dele pelas do arquivo?\n\nEsse processo não poderá ser desfeito.`,
+      () => void executarImportacaoLayout(layoutImportado, layoutExistente.id),
+      "Sobrescrever",
+    );
   };
 
   const salvarTudo = () => {
@@ -1041,6 +1187,13 @@ export function ParametrizacaoPage({
         onChange={lidarComArquivoModelo}
         className="d-none"
       ></input>
+      <input
+        ref={arquivoLayoutInputRef}
+        type="file"
+        accept=".json,application/json"
+        onChange={lidarComArquivoLayout}
+        className="d-none"
+      ></input>
 
       <div className="col">
         <div className="box-form-cadastro">
@@ -1094,6 +1247,24 @@ export function ParametrizacaoPage({
                 )}
 
                 {!criandoNovoLayout && (
+                  <button
+                    type="button"
+                    onClick={exportarLayoutAtual}
+                    disabled={!layoutSelecionadoId || houveAlteracao}
+                    title={
+                      !layoutSelecionadoId
+                        ? "Selecione um layout para exportar"
+                        : houveAlteracao
+                          ? "Salve as alterações antes de exportar o layout"
+                          : `Exportar o layout "${layoutSelecionadoId}" para um arquivo`
+                    }
+                    className="btn btn-primary ml-2"
+                  >
+                    <i className="fas fa-file-export"></i> Exportar
+                  </button>
+                )}
+
+                {!criandoNovoLayout && (
                   <div
                     className="dropdown-hover ml-2"
                     onMouseEnter={() => setModalNovoLayoutAberto(true)}
@@ -1101,17 +1272,19 @@ export function ParametrizacaoPage({
                   >
                     <button
                       type="button"
-                      disabled={carregandoPdfModelo}
+                      disabled={carregandoPdfModelo || importandoLayout}
                       className="btn btn-primary"
                     >
                       <i
                         className={
-                          carregandoPdfModelo
+                          carregandoPdfModelo || importandoLayout
                             ? "fas fa-spinner fa-spin"
                             : "fas fa-plus"
                         }
                       ></i>{" "}
-                      {carregandoPdfModelo ? "Processando..." : "Novo"}{" "}
+                      {carregandoPdfModelo || importandoLayout
+                        ? "Processando..."
+                        : "Novo"}{" "}
                       <i className="fas fa-caret-down"></i>
                     </button>
                     {modalNovoLayoutAberto && (
@@ -1128,6 +1301,13 @@ export function ParametrizacaoPage({
                         >
                           <i className="fas fa-file-import"></i>Importar modelo
                           (PDF)
+                        </a>
+                        <a
+                          className="dropdown-item"
+                          onClick={dispararImportacaoLayout}
+                        >
+                          <i className="fas fa-file-code"></i>Importar layout
+                          (JSON)
                         </a>
                       </div>
                     )}

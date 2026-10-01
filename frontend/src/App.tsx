@@ -212,6 +212,16 @@ export function App() {
     }
   };
 
+  // A falha da importação (query inválida, por exemplo) é repassada para a tela exibir o motivo
+  const lidarComImportarLayout = async (
+    layoutImportado: LayoutCliente,
+  ): Promise<LayoutCliente[]> => {
+    await layoutService.salvar(layoutImportado);
+    const listaAtualizada = await layoutService.listarTodos();
+    setLayoutsSalvos(listaAtualizada);
+    return listaAtualizada;
+  };
+
   // A falha da exclusão (senha incorreta, por exemplo) é repassada para a tela exibir o motivo
   const lidarComExcluirLayout = async (
     idParaExcluir: string,
@@ -293,6 +303,7 @@ export function App() {
             layoutsSalvos={layoutsSalvos}
             onSalvarLayouts={lidarComSalvarLayouts}
             onExcluirLayout={lidarComExcluirLayout}
+            onImportarLayout={lidarComImportarLayout}
             onHouveAlteracaoChange={setTemAlteracoesPendentesParametrizacao}
           ></ParametrizacaoPage>
         )}

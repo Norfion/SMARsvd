@@ -1,6 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import logoImg from "../assets/logo-smartb.png";
-import { NOME_MODULO, NOME_SISTEMA } from "../constants/identificacaoSistema";
+import {
+  NOME_MODULO,
+  NOME_SISTEMA,
+  VERSAO_SISTEMA,
+} from "../constants/identificacaoSistema";
 
 export interface ItemMenuLateral<T extends string> {
   chave: T;
@@ -50,6 +54,14 @@ export function LayoutSistema<T extends string>({
           <a onClick={aoClicarLogo}>
             <img alt={NOME_SISTEMA} src={logoImg} />
           </a>
+        </div>
+
+        <div
+          className="header-versao"
+          title="Sistema em fase de testes (beta): podem ocorrer instabilidades"
+        >
+          <span className="header-versao-fase">FASE DE TESTES</span>
+          <span className="header-versao-numero">Versão {VERSAO_SISTEMA}</span>
         </div>
 
         {aoAbrirTutorial && (

@@ -118,12 +118,15 @@ Esta tela é usada para criar e manter os **layouts**. Normalmente é feita uma 
 1. **Criar um layout:** clique em **Novo** e escolha entre:
    - **Importar modelo (PDF):** envie um exemplo do carnê (até 10 páginas e 20 MB). O sistema mostra as páginas na tela e detecta sozinho o tamanho do papel.
    - **Criar manualmente:** informe as medidas da página sem usar um exemplo.
+   - **Importar layout (JSON):** carregue um arquivo gerado pelo botão **Exportar** em outro computador. Se ainda não existir um layout com o mesmo nome, ele é criado; se já existir, o sistema pergunta se o layout existente deve ser atualizado (sobrescrito) com as configurações do arquivo.
 2. **Configurações do documento:** escolha a prefeitura (cliente), dê um nome ao layout e confira a largura e a altura da página.
 3. **Mapeamento dos campos:** com o mouse, desenhe retângulos sobre as áreas do documento onde estão as informações. Para cada retângulo, escolha o tipo de campo, dê um nome e preencha as opções necessárias. É possível navegar entre as páginas, aproximar ou afastar a imagem e ajustar a transparência do modelo.
 4. **Regras de validação:** para cada conferência desejada, escreva a consulta que busca o valor correto no banco de dados, usando os campos lidos do documento como referência (por exemplo, `$Inscricao`). Depois clique em **Analisar**: o sistema verifica se a consulta é segura e válida e mostra quais informações ela devolve. Por fim, indique qual informação do banco deve ser comparada com qual campo do documento.
 5. **Salvar.** O layout fica guardado e disponível para todos os usuários que usam o mesmo banco interno (no aplicativo desktop, os que usam a mesma pasta `SMARsvd`).
 
 Se a pessoa tentar sair da tela com alterações não salvas, o sistema avisa antes que elas sejam perdidas.
+
+**Compartilhar um layout com outro computador:** selecione o layout salvo e clique em **Exportar**. É gerado o arquivo `SMARsvd_layout_<nome do layout>.json`, com todas as configurações (dimensões, campos, consultas, regras de validação e as páginas do modelo de referência). Basta enviar esse arquivo para a outra pessoa, que o carrega em **Novo > Importar layout (JSON)**. As senhas e os dados de conexão com o banco não fazem parte do layout e nunca são exportados.
 
 ### 3. Validação — conferir um arquivo
 
@@ -247,6 +250,7 @@ SMARsvd/
 │   └── SMARsvd.IA/               Arquivo de aprendizado do OCR para a língua portuguesa
 │
 ├── desktop/SMARsvd.Desktop/      Executável SMARsvd.exe: abre o sistema numa janela própria e inicia o servidor
+├── scripts/iniciar.ps1           Coloca o sistema no ar pelo código-fonte e o encerra ao fechar a janela
 ├── scripts/empacotar.ps1         Gera o pacote portátil para distribuição (dist/SMARsvd)
 ├── empacotar.cmd                 Atalho para executar o script de empacotamento com duplo clique
 │
@@ -324,7 +328,22 @@ O banco de dados interno não é enviado ao repositório. O comando `dotnet ef d
 
 ### Colocando o sistema no ar (desenvolvimento ou servidor compartilhado)
 
-São necessários dois terminais, um para cada parte:
+**Pelo atalho (recomendado):** execute uma única vez o comando abaixo, que cria o atalho **SMARsvd (desenvolvimento)** na Área de Trabalho:
+
+```powershell
+.\scripts\iniciar.ps1 -CriarAtalho
+```
+
+Ao abrir o atalho, o script `scripts/iniciar.ps1`:
+
+- instala as dependências da interface, se ainda não estiverem instaladas, e confere se as portas `5224` e `5173` estão livres (se não estiverem, informa qual programa as ocupa);
+- inicia o servidor (`dotnet run`) e a interface (`npm run dev`) num único terminal, com as mensagens identificadas por `[servidor]` e `[interface]`;
+- quando os dois estão no ar, abre o sistema numa janela própria do navegador (Chrome ou Edge, conforme o navegador padrão, em modo aplicativo e com um perfil exclusivo) e minimiza o terminal;
+- ao fechar a janela do sistema, encerra o servidor e a interface, apaga os arquivos de trabalho de `database/temp/` e fecha o terminal. Fechar o terminal (ou pressionar `Ctrl+C` nele) também encerra tudo, inclusive a janela do sistema.
+
+Se o atalho for aberto com o sistema já em execução, apenas uma nova janela do sistema é aberta.
+
+**Manualmente:** são necessários dois terminais, um para cada parte:
 
 **Servidor:**
 
@@ -418,4 +437,5 @@ No aplicativo desktop, esse arquivo fica em `SMARsvd/app/servidor/appsettings.js
 - **Nomes em português:** telas, variáveis, funções e mensagens seguem o português, acompanhando o restante do código.
 - **Tags sempre fechadas:** nas telas, todas as tags devem ter fechamento explícito (ex.: `<input></input>`, `<button></button>`).
 - **Alterações pontuais:** prefira modificar apenas o necessário, sem reescrever arquivos inteiros sem motivo.
+- **Versão do sistema:** é definida em um único lugar, a tag `<Version>` do arquivo `Directory.Build.props` (raiz do repositório). Ela vale para o `SMARsvd.exe` e o servidor, e é a mesma exibida no topo da tela.
 - **Estrutura do banco interno:** qualquer mudança nas entidades do servidor deve vir acompanhada de uma nova *migration* do Entity Framework (pasta `backend/SMARsvd.Infrastructure/Migrations`).

@@ -22,7 +22,9 @@ internal sealed class JanelaPrincipal : Form
         _servidor.EncerradoInesperadamente += (_, _) => ExecutarNaJanela(AoPerderServidor);
 
         Text = TituloPadrao;
-        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        // O ícone associado ao executável só traz a versão 32x32, que fica borrada na barra de tarefas com escala acima de 100%
+        using (var arquivoIcone = typeof(JanelaPrincipal).Assembly.GetManifestResourceStream("SMARsvd.ico")!)
+            Icon = new Icon(arquivoIcone);
         StartPosition = FormStartPosition.CenterScreen;
         Size = new Size(1366, 800);
         MinimumSize = new Size(1024, 640);

@@ -34,6 +34,35 @@
   }
 }
 
+// Aviso de versão beta, centralizado no cabeçalho
+.header-versao {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: normal;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.header-versao-fase {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #fff;
+  background-color: $brand-warning;
+  @include arredondar(4px);
+}
+
+.header-versao-numero {
+  font-size: 13px;
+  font-weight: bold;
+  color: $brand-primary;
+}
+
 .btn-tutorial {
   padding: 4px 12px;
   vertical-align: middle;
